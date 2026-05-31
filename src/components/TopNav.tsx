@@ -11,9 +11,9 @@ const navItems = ['Workspace', 'Projects', 'Assets', 'Capabilities'] as const
 export type TopNavItem = (typeof navItems)[number]
 
 const navItemLabels: Record<TopNavItem, string> = {
-  Workspace: '工作区',
-  Projects: '项目',
-  Assets: '资产',
+  Workspace: 'Workspace',
+  Projects: 'Projects',
+  Assets: 'Assets',
   Capabilities: 'Capabilities',
 }
 

@@ -15,15 +15,17 @@ afterEach(() => {
 })
 
 describe('TopNav', () => {
-  it('uses Chinese labels except the Capabilities platform term', () => {
+  it('uses English labels for the top-level navigation titles', () => {
     const { container, root } = renderTopNav()
 
     expect(container.textContent).toContain('Capabilities')
-    expect(container.textContent).toContain('工作区')
-    expect(container.textContent).toContain('项目')
-    expect(container.textContent).toContain('资产')
+    expect(container.textContent).toContain('Workspace')
+    expect(container.textContent).toContain('Projects')
+    expect(container.textContent).toContain('Assets')
+    expect(container.textContent).not.toContain('工作区')
+    expect(container.textContent).not.toContain('项目')
+    expect(container.textContent).not.toContain('资产')
     expect(container.textContent).not.toContain('Pipelines')
-    expect(container.textContent).not.toContain('Workspace')
 
     root.unmount()
   })
@@ -38,10 +40,10 @@ describe('TopNav', () => {
     expect(getButton(container, 'Capabilities').getAttribute('aria-current')).toBe(
       'page',
     )
-    expect(getButton(container, '工作区').getAttribute('aria-current')).toBeNull()
+    expect(getButton(container, 'Workspace').getAttribute('aria-current')).toBeNull()
 
     act(() => {
-      getButton(container, '工作区').click()
+      getButton(container, 'Workspace').click()
     })
 
     expect(onNavigate).toHaveBeenCalledWith('Workspace')
