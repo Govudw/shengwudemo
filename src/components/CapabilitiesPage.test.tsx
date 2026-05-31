@@ -54,6 +54,23 @@ describe('CapabilitiesPage', () => {
     root.unmount()
   })
 
+  it('matches the compact workspace title bar sizing', async () => {
+    const appCss = await readAppCss()
+
+    expect(getCssRule(appCss, '.capabilities-header')).toContain(
+      'min-height: 52px;',
+    )
+    expect(getCssRule(appCss, '.capabilities-header')).toContain(
+      'padding: 0 34px;',
+    )
+    expect(getCssRule(appCss, '.capabilities-header h1')).toContain(
+      'font-size: 24px;',
+    )
+    expect(
+      getCssRule(appCss, '.capabilities-header .capabilities-primary-action'),
+    ).toContain('min-height: 34px;')
+  })
+
   it('supports Codex-style Skill browsing, details, toggles, and build action', () => {
     const onNotify = vi.fn()
     const { container, root } = renderCapabilitiesPage({ onNotify })
@@ -184,13 +201,35 @@ function getCapabilitiesHeader(container: HTMLElement) {
 }
 
 function getHeaderTitle(container: HTMLElement) {
+  return getHeaderTitleElement(container).textContent
+}
+
+function getHeaderTitleElement(container: HTMLElement) {
   const heading = getCapabilitiesHeader(container).querySelector('h1')
 
   if (!heading) {
     throw new Error('Capabilities header title not found')
   }
 
-  return heading.textContent
+  return heading
+}
+
+async function readAppCss() {
+  // @ts-expect-error Vitest runs this test in Node, while app tsconfig omits Node built-in types.
+  const { readFileSync } = await import('node:fs')
+
+  return readFileSync('src/App.css', 'utf8') as string
+}
+
+function getCssRule(appCss: string, selector: string) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = appCss.match(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`))
+
+  if (!match) {
+    throw new Error(`CSS rule not found: ${selector}`)
+  }
+
+  return match[1]
 }
 
 function getButtonContaining(container: HTMLElement, text: string) {
