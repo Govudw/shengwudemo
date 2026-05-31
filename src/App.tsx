@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import Composer from './components/Composer'
+import CapabilitiesPage from './components/CapabilitiesPage'
 import Sidebar from './components/Sidebar'
 import ThreadWorkspace from './components/ThreadWorkspace'
 import TopNav from './components/TopNav'
@@ -186,11 +187,7 @@ function App() {
           </main>
         </div>
       ) : (
-        <main className="workspace-main" aria-label="Capabilities management">
-          <section className="workspace-inner">
-            <h1>Capabilities</h1>
-          </section>
-        </main>
+        <CapabilitiesPage onNotify={showStatus} />
       )}
     </div>
   )
