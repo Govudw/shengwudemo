@@ -142,6 +142,82 @@ describe('demo store logic', () => {
     })
   })
 
+  it('seeds the IL-17A analysis-design Thread without changing the New Thread Draft default', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const il17aThread = findThreadById(state.projects, 'il17a-affinity-design')?.thread
+    const blocks = il17aThread?.transcript.flatMap((turn) => turn.contentBlocks ?? []) ?? []
+    const scientificFigures = blocks.filter(
+      (block) => block.type === 'scientificFigure',
+    )
+
+    expect(state.selectedThreadId).toBeNull()
+    expect(state.isDraftingNewThread).toBe(true)
+    expect(il17aThread?.title).toBe('IL-17A 亲和力成熟实验设计')
+    expect(il17aThread?.transcript).toHaveLength(19)
+    expect(il17aThread?.transcript.filter((turn) => turn.role === 'user')).toHaveLength(4)
+    expect(scientificFigures).toHaveLength(5)
+    expect(
+      scientificFigures.every(
+        (block) => block.width > 0 && block.height > 0 && Boolean(block.src),
+      ),
+    ).toBe(true)
+    expect(blocks.filter((block) => block.type === 'approvalRequestReplay')).toHaveLength(0)
+    expect(blocks.filter((block) => block.type === 'approvalGatePreview')).toHaveLength(0)
+    expect(blocks.filter((block) => block.type === 'elapsedWorkReplay')).toHaveLength(0)
+  })
+
+  it('seeds structured Run Inspector data for the IL-17A analysis design replay', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const il17aThread = findThreadById(state.projects, 'il17a-affinity-design')?.thread
+    const runInspector = il17aThread?.runInspector
+
+    expect(runInspector?.summary).toMatchObject({
+      stage: '实验前分析设计完成',
+      status: 'completed',
+      completedSteps: 7,
+      totalSteps: 7,
+      outputCount: 4,
+      pendingCount: 0,
+    })
+    expect(runInspector?.progress).toHaveLength(7)
+    expect(runInspector?.outputs).toHaveLength(4)
+    expect(runInspector?.outputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'IL17A_affinity_maturation_design_package.md',
+          kind: 'report',
+        }),
+        expect.objectContaining({
+          name: 'IL17A_library_design_matrix.csv',
+          kind: 'dataset',
+        }),
+        expect.objectContaining({
+          name: 'IL17A_assay_readout_plan.xlsx',
+          kind: 'projectFile',
+        }),
+        expect.objectContaining({
+          name: 'IL17A_scientific_figures.png',
+          kind: 'figure',
+        }),
+      ]),
+    )
+    expect(runInspector?.approvals).toEqual([
+      expect.objectContaining({
+        kind: 'humanConfirmation',
+        title: '确认 Experiment Design Package',
+        status: 'confirmed',
+      }),
+    ])
+    expect(runInspector?.capabilityRuns).toHaveLength(8)
+    expect(
+      runInspector?.capabilityRuns.every(
+        (run) =>
+          !JSON.stringify(run.output).includes('predictedWinner') &&
+          !JSON.stringify(run.output).includes('provenCause'),
+      ),
+    ).toBe(true)
+  })
+
   it('toggles Run Inspector open state and clears it when a Thread is deleted', () => {
     const state = createInitialDemoState(seedProjects, now)
 
