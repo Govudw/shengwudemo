@@ -75,7 +75,7 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
   const [selectedByKind, setSelectedByKind] = useState<
     Record<CapabilityEntryKind, string>
   >(() => getInitialSelectedIds())
-  const [skillDialogId, setSkillDialogId] = useState<string | null>(null)
+  const [dialogEntryId, setDialogEntryId] = useState<string | null>(null)
   const [enabledById, setEnabledById] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
       capabilityEntries
@@ -121,9 +121,9 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
     visibleEntries.find((entry) => entry.id === selectedByKind[activeKind]) ??
     visibleEntries[0]
 
-  const openSkill =
+  const openDialogEntry =
     capabilityEntries.find(
-      (entry) => entry.kind === 'skill' && entry.id === skillDialogId,
+      (entry) => entry.kind !== 'pipeline' && entry.id === dialogEntryId,
     ) ?? null
 
   function handleKindChange(kind: CapabilityEntryKind) {
@@ -131,7 +131,7 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
     setQuery('')
     setSourceFilter('all')
     setStatusFilter('all')
-    setSkillDialogId(null)
+    setDialogEntryId(null)
   }
 
   function handleSelectEntry(entry: MockCapabilityEntry) {
@@ -158,8 +158,8 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
       <aside
         className="capabilities-nav"
         aria-label="Capability types"
-        aria-hidden={openSkill ? true : undefined}
-        inert={openSkill ? true : undefined}
+        aria-hidden={openDialogEntry ? true : undefined}
+        inert={openDialogEntry ? true : undefined}
       >
         <div className="capabilities-nav__header">
           <span className="capabilities-nav__label">Capabilities</span>
@@ -207,8 +207,8 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
 
       <section
         className="capabilities-workspace"
-        aria-hidden={openSkill ? true : undefined}
-        inert={openSkill ? true : undefined}
+        aria-hidden={openDialogEntry ? true : undefined}
+        inert={openDialogEntry ? true : undefined}
       >
         <header className="capabilities-header">
           <div className="capabilities-header__copy">
@@ -274,14 +274,7 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
           </select>
         </div>
 
-        {activeKind === 'skill' ? (
-          <SkillList
-            entries={visibleEntries}
-            enabledById={enabledById}
-            onOpen={setSkillDialogId}
-            onToggle={handleSkillSwitch}
-          />
-        ) : (
+        {activeKind === 'pipeline' ? (
           <CapabilityInspectorLayout
             entries={visibleEntries}
             selectedEntry={selectedEntry}
@@ -289,17 +282,25 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
             onSelect={handleSelectEntry}
             onNotify={onNotify}
           />
+        ) : (
+          <CapabilityBoardList
+            entries={visibleEntries}
+            activeKind={activeKind}
+            enabledById={enabledById}
+            onOpen={setDialogEntryId}
+            onToggle={handleSkillSwitch}
+          />
         )}
       </section>
 
-      {openSkill ? (
-        <SkillDialog
-          entry={openSkill}
-          enabled={Boolean(enabledById[openSkill.id])}
+      {openDialogEntry ? (
+        <CapabilityDialog
+          entry={openDialogEntry}
+          enabled={Boolean(enabledById[openDialogEntry.id])}
           onToggle={(enabled, event) =>
-            handleSkillSwitch(openSkill, enabled, event)
+            handleSkillSwitch(openDialogEntry, enabled, event)
           }
-          onClose={() => setSkillDialogId(null)}
+          onClose={() => setDialogEntryId(null)}
           onNotify={onNotify}
         />
       ) : null}
@@ -307,13 +308,15 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
   )
 }
 
-function SkillList({
+function CapabilityBoardList({
   entries,
+  activeKind,
   enabledById,
   onOpen,
   onToggle,
 }: {
   entries: MockCapabilityEntry[]
+  activeKind: CapabilityEntryKind
   enabledById: Record<string, boolean>
   onOpen: (id: string) => void
   onToggle: (
@@ -327,9 +330,13 @@ function SkillList({
   }
 
   return (
-    <div className="capabilities-skill-list" aria-label="Skill 列表">
+    <div
+      className="capabilities-skill-list"
+      aria-label={`${capabilityTypeLabels[activeKind]} 列表`}
+    >
       {entries.map((entry) => {
         const enabled = Boolean(enabledById[entry.id])
+        const showsSwitch = entry.kind === 'skill'
 
         return (
           <div
@@ -357,13 +364,17 @@ function SkillList({
             <span className="capabilities-skill-row__source">
               {sourceLabels[entry.source]}
             </span>
-            <SwitchControl
-              label={`主 Agent 启用：${entry.name}`}
-              checked={enabled}
-              onChange={(nextChecked, event) =>
-                onToggle(entry, nextChecked, event)
-              }
-            />
+            {showsSwitch ? (
+              <SwitchControl
+                label={`主 Agent 启用：${entry.name}`}
+                checked={enabled}
+                onChange={(nextChecked, event) =>
+                  onToggle(entry, nextChecked, event)
+                }
+              />
+            ) : (
+              <StatusBadge status={entry.status} />
+            )}
           </div>
         )
       })}
@@ -567,7 +578,7 @@ function DetailPanel({
   )
 }
 
-function SkillDialog({
+function CapabilityDialog({
   entry,
   enabled,
   onToggle,
@@ -589,12 +600,12 @@ function SkillDialog({
         className="capabilities-skill-modal"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="skill-dialog-title"
+        aria-labelledby="capability-dialog-title"
       >
         <button
           type="button"
           className="dialog-close capabilities-skill-modal__close"
-          aria-label="关闭 Skill 详情"
+          aria-label="关闭详情"
           onClick={onClose}
         >
           ×
@@ -605,16 +616,18 @@ function SkillDialog({
             <PackageIcon className="capabilities-icon" />
           </span>
           <div className="capabilities-skill-modal__title-row">
-            <h2 id="skill-dialog-title">{entry.name}</h2>
-            <span>Skill</span>
+            <h2 id="capability-dialog-title">{entry.name}</h2>
+            <span>{singularKindLabels[entry.kind]}</span>
           </div>
           <p>{entry.description}</p>
           <div className="capabilities-skill-modal__controls">
-            <SwitchControl
-              label={`主 Agent 启用：${entry.name}`}
-              checked={enabled}
-              onChange={onToggle}
-            />
+            {entry.kind === 'skill' ? (
+              <SwitchControl
+                label={`主 Agent 启用：${entry.name}`}
+                checked={enabled}
+                onChange={onToggle}
+              />
+            ) : null}
             <button
               type="button"
               className="capabilities-icon-button"
@@ -629,30 +642,40 @@ function SkillDialog({
         </div>
 
         <div className="capabilities-skill-modal__body">
-          <DetailSection title="指令">
-            <InstructionBlock items={entry.instructions ?? []} />
-          </DetailSection>
-          <DetailSection title="触发条件">
-            <ul className="capabilities-inline-list">
-              {(entry.triggers ?? []).map((trigger) => (
-                <li key={trigger}>{trigger}</li>
-              ))}
-            </ul>
-          </DetailSection>
-          <DetailSection title="示例">
-            <ul className="capabilities-detail-list">
-              {(entry.examples ?? []).map((example) => (
-                <li key={example}>{example}</li>
-              ))}
-            </ul>
-          </DetailSection>
-          <DetailSection title="访问控制">
-            <DetailColumn label="权限" items={entry.interface.permissions} />
-          </DetailSection>
+          {entry.kind === 'skill' ? (
+            <>
+              <DetailSection title="指令">
+                <InstructionBlock items={entry.instructions ?? []} />
+              </DetailSection>
+              <DetailSection title="触发条件">
+                <ul className="capabilities-inline-list">
+                  {(entry.triggers ?? []).map((trigger) => (
+                    <li key={trigger}>{trigger}</li>
+                  ))}
+                </ul>
+              </DetailSection>
+              <DetailSection title="示例">
+                <ul className="capabilities-detail-list">
+                  {(entry.examples ?? []).map((example) => (
+                    <li key={example}>{example}</li>
+                  ))}
+                </ul>
+              </DetailSection>
+              <DetailSection title="访问控制">
+                <DetailColumn label="权限" items={entry.interface.permissions} />
+              </DetailSection>
+            </>
+          ) : (
+            <CapabilityDialogDetails entry={entry} />
+          )}
         </div>
 
         <footer className="capabilities-skill-modal__footer">
-          {!entry.presetLocked ? (
+          {entry.kind !== 'skill' ? (
+            <span className="capabilities-skill-modal__locked">
+              {statusLabels[entry.status]}
+            </span>
+          ) : !entry.presetLocked ? (
             <button
               type="button"
               className="capabilities-danger-action"
@@ -671,14 +694,72 @@ function SkillDialog({
             type="button"
             className="capabilities-primary-dark-action"
             onClick={() =>
-              onNotify(`${entry.name} 会在后续演示中进入对话试用`)
+              onNotify(getDialogActionMessage(entry))
             }
           >
-            在对话中试用
+            {getDialogActionLabel(entry)}
           </button>
         </footer>
       </section>
     </div>
+  )
+}
+
+function CapabilityDialogDetails({ entry }: { entry: MockCapabilityEntry }) {
+  return (
+    <>
+      <DetailSection title="接口">
+        <DetailColumn label="输入" items={entry.interface.inputs} />
+        <DetailColumn label="输出" items={entry.interface.outputs} />
+        <DetailColumn label="权限" items={entry.interface.permissions} />
+      </DetailSection>
+
+      {entry.kind === 'mcp-server' && entry.tools?.length ? (
+        <DetailSection title="工具">
+          <ul className="capabilities-detail-list">
+            {entry.tools.map((tool) => (
+              <li key={tool}>{tool}</li>
+            ))}
+          </ul>
+        </DetailSection>
+      ) : null}
+
+      {entry.kind === 'plugin' ? (
+        <DetailSection title="Plugin 预览">
+          <ul className="capabilities-detail-list">
+            <li>{entry.placeholderState ?? '仅预览'}</li>
+          </ul>
+        </DetailSection>
+      ) : null}
+
+      {entry.resources?.length ? (
+        <DetailSection title="资源">
+          <ul className="capabilities-inline-list">
+            {entry.resources.map((resource) => (
+              <li key={resource}>{resource}</li>
+            ))}
+          </ul>
+        </DetailSection>
+      ) : null}
+
+      {entry.sections.map((section) => (
+        <DetailSection key={section.title} title={section.title}>
+          <ul className="capabilities-detail-list">
+            {section.items.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </DetailSection>
+      ))}
+
+      <DetailSection title="近期活动">
+        <ul className="capabilities-detail-list">
+          {entry.recentActivity.map((activity) => (
+            <li key={activity}>{activity}</li>
+          ))}
+        </ul>
+      </DetailSection>
+    </>
   )
 }
 
@@ -806,6 +887,30 @@ function getInitialSelectedIds(): Record<CapabilityEntryKind, string> {
       capabilityEntries.find((entry) => entry.kind === kind)?.id ?? '',
     ]),
   ) as Record<CapabilityEntryKind, string>
+}
+
+function getDialogActionLabel(entry: MockCapabilityEntry) {
+  if (entry.kind === 'mcp-server') {
+    return '查看连接设置'
+  }
+
+  if (entry.kind === 'plugin') {
+    return '申请权限'
+  }
+
+  return '在对话中试用'
+}
+
+function getDialogActionMessage(entry: MockCapabilityEntry) {
+  if (entry.kind === 'mcp-server') {
+    return `${entry.name} 的连接设置会在后续演示中展开`
+  }
+
+  if (entry.kind === 'plugin') {
+    return `${entry.name} 的权限申请会在后续演示中展开`
+  }
+
+  return `${entry.name} 会在后续演示中进入对话试用`
 }
 
 export default CapabilitiesPage

@@ -88,6 +88,49 @@ describe('CapabilitiesPage', () => {
 
     root.unmount()
   })
+
+  it('shows MCP and Plugin with the same wide list and modal pattern as Skill', () => {
+    const { container, root } = renderCapabilitiesPage()
+
+    act(() => {
+      getButtonContaining(container, 'MCP Server').click()
+    })
+
+    expect(container.querySelector('.capabilities-skill-list')).not.toBeNull()
+    expect(container.querySelector('.capabilities-browser')).toBeNull()
+    expect(container.textContent).toContain('BioMap 结构工具 MCP')
+
+    act(() => {
+      getClickableContaining(container, 'BioMap 结构工具 MCP').click()
+    })
+
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(container.textContent).toContain('工具')
+    expect(container.textContent).toContain('资源')
+    expect(container.textContent).toContain('访问控制')
+
+    act(() => {
+      getButtonByLabel(container, '关闭详情').click()
+    })
+
+    act(() => {
+      getButtonContaining(container, 'Plugin').click()
+    })
+
+    expect(container.querySelector('.capabilities-skill-list')).not.toBeNull()
+    expect(container.querySelector('.capabilities-browser')).toBeNull()
+    expect(container.textContent).toContain('序列查看器 Plugin')
+
+    act(() => {
+      getClickableContaining(container, '序列查看器 Plugin').click()
+    })
+
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(container.textContent).toContain('Plugin 预览')
+    expect(container.textContent).toContain('仅占位')
+
+    root.unmount()
+  })
 })
 
 function renderCapabilitiesPage(
@@ -138,4 +181,16 @@ function getSwitch(container: HTMLElement, name: string) {
   }
 
   return switchControl
+}
+
+function getButtonByLabel(container: HTMLElement, label: string) {
+  const button = Array.from(container.querySelectorAll('button')).find(
+    (element) => element.getAttribute('aria-label') === label,
+  )
+
+  if (!button) {
+    throw new Error(`Button not found with label: ${label}`)
+  }
+
+  return button
 }
