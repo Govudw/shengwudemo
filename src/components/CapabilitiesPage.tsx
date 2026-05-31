@@ -30,17 +30,17 @@ type CapabilitiesPageProps = {
 type FilterValue = 'all'
 
 const sourceLabels: Record<CapabilitySource, string> = {
-  created: 'Created',
-  installed: 'Installed',
-  preset: 'Preset',
-  system: 'System',
+  created: '自建',
+  installed: '已安装',
+  preset: '预设',
+  system: '系统',
 }
 
 const statusLabels: Record<CapabilityStatus, string> = {
-  active: 'Active',
-  draft: 'Draft',
-  inactive: 'Inactive',
-  'needs-review': 'Needs review',
+  active: '启用中',
+  draft: '草稿',
+  inactive: '未启用',
+  'needs-review': '待审核',
 }
 
 const singularKindLabels: Record<CapabilityEntryKind, string> = {
@@ -51,17 +51,17 @@ const singularKindLabels: Record<CapabilityEntryKind, string> = {
 }
 
 const actionLabels: Record<CapabilityEntryKind, string> = {
-  pipeline: 'Build Pipeline with Agent',
-  skill: 'Create Skill with Agent',
-  'mcp-server': 'Connect MCP Server',
-  plugin: 'Request Plugin Access',
+  pipeline: '用 Agent 构建 Pipeline',
+  skill: '用 Agent 创建 Skill',
+  'mcp-server': '连接 MCP Server',
+  plugin: '申请 Plugin 权限',
 }
 
 const actionMessages: Record<CapabilityEntryKind, string> = {
-  pipeline: 'Agent Builder 会在后续 Demo 中连接到 Pipeline 创建流程',
-  skill: 'Agent Builder 会在后续 Demo 中连接到 Skill 创建流程',
-  'mcp-server': 'MCP 连接向导会在后续 Demo 中展开',
-  plugin: 'Plugin 申请流程会在后续 Demo 中展开',
+  pipeline: 'Agent Builder 会在后续演示中连接 Pipeline 创建流程',
+  skill: 'Agent Builder 会在后续演示中连接 Skill 创建流程',
+  'mcp-server': 'MCP 连接向导会在后续演示中展开',
+  plugin: 'Plugin 申请流程会在后续演示中展开',
 }
 
 function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
@@ -154,7 +154,7 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
   }
 
   return (
-    <main className="capabilities-page" aria-label="Capabilities management">
+    <main className="capabilities-page" aria-label="Capabilities 管理">
       <aside
         className="capabilities-nav"
         aria-label="Capability types"
@@ -194,8 +194,8 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
                   </span>
                   <span className="capabilities-nav__description">
                     {kind === 'plugin'
-                      ? 'Preview'
-                      : `${count} configured`}
+                      ? '预览'
+                      : `已配置 ${count} 个`}
                   </span>
                 </span>
                 <span className="capabilities-nav__number">{count}</span>
@@ -213,7 +213,7 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
         <header className="capabilities-header">
           <div className="capabilities-header__copy">
             <p className="capabilities-eyebrow">
-              {singularKindLabels[activeKind]} management
+              {singularKindLabels[activeKind]} 管理
             </p>
             <h1>{capabilityTypeLabels[activeKind]}</h1>
             <p>{capabilityTypeDescriptions[activeKind]}</p>
@@ -236,10 +236,10 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
               onChange={(event) => setQuery(event.target.value)}
               placeholder={
                 activeKind === 'skill'
-                  ? 'Search skills'
-                  : `Search ${capabilityTypeLabels[activeKind].toLowerCase()}`
+                  ? '搜索 Skill'
+                  : `搜索 ${capabilityTypeLabels[activeKind]}`
               }
-              aria-label={`Search ${capabilityTypeLabels[activeKind]}`}
+              aria-label={`搜索 ${capabilityTypeLabels[activeKind]}`}
             />
           </label>
           <select
@@ -250,7 +250,7 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
               setSourceFilter(event.target.value as CapabilitySource | FilterValue)
             }
           >
-            <option value="all">All sources</option>
+            <option value="all">全部来源</option>
             {Object.entries(sourceLabels).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -265,7 +265,7 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
               setStatusFilter(event.target.value as CapabilityStatus | FilterValue)
             }
           >
-            <option value="all">All status</option>
+            <option value="all">全部状态</option>
             {Object.entries(statusLabels).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -327,7 +327,7 @@ function SkillList({
   }
 
   return (
-    <div className="capabilities-skill-list" aria-label="Skills list">
+    <div className="capabilities-skill-list" aria-label="Skill 列表">
       {entries.map((entry) => {
         const enabled = Boolean(enabledById[entry.id])
 
@@ -358,7 +358,7 @@ function SkillList({
               {sourceLabels[entry.source]}
             </span>
             <SwitchControl
-              label={`Enabled for Main Agent: ${entry.name}`}
+              label={`主 Agent 启用：${entry.name}`}
               checked={enabled}
               onChange={(nextChecked, event) =>
                 onToggle(entry, nextChecked, event)
@@ -443,10 +443,10 @@ function DetailPanel({
       ? entry.steps
       : activeKind === 'mcp-server'
         ? entry.tools
-        : [entry.placeholderState ?? 'Preview only']
+        : [entry.placeholderState ?? '仅预览']
 
   return (
-    <aside className="capabilities-detail" aria-label={`${entry.name} details`}>
+    <aside className="capabilities-detail" aria-label={`${entry.name} 详情`}>
       <div className="capabilities-detail__header">
         <div>
           <p className="capabilities-eyebrow">
@@ -458,9 +458,9 @@ function DetailPanel({
         <button
           type="button"
           className="capabilities-icon-button"
-          aria-label={`More actions for ${entry.name}`}
+          aria-label={`${entry.name} 的更多操作`}
           onClick={() =>
-            onNotify(`${entry.name} 的更多操作会在后续 Demo 中展开`)
+            onNotify(`${entry.name} 的更多操作会在后续演示中展开`)
           }
         >
           <MoreHorizontalIcon className="capabilities-icon" />
@@ -474,10 +474,10 @@ function DetailPanel({
         {entry.connectionStatus ? (
           <span className="capabilities-chip">
             {entry.connectionStatus === 'connected'
-              ? 'Connected'
+              ? '已连接'
               : entry.connectionStatus === 'needs-review'
-                ? 'Needs review'
-                : 'Inactive'}
+                ? '待审核'
+                : '未启用'}
           </span>
         ) : null}
       </div>
@@ -491,19 +491,19 @@ function DetailPanel({
         ))}
       </div>
 
-      <DetailSection title="Interface">
-        <DetailColumn label="Inputs" items={entry.interface.inputs} />
-        <DetailColumn label="Outputs" items={entry.interface.outputs} />
-        <DetailColumn label="Permissions" items={entry.interface.permissions} />
+      <DetailSection title="接口">
+        <DetailColumn label="输入" items={entry.interface.inputs} />
+        <DetailColumn label="输出" items={entry.interface.outputs} />
+        <DetailColumn label="权限" items={entry.interface.permissions} />
       </DetailSection>
 
       <DetailSection
         title={
           activeKind === 'pipeline'
-            ? 'Steps'
+            ? '步骤'
             : activeKind === 'mcp-server'
-              ? 'Tools'
-              : 'Plugin preview'
+              ? '工具'
+              : 'Plugin 预览'
         }
       >
         <ul className="capabilities-detail-list">
@@ -517,7 +517,7 @@ function DetailPanel({
       </DetailSection>
 
       {entry.resources?.length ? (
-        <DetailSection title="Resources">
+        <DetailSection title="资源">
           <ul className="capabilities-inline-list">
             {entry.resources.map((resource) => (
               <li key={resource}>{resource}</li>
@@ -536,7 +536,7 @@ function DetailPanel({
         </DetailSection>
       ))}
 
-      <DetailSection title="Recent activity">
+      <DetailSection title="近期活动">
         <ul className="capabilities-detail-list">
           {entry.recentActivity.map((activity) => (
             <li key={activity}>{activity}</li>
@@ -550,18 +550,18 @@ function DetailPanel({
         onClick={() =>
           onNotify(
             activeKind === 'pipeline'
-              ? `${entry.name} 的禁用动作会在后续 Demo 中展开`
+              ? `${entry.name} 的禁用动作会在后续演示中展开`
               : activeKind === 'mcp-server'
-                ? `${entry.name} 的连接设置会在后续 Demo 中展开`
+                ? `${entry.name} 的连接设置会在后续演示中展开`
                 : `${entry.name} 目前是占位预览`,
           )
         }
       >
         {activeKind === 'pipeline'
-          ? 'Disable Pipeline'
+          ? '禁用 Pipeline'
           : activeKind === 'mcp-server'
-            ? 'Disable connection'
-            : 'View placeholder'}
+            ? '禁用连接'
+            : '查看占位内容'}
       </button>
     </aside>
   )
@@ -594,7 +594,7 @@ function SkillDialog({
         <button
           type="button"
           className="dialog-close capabilities-skill-modal__close"
-          aria-label="Close Skill details"
+          aria-label="关闭 Skill 详情"
           onClick={onClose}
         >
           ×
@@ -611,16 +611,16 @@ function SkillDialog({
           <p>{entry.description}</p>
           <div className="capabilities-skill-modal__controls">
             <SwitchControl
-              label={`Enabled for Main Agent: ${entry.name}`}
+              label={`主 Agent 启用：${entry.name}`}
               checked={enabled}
               onChange={onToggle}
             />
             <button
               type="button"
               className="capabilities-icon-button"
-              aria-label={`More actions for ${entry.name}`}
+              aria-label={`${entry.name} 的更多操作`}
               onClick={() =>
-                onNotify(`${entry.name} 的更多操作会在后续 Demo 中展开`)
+                onNotify(`${entry.name} 的更多操作会在后续演示中展开`)
               }
             >
               <MoreHorizontalIcon className="capabilities-icon" />
@@ -629,25 +629,25 @@ function SkillDialog({
         </div>
 
         <div className="capabilities-skill-modal__body">
-          <DetailSection title="Instructions">
+          <DetailSection title="指令">
             <InstructionBlock items={entry.instructions ?? []} />
           </DetailSection>
-          <DetailSection title="Triggers">
+          <DetailSection title="触发条件">
             <ul className="capabilities-inline-list">
               {(entry.triggers ?? []).map((trigger) => (
                 <li key={trigger}>{trigger}</li>
               ))}
             </ul>
           </DetailSection>
-          <DetailSection title="Examples">
+          <DetailSection title="示例">
             <ul className="capabilities-detail-list">
               {(entry.examples ?? []).map((example) => (
                 <li key={example}>{example}</li>
               ))}
             </ul>
           </DetailSection>
-          <DetailSection title="Access">
-            <DetailColumn label="Permissions" items={entry.interface.permissions} />
+          <DetailSection title="访问控制">
+            <DetailColumn label="权限" items={entry.interface.permissions} />
           </DetailSection>
         </div>
 
@@ -657,24 +657,24 @@ function SkillDialog({
               type="button"
               className="capabilities-danger-action"
               onClick={() =>
-                onNotify(`${entry.name} 的移除动作会在后续 Demo 中展开`)
+                onNotify(`${entry.name} 的移除动作会在后续演示中展开`)
               }
             >
-              Remove
+              移除
             </button>
           ) : (
             <span className="capabilities-skill-modal__locked">
-              Preset Skill
+              预设 Skill
             </span>
           )}
           <button
             type="button"
             className="capabilities-primary-dark-action"
             onClick={() =>
-              onNotify(`${entry.name} 会在后续 Demo 中进入对话试用`)
+              onNotify(`${entry.name} 会在后续演示中进入对话试用`)
             }
           >
-            Try in conversation
+            在对话中试用
           </button>
         </footer>
       </section>
@@ -777,8 +777,8 @@ function CapabilityEmptyState() {
   return (
     <div className="capabilities-empty">
       <PackageIcon className="capabilities-empty__icon" />
-      <h2>No matching capabilities</h2>
-      <p>Adjust search or filters to return demo entries.</p>
+      <h2>没有匹配的 Capabilities</h2>
+      <p>调整搜索或筛选条件后查看演示条目。</p>
     </div>
   )
 }

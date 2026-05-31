@@ -140,8 +140,8 @@ function App() {
             }`}
             aria-label={
               selectedThreadTitle
-                ? `Workspace for ${selectedThreadTitle}`
-                : 'New conversation workspace'
+                ? `${selectedThreadTitle} 的工作区`
+                : '新对话工作区'
             }
             data-drafting-new-thread={isDraftingNewThread}
           >

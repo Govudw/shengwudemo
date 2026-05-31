@@ -19,10 +19,10 @@ describe('CapabilitiesPage', () => {
   it('opens on Pipelines with preview Plugins visible in the left nav', () => {
     const { container, root } = renderCapabilitiesPage()
 
-    expect(container.textContent).toContain('Pipelines')
-    expect(container.textContent).toContain('EGFR Antibody Affinity Optimization')
-    expect(getButtonContaining(container, 'Plugins').textContent).toContain(
-      'Preview',
+    expect(container.textContent).toContain('Pipeline')
+    expect(container.textContent).toContain('EGFR 抗体亲和力优化 Pipeline')
+    expect(getButtonContaining(container, 'Plugin').textContent).toContain(
+      '预览',
     )
 
     root.unmount()
@@ -33,13 +33,13 @@ describe('CapabilitiesPage', () => {
     const { container, root } = renderCapabilitiesPage({ onNotify })
 
     act(() => {
-      getButtonContaining(container, 'Skills').click()
+      getButtonContaining(container, 'Skill').click()
     })
 
-    expect(container.querySelector('input[placeholder="Search skills"]')).not.toBeNull()
-    expect(container.textContent).toContain('Operate Protein Design')
+    expect(container.querySelector('input[placeholder="搜索 Skill"]')).not.toBeNull()
+    expect(container.textContent).toContain('蛋白设计操作 Skill')
 
-    const skillSwitch = getSwitch(container, 'Enabled for Main Agent')
+    const skillSwitch = getSwitch(container, '主 Agent 启用')
     expect(skillSwitch.getAttribute('aria-checked')).toBe('true')
 
     act(() => {
@@ -63,27 +63,27 @@ describe('CapabilitiesPage', () => {
     expect(container.querySelector('[role="dialog"]')).toBeNull()
 
     act(() => {
-      getClickableContaining(container, 'Operate Protein Design').click()
+      getClickableContaining(container, '蛋白设计操作 Skill').click()
     })
 
     expect(container.querySelector('[role="dialog"]')).not.toBeNull()
-    expect(container.textContent).toContain('Instructions')
-    expect(container.textContent).toContain('Triggers')
-    expect(container.textContent).toContain('Examples')
+    expect(container.textContent).toContain('指令')
+    expect(container.textContent).toContain('触发条件')
+    expect(container.textContent).toContain('示例')
     expect(
       container.querySelector('.capabilities-workspace')?.getAttribute('inert'),
     ).toBe('')
 
     act(() => {
-      getButtonContaining(container, 'Pipelines').click()
+      getButtonContaining(container, 'Pipeline').click()
     })
 
     act(() => {
-      getButtonContaining(container, 'Build Pipeline with Agent').click()
+      getButtonContaining(container, '用 Agent 构建 Pipeline').click()
     })
 
     expect(onNotify).toHaveBeenCalledWith(
-      'Agent Builder 会在后续 Demo 中连接到 Pipeline 创建流程',
+      'Agent Builder 会在后续演示中连接 Pipeline 创建流程',
     )
 
     root.unmount()
