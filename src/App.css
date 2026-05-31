@@ -1177,16 +1177,19 @@
 
 .capabilities-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 28px 34px 18px;
+  padding: 28px 34px;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
 }
 
 .capabilities-header__copy {
+  display: flex;
+  min-height: 38px;
   min-width: 0;
+  align-items: center;
 }
 
 .capabilities-eyebrow {
@@ -1210,10 +1213,10 @@
 }
 
 .capabilities-header h1 {
-  font-size: 30px;
+  font-size: 34px;
+  line-height: 1.1;
 }
 
-.capabilities-header p:not(.capabilities-eyebrow),
 .capabilities-detail__header p,
 .capabilities-empty p,
 .capabilities-skill-modal__hero p {
@@ -3551,12 +3554,6 @@ textarea:focus-visible {
     overflow: visible;
   }
 
-  .capabilities-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-
   .capabilities-toolbar {
     grid-template-columns: 1fr;
   }
@@ -3654,5 +3651,13 @@ textarea:focus-visible {
   .capabilities-skill-modal__footer {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 460px) {
+  .capabilities-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
   }
 }

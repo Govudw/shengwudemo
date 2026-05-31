@@ -12,7 +12,6 @@ import {
 } from './icons'
 import {
   capabilityEntries,
-  capabilityTypeDescriptions,
   capabilityTypeLabels,
   capabilityTypeOrder,
 } from '../data/mockCapabilities'
@@ -48,6 +47,13 @@ const singularKindLabels: Record<CapabilityEntryKind, string> = {
   skill: 'Skill',
   'mcp-server': 'MCP Server',
   plugin: 'Plugin',
+}
+
+const pageTitleLabels: Record<CapabilityEntryKind, string> = {
+  pipeline: 'Pipelines',
+  skill: 'Skills',
+  'mcp-server': 'MCP Servers',
+  plugin: 'Plugins',
 }
 
 const actionLabels: Record<CapabilityEntryKind, string> = {
@@ -212,11 +218,7 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
       >
         <header className="capabilities-header">
           <div className="capabilities-header__copy">
-            <p className="capabilities-eyebrow">
-              {singularKindLabels[activeKind]} 管理
-            </p>
-            <h1>{capabilityTypeLabels[activeKind]}</h1>
-            <p>{capabilityTypeDescriptions[activeKind]}</p>
+            <h1>{pageTitleLabels[activeKind]}</h1>
           </div>
           <button
             type="button"

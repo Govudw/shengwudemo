@@ -28,6 +28,32 @@ describe('CapabilitiesPage', () => {
     root.unmount()
   })
 
+  it('uses one-line plural titles in capability section headers', () => {
+    const { container, root } = renderCapabilitiesPage()
+
+    expect(getHeaderTitle(container)).toBe('Pipelines')
+    expect(getCapabilitiesHeader(container).textContent).not.toContain(
+      'Pipeline 管理',
+    )
+    expect(getCapabilitiesHeader(container).textContent).not.toContain(
+      '管理主 Agent 可在研发任务中运行或按需改造的生物学 Pipeline。',
+    )
+
+    act(() => {
+      getButtonContaining(container, 'Skill').click()
+    })
+
+    expect(getHeaderTitle(container)).toBe('Skills')
+    expect(getCapabilitiesHeader(container).textContent).not.toContain(
+      'Skill 管理',
+    )
+    expect(getCapabilitiesHeader(container).textContent).not.toContain(
+      '管理可复用的 Skill，包括 BioMap 预设、自建和已安装 Skill。',
+    )
+
+    root.unmount()
+  })
+
   it('supports Codex-style Skill browsing, details, toggles, and build action', () => {
     const onNotify = vi.fn()
     const { container, root } = renderCapabilitiesPage({ onNotify })
@@ -145,6 +171,26 @@ function renderCapabilitiesPage(
   })
 
   return { container, root }
+}
+
+function getCapabilitiesHeader(container: HTMLElement) {
+  const header = container.querySelector<HTMLElement>('.capabilities-header')
+
+  if (!header) {
+    throw new Error('Capabilities header not found')
+  }
+
+  return header
+}
+
+function getHeaderTitle(container: HTMLElement) {
+  const heading = getCapabilitiesHeader(container).querySelector('h1')
+
+  if (!heading) {
+    throw new Error('Capabilities header title not found')
+  }
+
+  return heading.textContent
 }
 
 function getButtonContaining(container: HTMLElement, text: string) {
