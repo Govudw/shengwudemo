@@ -475,9 +475,9 @@ describe('demo store logic', () => {
       })),
     }))
 
-    const recentEntries = getRecentThreadEntries(updatedProjects, 3)
+    const recentEntries = getRecentThreadEntries(updatedProjects, 5)
 
-    expect(recentEntries).toHaveLength(3)
+    expect(recentEntries).toHaveLength(5)
     expect(recentEntries.some((entry) => entry.thread.id === 'egfr-affinity')).toBe(false)
     expect(recentEntries.map((entry) => entry.thread.lastActivityAt)).toEqual(
       recentEntries
