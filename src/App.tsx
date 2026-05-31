@@ -4,6 +4,7 @@ import Composer from './components/Composer'
 import Sidebar from './components/Sidebar'
 import ThreadWorkspace from './components/ThreadWorkspace'
 import TopNav from './components/TopNav'
+import type { TopNavItem } from './components/TopNav'
 import UseCaseGrid from './components/UseCaseGrid'
 import { capabilityChips, useCases } from './data/mockData'
 import {
@@ -16,6 +17,8 @@ function App() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [projectMenuOpen, setProjectMenuOpen] = useState(false)
+  const [activeTopNavItem, setActiveTopNavItem] =
+    useState<TopNavItem>('Workspace')
   const composerTextAreaRef = useRef<HTMLTextAreaElement>(null)
   const projects = useDemoStore((state) => state.projects)
   const selectedProjectId = useDemoStore((state) => state.selectedProjectId)
@@ -95,88 +98,100 @@ function App() {
 
   return (
     <div className="agent-app">
-      <TopNav onNotify={showStatus} />
-      <div
-        className={`agent-shell${
-          sidebarCollapsed ? ' agent-shell--sidebar-collapsed' : ''
-        }`}
-      >
-        <Sidebar
-          projects={projects}
-          selectedThreadId={selectedThreadId}
-          searchOpen={searchOpen}
-          searchQuery={searchQuery}
-          expandedProjectIds={expandedProjectIds}
-          sidebarCollapsed={sidebarCollapsed}
-          onSidebarCollapsedChange={toggleSidebarCollapsed}
-          onNewThread={handleNewThread}
-          onSearchOpenChange={setSearchOpen}
-          onSearchQueryChange={setSearchQuery}
-          onToggleProject={toggleProject}
-          onSelectThread={handleSelectThread}
-          onTogglePinned={togglePinned}
-          onRenameThread={renameThread}
-          onArchiveThread={archiveThread}
-          onDeleteThread={deleteThread}
-          onNotify={showStatus}
-        />
-        <main
-          className={`workspace-main${
-            showThreadWorkspace ? ' workspace-main--thread' : ''
+      <TopNav
+        activeItem={activeTopNavItem}
+        onNavigate={setActiveTopNavItem}
+        onNotify={showStatus}
+      />
+      {statusMessage ? (
+        <div className="status-toast" role="status" aria-live="polite">
+          {statusMessage}
+        </div>
+      ) : null}
+      {activeTopNavItem === 'Workspace' ? (
+        <div
+          className={`agent-shell${
+            sidebarCollapsed ? ' agent-shell--sidebar-collapsed' : ''
           }`}
-          aria-label={
-            selectedThreadTitle
-              ? `Workspace for ${selectedThreadTitle}`
-              : 'New conversation workspace'
-          }
-          data-drafting-new-thread={isDraftingNewThread}
         >
-          {statusMessage ? (
-            <div className="status-toast" role="status" aria-live="polite">
-              {statusMessage}
-            </div>
-          ) : null}
-          {selectedThreadEntry && !isDraftingNewThread ? (
-            <ThreadWorkspace
-              thread={selectedThreadEntry.thread}
-              projectName={selectedThreadEntry.project.name}
-              draft={draft}
-              onDraftChange={setDraft}
-              onSubmit={handleSubmit}
-              onRenameThread={renameThread}
-              onArchiveThread={archiveThread}
-              onDeleteThread={deleteThread}
-              onNotify={showStatus}
-              runInspectorOpen={runInspectorOpen}
-              onRunInspectorOpenChange={(open) =>
-                toggleRunInspector(selectedThreadEntry.thread.id, open)
-              }
-            />
-          ) : (
-            <section className="workspace-inner">
-              <Composer
-                projects={projects}
-                selectedProjectId={selectedProjectId}
-                isDraftingNewThread={isDraftingNewThread}
+          <Sidebar
+            projects={projects}
+            selectedThreadId={selectedThreadId}
+            searchOpen={searchOpen}
+            searchQuery={searchQuery}
+            expandedProjectIds={expandedProjectIds}
+            sidebarCollapsed={sidebarCollapsed}
+            onSidebarCollapsedChange={toggleSidebarCollapsed}
+            onNewThread={handleNewThread}
+            onSearchOpenChange={setSearchOpen}
+            onSearchQueryChange={setSearchQuery}
+            onToggleProject={toggleProject}
+            onSelectThread={handleSelectThread}
+            onTogglePinned={togglePinned}
+            onRenameThread={renameThread}
+            onArchiveThread={archiveThread}
+            onDeleteThread={deleteThread}
+            onNotify={showStatus}
+          />
+          <main
+            className={`workspace-main${
+              showThreadWorkspace ? ' workspace-main--thread' : ''
+            }`}
+            aria-label={
+              selectedThreadTitle
+                ? `Workspace for ${selectedThreadTitle}`
+                : 'New conversation workspace'
+            }
+            data-drafting-new-thread={isDraftingNewThread}
+          >
+            {selectedThreadEntry && !isDraftingNewThread ? (
+              <ThreadWorkspace
+                thread={selectedThreadEntry.thread}
+                projectName={selectedThreadEntry.project.name}
                 draft={draft}
-                textareaRef={composerTextAreaRef}
-                projectMenuOpen={projectMenuOpen}
                 onDraftChange={setDraft}
-                onProjectMenuOpenChange={setProjectMenuOpen}
-                onProjectChange={setSelectedProject}
                 onSubmit={handleSubmit}
+                onRenameThread={renameThread}
+                onArchiveThread={archiveThread}
+                onDeleteThread={deleteThread}
                 onNotify={showStatus}
+                runInspectorOpen={runInspectorOpen}
+                onRunInspectorOpenChange={(open) =>
+                  toggleRunInspector(selectedThreadEntry.thread.id, open)
+                }
               />
-              <UseCaseGrid
-                chips={capabilityChips}
-                useCases={useCases}
-                onPromptSelect={handlePromptSelect}
-                onNotify={showStatus}
-              />
-            </section>
-          )}
+            ) : (
+              <section className="workspace-inner">
+                <Composer
+                  projects={projects}
+                  selectedProjectId={selectedProjectId}
+                  isDraftingNewThread={isDraftingNewThread}
+                  draft={draft}
+                  textareaRef={composerTextAreaRef}
+                  projectMenuOpen={projectMenuOpen}
+                  onDraftChange={setDraft}
+                  onProjectMenuOpenChange={setProjectMenuOpen}
+                  onProjectChange={setSelectedProject}
+                  onSubmit={handleSubmit}
+                  onNotify={showStatus}
+                />
+                <UseCaseGrid
+                  chips={capabilityChips}
+                  useCases={useCases}
+                  onPromptSelect={handlePromptSelect}
+                  onNotify={showStatus}
+                />
+              </section>
+            )}
+          </main>
+        </div>
+      ) : (
+        <main className="workspace-main" aria-label="Capabilities management">
+          <section className="workspace-inner">
+            <h1>Capabilities</h1>
+          </section>
         </main>
-      </div>
+      )}
     </div>
   )
 }

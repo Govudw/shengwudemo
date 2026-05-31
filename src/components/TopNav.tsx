@@ -2,12 +2,15 @@ import logoSrc from '../assets/biomap-agent-logo.png'
 import { BellIcon, ChevronDownIcon } from './icons'
 
 type TopNavProps = {
+  activeItem: TopNavItem
+  onNavigate: (item: TopNavItem) => void
   onNotify: (message: string) => void
 }
 
-const navItems = ['Workspace', 'Projects', 'Assets', 'Pipelines'] as const
+const navItems = ['Workspace', 'Projects', 'Assets', 'Capabilities'] as const
+export type TopNavItem = (typeof navItems)[number]
 
-function TopNav({ onNotify }: TopNavProps) {
+function TopNav({ activeItem, onNavigate, onNotify }: TopNavProps) {
   return (
     <header className="top-nav">
       <div className="top-nav__brand" role="img" aria-label="BioMap Agent">
@@ -18,7 +21,8 @@ function TopNav({ onNotify }: TopNavProps) {
 
       <nav className="top-nav__items" aria-label="Primary navigation">
         {navItems.map((item) => {
-          const isActive = item === 'Workspace'
+          const isActive = item === activeItem
+          const isImplementedPage = item === 'Workspace' || item === 'Capabilities'
 
           return (
             <button
@@ -27,7 +31,9 @@ function TopNav({ onNotify }: TopNavProps) {
               className={`top-nav__item${isActive ? ' top-nav__item--active active' : ''}`}
               aria-current={isActive ? 'page' : undefined}
               onClick={
-                isActive ? undefined : () => onNotify('该模块将在后续 Demo 中展开')
+                isImplementedPage
+                  ? () => onNavigate(item)
+                  : () => onNotify('该模块将在后续 Demo 中展开')
               }
             >
               {item}
