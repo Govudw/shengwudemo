@@ -131,7 +131,10 @@ function AssetsPage({
         </nav>
       </aside>
 
-      <main className="assets-main" aria-label="Assets workbench">
+      <main
+        className={`assets-main${isXtrimoView ? ' assets-main--xtrimo' : ''}`}
+        aria-label="Assets workbench"
+      >
         <header className="assets-main__header">
           <div className="assets-main__title">
             <span className="assets-main__eyebrow">
@@ -619,14 +622,14 @@ function XtrimoModelAssetsView({
 
   return (
     <section className="assets-content assets-content--xtrimo">
-      <div className="assets-xtrimo-header">
+      <div className="assets-xtrimo-header xtrimo-overview">
         <h2>xTrimo 平台模型目录</h2>
         <p>
           BioMap 自研生命科学基础模型与任务模型家族，覆盖结构、亲和力、稳定性、成药性和实验设计等研发流程。
         </p>
       </div>
 
-      <div className="assets-xtrimo-stats" aria-label="xTrimo 模型统计">
+      <div className="assets-xtrimo-stats xtrimo-stats" aria-label="xTrimo 模型统计">
         <span>33 模型</span>
         <span>24 已上线</span>
         <span>9 即将上线</span>
@@ -636,19 +639,22 @@ function XtrimoModelAssetsView({
         <span>6 Agent 推荐</span>
       </div>
 
-      <section className="assets-xtrimo-recommendations" aria-label="Agent 推荐">
+      <section
+        className="assets-xtrimo-recommendations xtrimo-recommendations"
+        aria-label="Agent 推荐"
+      >
         <div className="assets-list-header">
           <h2>Agent 推荐</h2>
           <span>{recommendedRecords.length} 项</span>
         </div>
-        <div className="assets-record-grid assets-record-grid--dense">
+        <div className="assets-record-grid assets-record-grid--dense xtrimo-card-grid">
           {recommendedRecords.map((record) => (
             <XtrimoModelCard key={record.id} record={record} onNotify={onNotify} />
           ))}
         </div>
       </section>
 
-      <div className="assets-xtrimo-filters" aria-label="xTrimo 模型筛选">
+      <div className="assets-xtrimo-filters xtrimo-filter-bar" aria-label="xTrimo 模型筛选">
         <div className="assets-xtrimo-filter-row">
           <span>能力</span>
           <button
@@ -722,7 +728,7 @@ function XtrimoModelAssetsView({
       </div>
 
       <AssetListHeader title="模型目录" count={filteredRecords.length} />
-      <div className="assets-record-grid assets-record-grid--dense">
+      <div className="assets-record-grid assets-record-grid--dense xtrimo-card-grid">
         {filteredRecords.map((record) => (
           <XtrimoModelCard key={record.id} record={record} onNotify={onNotify} />
         ))}
@@ -810,13 +816,19 @@ function XtrimoModelCard({
   const isCallable = record.callability === 'callable'
 
   return (
-    <article className="assets-record-card assets-record-card--generic assets-record-card--xtrimo">
+    <article className="assets-record-card assets-record-card--generic assets-record-card--xtrimo xtrimo-model-card">
       <div className="assets-record-card__top">
         <PackageIcon className="assets-record-card__icon" />
-        <span className="assets-record-card__badge">
+        <span className="assets-record-card__badge xtrimo-model-card__badge">
           {record.status === 'online' ? '已上线' : '即将上线'}
         </span>
-        <span className="assets-record-card__badge">
+        <span
+          className={`assets-record-card__badge xtrimo-model-card__badge ${
+            isCallable
+              ? 'xtrimo-model-card__badge--callable'
+              : 'xtrimo-model-card__badge--preview'
+          }`}
+        >
           {isCallable ? '可调用' : '仅预览'}
         </span>
       </div>

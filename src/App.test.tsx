@@ -114,6 +114,25 @@ describe('App Assets navigation', () => {
 })
 
 describe('xTrimo model assets', () => {
+  it('uses compact xTrimo-specific layout classes', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '模型').click()
+    })
+
+    expect(container.querySelector('.xtrimo-overview')).not.toBeNull()
+    expect(container.querySelector('.xtrimo-stats')).not.toBeNull()
+    expect(container.querySelector('.xtrimo-recommendations')).not.toBeNull()
+    expect(container.querySelector('.xtrimo-filter-bar')).not.toBeNull()
+    expect(container.querySelector('.xtrimo-card-grid')).not.toBeNull()
+
+    root.unmount()
+  })
+
   it('renders xTrimo as a dense platform model directory', () => {
     const { container, root } = renderApp()
 
