@@ -132,7 +132,40 @@ describe('xTrimo model assets', () => {
     expect(container.textContent).toContain('Agent 推荐')
     expect(container.textContent).toContain('xTrimoAbAffinity_DDG')
     expect(container.textContent).not.toContain('xTrimoPFP')
+    expect(findButton(container, '新建')).toBeUndefined()
     expect(findButton(container, '上传')).toBeUndefined()
+    expect(getButton(container, '更多资产操作')).toBeTruthy()
+
+    root.unmount()
+  })
+
+  it('notifies when xTrimo callable and preview-only model actions are clicked', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '模型').click()
+    })
+    act(() => {
+      getModelCardButton(container, 'xTrimoAbAffinity_DDG', '查看详情').click()
+    })
+
+    expect(getStatus(container).textContent).toContain(
+      '模型详情将在后续 Demo 中展开',
+    )
+
+    act(() => {
+      getButton(container, '即将上线').click()
+    })
+    act(() => {
+      getModelCardButton(container, 'xTrimoAAVViability', '预览模型').click()
+    })
+
+    expect(getStatus(container).textContent).toContain(
+      '该模型即将上线，当前仅支持预览',
+    )
 
     root.unmount()
   })
@@ -194,6 +227,43 @@ describe('xTrimo model assets', () => {
     expect(container.textContent).toContain('xTrimoAAVViability')
     expect(container.textContent).toContain('仅预览')
     expect(container.textContent).not.toContain('可调用 · xTrimoAAVViability')
+
+    root.unmount()
+  })
+
+  it('searches xTrimo models by name, agent use, input, output, capability, and entity', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '模型').click()
+    })
+
+    setAssetsSearch(container, 'xTrimoMonomer_Fast')
+    expect(getModelCard(container, 'xTrimoMonomer_Fast')).toBeTruthy()
+    expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
+
+    setAssetsSearch(container, 'MSA 辅助')
+    expect(getModelCard(container, 'xTrimoMonomer')).toBeTruthy()
+    expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
+
+    setAssetsSearch(container, 'Fv-抗原结构')
+    expect(getModelCard(container, 'xTrimoAbAffinity_DDG')).toBeTruthy()
+    expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
+
+    setAssetsSearch(container, 'ΔΔG')
+    expect(getModelCard(container, 'xTrimoAbAffinity_DDG')).toBeTruthy()
+    expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
+
+    setAssetsSearch(container, '细胞活力')
+    expect(getModelCard(container, 'xTrimoAAVViability')).toBeTruthy()
+    expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
+
+    setAssetsSearch(container, 'AAV')
+    expect(getModelCard(container, 'xTrimoAAVViability')).toBeTruthy()
+    expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
 
     root.unmount()
   })
@@ -272,6 +342,70 @@ function getButton(container: HTMLElement, name: string) {
 
   if (!button) {
     throw new Error(`Button not found: ${name}`)
+  }
+
+  return button
+}
+
+function getStatus(container: HTMLElement) {
+  const status = container.querySelector('[role="status"]')
+
+  if (!status) {
+    throw new Error('Status toast not found')
+  }
+
+  return status
+}
+
+function setAssetsSearch(container: HTMLElement, value: string) {
+  act(() => {
+    const searchInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="搜索当前资产"]',
+    )
+    if (!searchInput) {
+      throw new Error('Assets search input not found')
+    }
+    const valueSetter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      'value',
+    )?.set
+    valueSetter?.call(searchInput, value)
+    searchInput.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: value,
+        inputType: 'insertText',
+      }),
+    )
+  })
+}
+
+function findModelCard(container: HTMLElement, modelName: string) {
+  return Array.from(container.querySelectorAll<HTMLElement>('.assets-record-card')).find(
+    (card) => card.textContent?.includes(modelName),
+  )
+}
+
+function getModelCard(container: HTMLElement, modelName: string) {
+  const card = findModelCard(container, modelName)
+
+  if (!card) {
+    throw new Error(`Model card not found: ${modelName}`)
+  }
+
+  return card
+}
+
+function getModelCardButton(
+  container: HTMLElement,
+  modelName: string,
+  buttonName: string,
+) {
+  const card = getModelCard(container, modelName)
+  const button = findButton(card, buttonName)
+
+  if (!button) {
+    throw new Error(`Button not found for ${modelName}: ${buttonName}`)
   }
 
   return button
