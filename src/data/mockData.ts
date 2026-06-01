@@ -16,6 +16,11 @@ import her2ExperimentResultPackageSummary from '../assets/mock-science/her2/her2
 import her2ExpressionPurificationQc from '../assets/mock-science/her2/her2-expression-purification-qc.png'
 import her2SamplePlateMap from '../assets/mock-science/her2/her2-sample-plate-map.png'
 import her2SecDsfBliQcDashboard from '../assets/mock-science/her2/her2-sec-dsf-bli-qc-dashboard.png'
+import her2CurveFitDiagnostics from '../assets/mock-science/her2-post-analysis/her2-curve-fit-diagnostics.png'
+import her2ModelConsensusAnalysis from '../assets/mock-science/her2-post-analysis/her2-model-consensus-analysis.png'
+import her2ResultPackageQcOverview from '../assets/mock-science/her2-post-analysis/her2-result-package-qc-overview.png'
+import her2StructuralHypothesisMap from '../assets/mock-science/her2-post-analysis/her2-structural-hypothesis-map.png'
+import her2UncertaintySensitivityAnalysis from '../assets/mock-science/her2-post-analysis/her2-uncertainty-sensitivity-analysis.png'
 import type { ConversationTurn, RunInspectorData } from './conversationTypes'
 
 export type Thread = {
@@ -2585,6 +2590,980 @@ export const her2WetlabRunInspector: RunInspectorData = {
   ],
 }
 
+export const her2PostExperimentAnalysisTranscript: ConversationTurn[] = [
+  {
+    id: 'her2-analysis-turn-001',
+    role: 'user',
+    markdown:
+      'HER2 wet-lab 的 Experiment Result Package 已经归档了。现在不要再走实验执行流程，帮我做实验之后的纯分析：把 BLI、ELISA、SEC-HPLC、DSF、expression 的结果用各种分析模型综合一下，重点告诉我哪些结论稳、哪些只是模型假设。',
+    contentBlocks: [
+      {
+        type: 'projectFile',
+        fileName: 'HER2_wetlab_raw_result_bundle.xlsx',
+        fileKind: 'xlsx',
+        location: 'Antibody Optimization / Files / Assays',
+        note: 'XLSX · HER2 wet-lab returned raw result bundle，包含 expression、SEC-HPLC、DSF、BLI 和 ELISA sheet。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'HER2_experiment_qc_report.md',
+        fileKind: 'md',
+        location: 'Antibody Optimization / Files / Reports',
+        note: 'MD · 预设 QC 检查结果，记录 DSF missing values 和 ELISA outlier 标记。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'HER2_experiment_summary_report.md',
+        fileKind: 'md',
+        location: 'Antibody Optimization / Files / Reports',
+        note: 'MD · 实验执行摘要，只作为分析输入，不作为模型结论。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'HER2_experiment_result_package_figures.png',
+        fileKind: 'png',
+        location: 'Antibody Optimization / Files / Figures',
+        note: 'PNG · 湿实验结果包里的执行和 QC 图集。',
+      },
+    ],
+  },
+  {
+    id: 'her2-analysis-turn-002',
+    role: 'mainAgent',
+    markdown:
+      '我会把这个 Thread 限定在实验后的分析，不创建新的实验订单，也不模拟新的 lab execution。\n\n分析目标分成三层：\n\n- **Data layer**：先确认 Experiment Result Package 是否完整，哪些点需要标记为低置信。\n- **Model layer**：分别跑 curve fitting、developability scoring、multi-model consensus 和结构假设解释。\n- **Judgment layer**：把稳健信号、脆弱信号和需要人工判断的地方分开。\n\n最终输出是分析报告和假设日志，不会把模型分数当作确定生物学事实。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'ResultPackageReader.loadHer2Package',
+        status: 'success',
+        summary: '读取 HER2 Experiment Result Package',
+        defaultCollapsed: true,
+        input: {
+          packageFiles: [
+            'HER2_wetlab_raw_result_bundle.xlsx',
+            'HER2_experiment_qc_report.md',
+            'HER2_experiment_summary_report.md',
+            'HER2_experiment_result_package_figures.png',
+          ],
+          project: 'Antibody Optimization / HER2 实验结果多模型分析',
+        },
+        output: {
+          assaySheets: ['expression', 'purification', 'SEC-HPLC', 'DSF', 'BLI', 'ELISA'],
+          candidateCount: 8,
+          packageStatus: 'loaded',
+          analysisMode: 'post-experiment only',
+        },
+        duration: '4.1s',
+        artifacts: [
+          {
+            name: 'HER2_result_package_manifest.json',
+            kind: 'json',
+            description: '结果包文件、assay sheet 和分析输入清单。',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'her2-analysis-turn-003',
+    role: 'mainAgent',
+    markdown:
+      'Package completeness 是可用的：预期文件都在，关键 assay sheet 没有整表缺失。需要注意的是 DSF 有少量 missing values，ELISA 有一个 replicate 被 QC 标记为 outlier。\n\n我会先保留 outlier 标记，不直接删除；后面在 sensitivity analysis 里分别比较“保留”和“排除”的影响。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'ResultPackageQc.auditCompleteness',
+        status: 'warning',
+        summary: '结果包完整，但存在一个非关键 outlier 标记',
+        defaultCollapsed: true,
+        input: {
+          rawBundle: 'HER2_wetlab_raw_result_bundle.xlsx',
+          qcReport: 'HER2_experiment_qc_report.md',
+        },
+        output: {
+          expectedFiles: 19,
+          importedFiles: 19,
+          missingCriticalFiles: 0,
+          flaggedOutliers: 1,
+          dsfMissingRate: '2.1%',
+        },
+        duration: '5.5s',
+        artifacts: [
+          {
+            name: 'HER2_result_package_qc_audit.md',
+            kind: 'md',
+            description: '结果包完整性、缺失值、outlier 标记和可分析性判断。',
+          },
+        ],
+      },
+      {
+        type: 'scientificFigure',
+        figureId: 'her2-result-package-qc-overview',
+        title: 'Experiment Result Package QC overview',
+        description: '结果包完整性、assay 文件状态、missing value 检查和 QC pass/warning 概览。',
+        imagegenPrompt:
+          'HER2 experiment result package QC overview dashboard, imported file checklist, assay QC matrix, missing value checks, pass warning markers, professional biomedical report figure, synthetic data.',
+        placeholder: '图片：HER2 Experiment Result Package QC overview。',
+        src: her2ResultPackageQcOverview,
+        width: 900,
+        height: 600,
+        alt: 'HER2 experiment result package QC overview dashboard',
+      },
+    ],
+  },
+  {
+    id: 'her2-analysis-turn-004',
+    role: 'mainAgent',
+    markdown:
+      '我把原始 assay 表统一成 analysis-ready table：每个 molecule 一行，readout 按 parent-normalized z-score 和原始单位同时保留。\n\n这样后续模型不会只依赖一个综合分数，仍然可以回看每个 readout 的证据来源。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'AssayTableNormalizer.buildAnalysisMatrix',
+        status: 'success',
+        summary: '构建 HER2 analysis-ready assay matrix',
+        defaultCollapsed: true,
+        input: {
+          rawBundle: 'HER2_wetlab_raw_result_bundle.xlsx',
+          baseline: 'HER2-P0',
+          flaggedRows: ['ELISA replicate HZ-03 R2'],
+        },
+        output: {
+          analysisRows: 9,
+          normalizedReadouts: ['BLI KD', 'BLI koff', 'ELISA IC50', 'cell-free binding response', 'expression', 'SEC monomer', 'Tm'],
+          retainedFlags: ['ELISA outlier', 'DSF missing values'],
+          auditTrail: 'HER2_analysis_assumption_log.md',
+        },
+        duration: '7.6s',
+        artifacts: [
+          {
+            name: 'HER2_analysis_ready_matrix.csv',
+            kind: 'csv',
+            description: '模型分析输入矩阵，保留原始值、标准化值和 QC flag。',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'her2-analysis-turn-005',
+    role: 'mainAgent',
+    markdown:
+      '我先分别拟合 BLI kinetics 和 ELISA dose-response。这里的模型用途是检查曲线质量和参数稳定性，不是直接宣布分子机制。\n\n初步结果：\n\n- BLI 拟合整体稳定，两个候选的 koff 改善比 KD 单点值更有解释力。\n- ELISA 曲线中有一个 replicate 对 IC50 影响偏大。\n- 如果不处理 outlier，ELISA 与 BLI 的排序一致性会下降。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'KineticsModel.fitBliCurves',
+        status: 'success',
+        summary: '拟合 HER2 BLI sensorgram 并输出 kinetics 参数',
+        defaultCollapsed: true,
+        input: {
+          assaySheet: 'BLI',
+          fittingModel: '1:1 binding with robust residual check',
+          candidates: 8,
+        },
+        output: {
+          fitPassRate: '8/8',
+          stableKoffSignals: ['HER2-A01', 'HER2-A02', 'HER2-A08'],
+          weakFitRegions: ['early association for HER2-A06'],
+          evidenceStrength: 'moderate-high',
+        },
+        duration: '13.8s',
+        artifacts: [
+          {
+            name: 'HER2_bli_curve_fit_parameters.csv',
+            kind: 'csv',
+            description: 'BLI KD、kon、koff、residual 和 fit quality flags。',
+          },
+        ],
+      },
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'ElisaCurveModel.fitDoseResponse',
+        status: 'warning',
+        summary: '拟合 ELISA dose-response 并保留 outlier flag',
+        defaultCollapsed: true,
+        input: {
+          assaySheet: 'ELISA',
+          model: 'four-parameter logistic',
+          outlierPolicy: 'flag first, compare later',
+        },
+        output: {
+          fitPassRate: '7/8',
+          flaggedReplicates: 1,
+          sensitiveCandidates: ['HER2-A03', 'HER2-A05'],
+          evidenceStrength: 'moderate',
+        },
+        duration: '12.2s',
+        artifacts: [
+          {
+            name: 'HER2_elisa_curve_fit_parameters.csv',
+            kind: 'csv',
+            description: 'ELISA IC50、confidence interval、residual 和 outlier 标记。',
+          },
+        ],
+      },
+      {
+        type: 'scientificFigure',
+        figureId: 'her2-curve-fit-diagnostics',
+        title: 'Curve fitting diagnostics',
+        description: 'BLI sensorgram、ELISA dose-response、residual diagnostics 和参数表的模型拟合结果。',
+        imagegenPrompt:
+          'HER2 antibody assay curve fitting diagnostics, BLI sensorgram fits, ELISA dose response curves, residual plots, fitted parameter table, professional scientific report figure, synthetic data.',
+        placeholder: '图片：HER2 BLI 和 ELISA curve fitting diagnostics。',
+        src: her2CurveFitDiagnostics,
+        width: 900,
+        height: 600,
+        alt: 'HER2 antibody BLI and ELISA curve fitting diagnostics',
+      },
+    ],
+  },
+  {
+    id: 'her2-analysis-turn-006',
+    role: 'user',
+    markdown:
+      'ELISA 那个 outlier 先不要直接删。请做两套分析：保留原始数据一套，排除这个 QC 标记点一套。报告里要写清楚它对结论的影响。',
+  },
+  {
+    id: 'her2-analysis-turn-007',
+    role: 'mainAgent',
+    markdown:
+      '收到。我会把 outlier handling 当成人工决策边界记录下来：主报告展示 baseline analysis，同时在 sensitivity section 里比较排除 flagged replicate 后的变化。\n\n这可以避免两种误差：一是被单个异常点带偏，二是过度清洗导致报告看起来过于确定。',
+    contentBlocks: [
+      {
+        type: 'humanConfirmation',
+        title: 'human.confirmed · 确认异常点处理边界',
+        confirmedBy: 'zhengjun',
+        confirmedAt: '2026-06-01 16:18',
+        decision:
+          '保留原始数据分析，并增加排除 ELISA flagged replicate 的 sensitivity comparison；报告中必须显式记录影响。',
+      },
+    ],
+  },
+  {
+    id: 'her2-analysis-turn-008',
+    role: 'mainAgent',
+    markdown:
+      'Developability 模型把 expression、SEC-HPLC monomer、DSF/Tm 和纯化收率合并看。这里的稳健信号不是“谁最好”，而是哪些 readout 之间互相支持。\n\n当前比较稳的模式：\n\n- `HER2-A01` 和 `HER2-A08` 在 BLI、SEC monomer、Tm 上比较一致。\n- `HER2-A02` 的 binding 信号强，但 developability margin 较窄。\n- `HER2-A06` 在多个模型里分歧大，不适合做强结论。\n\n这些都是分析层判断，不能替代后续项目决策。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'DevelopabilitySignalModel.scoreHer2Readouts',
+        status: 'success',
+        summary: '整合 expression、SEC-HPLC、DSF 和 purification readouts',
+        defaultCollapsed: true,
+        input: {
+          analysisMatrix: 'HER2_analysis_ready_matrix.csv',
+          gates: ['expression >= 30 mg/L', 'SEC monomer >= 95%', 'Tm >= parent - 2 C'],
+        },
+        output: {
+          robustDevelopabilitySignals: ['HER2-A01', 'HER2-A08'],
+          narrowMarginSignals: ['HER2-A02'],
+          highDisagreementSignals: ['HER2-A06'],
+          evidenceStrength: 'moderate',
+        },
+        duration: '10.8s',
+        artifacts: [
+          {
+            name: 'HER2_developability_signal_table.csv',
+            kind: 'csv',
+            description: '表达、纯度、热稳定性和模型一致性评分。',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'her2-analysis-turn-009',
+    role: 'mainAgent',
+    markdown:
+      '我又跑了结构兼容性模型，把 wet-lab readout 和 HER2 epitope 接触面放在一起解释。这个模块只能产生**假设性解释**：它能提示哪些几何变化可能与 BLI/ELISA 信号一致，但不能证明机制。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'StructuralHypothesisModel.mapReadoutsToEpitope',
+        status: 'success',
+        summary: '生成 HER2 readout 的结构假设解释',
+        defaultCollapsed: true,
+        input: {
+          structureModel: 'HER2_candidate_complex_panel.pdb',
+          readouts: ['BLI kinetics', 'ELISA IC50', 'SEC monomer', 'Tm'],
+          interpretationMode: 'hypothesis only',
+        },
+        output: {
+          plausibleHypotheses: ['epitope contact geometry shift', 'reduced off-rate without broad stability penalty'],
+          unsupportedClaims: ['causal mechanism', 'confirmed epitope relocation'],
+          evidenceStrength: 'low-moderate',
+          requiredValidation: 'orthogonal structural or competition assay evidence',
+        },
+        duration: '16.4s',
+        artifacts: [
+          {
+            name: 'HER2_structural_hypothesis_notes.md',
+            kind: 'md',
+            description: '结构假设、支持证据和不可声称内容。',
+          },
+        ],
+      },
+      {
+        type: 'scientificFigure',
+        figureId: 'her2-structural-hypothesis-map',
+        title: 'Structural hypothesis map',
+        description: '把 HER2 epitope 接触面、wet-lab readouts 和结构解释假设放在同一张图中。',
+        imagegenPrompt:
+          'HER2 antibody structural interpretation hypothesis map, antibody variable region and HER2 epitope surface, evidence callouts, confidence and uncertainty markers, professional biomedical report figure.',
+        placeholder: '图片：HER2 structural hypothesis map。',
+        src: her2StructuralHypothesisMap,
+        width: 900,
+        height: 600,
+        alt: 'HER2 antibody structural hypothesis map for post-experiment analysis',
+      },
+    ],
+  },
+  {
+    id: 'her2-analysis-turn-010',
+    role: 'mainAgent',
+    markdown:
+      '我会在报告里把“模型解释”和“实验事实”分开写：\n\n| Layer | 可以写 | 不能写 |\n| --- | --- | --- |\n| Raw result | 文件完整、QC 状态、曲线拟合质量 | 推断真实作用机制 |\n| Model result | 模型一致性、置信区间、分歧来源 | 单一模型决定项目走向 |\n| Structural hypothesis | 哪些 readout 与结构假设相容 | 证明 HER2 表位或机制变化 |\n| Human judgment | outlier policy、解释边界、归档确认 | 把人工判断伪装成模型自动结论 |\n\n这会让 Demo 更真实：Agent 做复杂分析，但关键边界仍需要人确认。',
+  },
+  {
+    id: 'her2-analysis-turn-011',
+    role: 'mainAgent',
+    markdown:
+      '我现在把模型结果做 multi-model consensus。这里不是投票选冠军，而是看不同模型是否指向同一类信号，以及不一致来自哪里。\n\n共识结果摘要：\n\n- 稳健区间：BLI kinetics 与 developability 同向的分子族。\n- 分歧区间：ELISA outlier 和 DSF gate 会改变部分排序。\n- 低置信区间：结构解释与 wet-lab readout 只有弱到中等支持。\n\n报告会保留每个模型的独立输出和综合矩阵。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'ModelConsensusAnalyzer.integrateSignals',
+        status: 'success',
+        summary: '整合 kinetics、ELISA、developability 和结构假设模型',
+        defaultCollapsed: true,
+        input: {
+          modelInputs: [
+            'HER2_bli_curve_fit_parameters.csv',
+            'HER2_elisa_curve_fit_parameters.csv',
+            'HER2_developability_signal_table.csv',
+            'HER2_structural_hypothesis_notes.md',
+          ],
+          consensusPolicy: 'show agreement and disagreement',
+        },
+        output: {
+          robustSignals: ['HER2-A01 family', 'HER2-A08 family'],
+          disagreementDrivers: ['ELISA flagged replicate', 'DSF gate strictness', 'structural model uncertainty'],
+          modelConsensus: 'context-dependent',
+          confidenceUse: 'report intervals, not a single deterministic call',
+        },
+        duration: '14.9s',
+        artifacts: [
+          {
+            name: 'HER2_model_consensus_score_table.csv',
+            kind: 'csv',
+            description: '各模型分数、置信区间、分歧来源和综合解释。',
+          },
+        ],
+      },
+      {
+        type: 'scientificFigure',
+        figureId: 'her2-model-consensus-analysis',
+        title: 'Multi-model consensus analysis',
+        description: '多模型评分热图、模型分歧、置信区间和决策边界说明。',
+        imagegenPrompt:
+          'HER2 antibody multi-model consensus analysis figure, model score heatmap, disagreement bars, uncertainty intervals, decision boundary notes, synthetic data, scientific report style.',
+        placeholder: '图片：HER2 multi-model consensus analysis。',
+        src: her2ModelConsensusAnalysis,
+        width: 900,
+        height: 600,
+        alt: 'HER2 antibody multi-model consensus analysis figure',
+      },
+    ],
+  },
+  {
+    id: 'her2-analysis-turn-012',
+    role: 'mainAgent',
+    markdown:
+      '当前可写入报告的分析结论是：\n\n| Finding | Confidence | Why it matters |\n| --- | --- | --- |\n| BLI fitting quality overall acceptable | High | kinetics 参数可用于后续比较 |\n| ELISA signal sensitive to one flagged replicate | Medium | 需要在报告中展示 sensitivity |\n| Developability readouts support a stable subgroup | Medium | 表达、SEC 和 Tm 没有全部互相冲突 |\n| Structural interpretation remains hypothesis-level | Low-Medium | 只能解释相容性，不能证明因果 |\n| Overall consensus is useful for review, not automatic nomination | Medium | 支持人工审阅和项目决策 |\n\n我不会把这些压成一个单一结论，因为那会掩盖模型分歧。',
+  },
+  {
+    id: 'her2-analysis-turn-013',
+    role: 'user',
+    markdown:
+      '结构解释就按 hypothesis 写，不要写成机制证明。multi-model consensus 可以作为 review input，但不能看起来像 Agent 自动决定了项目方向。',
+  },
+  {
+    id: 'her2-analysis-turn-014',
+    role: 'mainAgent',
+    markdown:
+      '已记录。报告里会使用这套边界：\n\n- `Observed result`：来自实验结果包和曲线拟合。\n- `Model-supported pattern`：多个模型共同支持，但仍有置信区间。\n- `Hypothesis`：结构或表位层面的解释，只作为后续讨论输入。\n- `Human review required`：涉及项目取舍、异常点处理和是否推进的判断。\n\n这样不会把 Agent 的模型分析包装成自动决策。',
+    contentBlocks: [
+      {
+        type: 'humanConfirmation',
+        title: 'human.confirmed · 确认模型解释边界',
+        confirmedBy: 'zhengjun',
+        confirmedAt: '2026-06-01 16:31',
+        decision:
+          '结构解释只写为 hypothesis；multi-model consensus 作为 review input，不作为自动项目决策。',
+      },
+    ],
+  },
+  {
+    id: 'her2-analysis-turn-015',
+    role: 'mainAgent',
+    markdown:
+      '我跑了 sensitivity analysis，比较三种关键选择对结论的影响：\n\n1. 排除 ELISA flagged replicate。\n2. 使用 robust BLI fit weighting。\n3. 收紧 developability gate，尤其是 Tm threshold。\n\n结果显示：BLI 相关信号比较稳；ELISA 和 Tm gate 对综合评分影响较大。也就是说，报告可以写“有稳定信号”，但不能写成“模型已经确定了唯一答案”。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'UncertaintyAnalyzer.runSensitivityCheck',
+        status: 'success',
+        summary: '评估 outlier、BLI weighting 和 developability gate 对结论的影响',
+        defaultCollapsed: true,
+        input: {
+          scenarios: ['baseline', 'exclude flagged ELISA replicate', 'robust BLI weighting', 'stricter Tm gate'],
+          consensusTable: 'HER2_model_consensus_score_table.csv',
+        },
+        output: {
+          robustSignals: ['BLI kinetics direction', 'package-level QC completeness'],
+          sensitiveSignals: ['ELISA IC50 estimate', 'Tm gate strictness'],
+          fragileClaims: ['structure-level causal explanation'],
+          recommendedReportLanguage: 'evidence-weighted and assumption-aware',
+        },
+        duration: '11.7s',
+        artifacts: [
+          {
+            name: 'HER2_uncertainty_sensitivity_summary.md',
+            kind: 'md',
+            description: '关键假设、敏感性结果和报告措辞建议。',
+          },
+        ],
+      },
+      {
+        type: 'scientificFigure',
+        figureId: 'her2-uncertainty-sensitivity-analysis',
+        title: 'Uncertainty and sensitivity analysis',
+        description: '比较 outlier handling、BLI weighting 和 developability gate 对分析结论的影响。',
+        imagegenPrompt:
+          'HER2 antibody uncertainty and sensitivity analysis figure, scenario comparison, tornado sensitivity chart, outlier influence plot, assumption log summary, scientific report style.',
+        placeholder: '图片：HER2 uncertainty and sensitivity analysis。',
+        src: her2UncertaintySensitivityAnalysis,
+        width: 900,
+        height: 600,
+        alt: 'HER2 antibody uncertainty and sensitivity analysis figure',
+      },
+    ],
+  },
+  {
+    id: 'her2-analysis-turn-016',
+    role: 'mainAgent',
+    markdown:
+      '我把 assumption log 单独整理出来，避免主报告里只看到漂亮图：\n\n- ELISA outlier policy：主分析保留，sensitivity 分析排除。\n- DSF missing values：缺失率低，不触发整表排除。\n- Structural model：只能提供相容性解释。\n- Consensus score：用于审阅排序和分歧定位，不是自动决策。\n- Human boundary：涉及项目推进的判断留给 reviewer。\n\n这个 log 会和分析报告一起保存。',
+  },
+  {
+    id: 'her2-analysis-turn-017',
+    role: 'mainAgent',
+    markdown:
+      '我已把 HER2 实验后多模型分析写回 Project Files。\n\n保存内容：\n\n- `HER2_post_experiment_multimodel_analysis_report.md`\n- `HER2_model_consensus_score_table.csv`\n- `HER2_curve_fit_and_qc_summary.xlsx`\n- `HER2_post_analysis_figure_bundle.png`\n- `HER2_analysis_assumption_log.md`\n\n报告中的结论按 evidence strength 分层，结构解释写为 hypothesis，sensitivity section 会展示 outlier handling 对结论的影响。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'ProjectFile.save',
+        status: 'success',
+        summary: '保存 HER2 实验后多模型分析报告和支持文件',
+        defaultCollapsed: true,
+        input: {
+          project: 'Antibody Optimization',
+          files: [
+            'HER2_post_experiment_multimodel_analysis_report.md',
+            'HER2_model_consensus_score_table.csv',
+            'HER2_curve_fit_and_qc_summary.xlsx',
+            'HER2_post_analysis_figure_bundle.png',
+            'HER2_analysis_assumption_log.md',
+          ],
+        },
+        output: {
+          savedFiles: 5,
+          report: 'HER2_post_experiment_multimodel_analysis_report.md',
+          consensusTable: 'HER2_model_consensus_score_table.csv',
+          curveFitSummary: 'HER2_curve_fit_and_qc_summary.xlsx',
+          figureBundle: 'HER2_post_analysis_figure_bundle.png',
+          assumptionLog: 'HER2_analysis_assumption_log.md',
+        },
+        duration: '3.4s',
+        artifacts: [
+          {
+            name: 'HER2_post_experiment_multimodel_analysis_report.md',
+            kind: 'md',
+            description: '实验后多模型分析报告，包含 QC、模型共识、假设解释和 sensitivity analysis。',
+          },
+          {
+            name: 'HER2_model_consensus_score_table.csv',
+            kind: 'csv',
+            description: '模型分数、置信区间、分歧来源和综合解释矩阵。',
+          },
+          {
+            name: 'HER2_curve_fit_and_qc_summary.xlsx',
+            kind: 'xlsx',
+            description: 'BLI、ELISA 和 QC summary 的结构化结果。',
+          },
+          {
+            name: 'HER2_post_analysis_figure_bundle.png',
+            kind: 'png',
+            description: '实验后分析图集。',
+          },
+          {
+            name: 'HER2_analysis_assumption_log.md',
+            kind: 'md',
+            description: '异常点、模型边界、结构假设和人工判断记录。',
+          },
+        ],
+      },
+      {
+        type: 'projectFile',
+        fileName: 'HER2_post_experiment_multimodel_analysis_report.md',
+        fileKind: 'md',
+        location: 'Antibody Optimization / Files / Reports',
+        note: '实验后多模型分析报告：包含结果包 QC、curve fitting、multi-model consensus、结构假设和 sensitivity analysis。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'HER2_model_consensus_score_table.csv',
+        fileKind: 'csv',
+        location: 'Antibody Optimization / Files / Analysis Results',
+        note: '多模型共识评分表：保留各模型独立输出、置信区间和分歧来源。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'HER2_curve_fit_and_qc_summary.xlsx',
+        fileKind: 'xlsx',
+        location: 'Antibody Optimization / Files / Analysis Results',
+        note: 'BLI、ELISA curve fitting 和 QC summary 的结构化结果。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'HER2_post_analysis_figure_bundle.png',
+        fileKind: 'png',
+        location: 'Antibody Optimization / Files / Figures',
+        note: '实验后分析图集：QC overview、curve fitting、consensus、结构假设和 uncertainty analysis。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'HER2_analysis_assumption_log.md',
+        fileKind: 'md',
+        location: 'Antibody Optimization / Files / Reports',
+        note: '记录 outlier policy、模型解释边界和人工确认事项。',
+      },
+    ],
+  },
+  {
+    id: 'her2-analysis-turn-018',
+    role: 'user',
+    markdown:
+      '可以。把这版报告和 assumption log 归档就好。不要在这个 Thread 里继续延伸成新的实验建议。',
+  },
+  {
+    id: 'her2-analysis-turn-019',
+    role: 'mainAgent',
+    markdown:
+      '已归档。\n\n这个 Thread 的最终边界如下：\n\n- 完成了 HER2 Experiment Result Package 的实验后分析。\n- 生成了 curve fitting、developability、结构假设、multi-model consensus 和 uncertainty/sensitivity 的分析证据。\n- 保存了报告、评分表、曲线/QC 摘要、图集和 assumption log。\n- 所有结构层解释都按 hypothesis 记录，没有写成确定机制。\n- 当前 Thread 到这里停止，不继续扩展为新的实验方案。',
+    contentBlocks: [
+      {
+        type: 'humanConfirmation',
+        title: 'human.confirmed · 确认分析报告归档',
+        confirmedBy: 'zhengjun',
+        confirmedAt: '2026-06-01 16:46',
+        decision:
+          '确认 HER2_post_experiment_multimodel_analysis_report.md 和 HER2_analysis_assumption_log.md 归档；当前 Thread 停止在实验后分析交付。',
+      },
+    ],
+  },
+]
+
+export const her2PostExperimentAnalysisRunInspector: RunInspectorData = {
+  summary: {
+    stage: '实验后结果分析完成',
+    status: 'completed',
+    completedSteps: 7,
+    totalSteps: 7,
+    outputCount: 5,
+    pendingCount: 0,
+  },
+  progress: [
+    {
+      id: 'result-package-load',
+      title: '结果包导入',
+      status: 'done',
+      detail: '读取 HER2 wet-lab raw bundle、QC report、summary report 和 figure package。',
+    },
+    {
+      id: 'qc-audit',
+      title: '结果 QC 和异常点审阅',
+      status: 'done',
+      detail: '确认文件完整性、DSF missing values 和 ELISA outlier 标记。',
+    },
+    {
+      id: 'model-analysis',
+      title: '多模型分析执行',
+      status: 'done',
+      detail: '运行 BLI/ELISA 拟合、developability、结构假设和模型共识分析。',
+    },
+    {
+      id: 'human-outlier-policy',
+      title: '异常点处理确认',
+      status: 'done',
+      detail: '用户确认保留原始分析并加入排除 outlier 的 sensitivity comparison。',
+    },
+    {
+      id: 'interpretation-boundary',
+      title: '模型解释边界确认',
+      status: 'done',
+      detail: '结构解释只作为 hypothesis，multi-model consensus 作为 review input。',
+    },
+    {
+      id: 'uncertainty-analysis',
+      title: '不确定性和敏感性分析',
+      status: 'done',
+      detail: '比较 outlier policy、BLI weighting 和 developability gate 对结论的影响。',
+    },
+    {
+      id: 'analysis-archive',
+      title: '分析报告归档',
+      status: 'done',
+      detail: '保存报告、评分表、curve fit summary、figure bundle 和 assumption log。',
+    },
+  ],
+  outputs: [
+    {
+      id: 'her2-post-analysis-report',
+      name: 'HER2_post_experiment_multimodel_analysis_report.md',
+      kind: 'report',
+      location: 'Antibody Optimization / Files / Reports',
+      status: 'saved',
+    },
+    {
+      id: 'her2-consensus-table',
+      name: 'HER2_model_consensus_score_table.csv',
+      kind: 'dataset',
+      location: 'Antibody Optimization / Files / Analysis Results',
+      status: 'saved',
+    },
+    {
+      id: 'her2-curve-fit-summary',
+      name: 'HER2_curve_fit_and_qc_summary.xlsx',
+      kind: 'projectFile',
+      location: 'Antibody Optimization / Files / Analysis Results',
+      status: 'saved',
+    },
+    {
+      id: 'her2-post-analysis-figures',
+      name: 'HER2_post_analysis_figure_bundle.png',
+      kind: 'figure',
+      location: 'Antibody Optimization / Files / Figures',
+      status: 'saved',
+    },
+    {
+      id: 'her2-assumption-log',
+      name: 'HER2_analysis_assumption_log.md',
+      kind: 'report',
+      location: 'Antibody Optimization / Files / Reports',
+      status: 'saved',
+    },
+  ],
+  approvals: [
+    {
+      id: 'her2-outlier-policy-confirmation',
+      kind: 'humanConfirmation',
+      title: '确认异常点处理边界',
+      status: 'confirmed',
+      actor: 'zhengjun',
+      decidedAt: '2026-06-01 16:18',
+    },
+    {
+      id: 'her2-interpretation-boundary-confirmation',
+      kind: 'humanConfirmation',
+      title: '确认模型解释边界',
+      status: 'confirmed',
+      actor: 'zhengjun',
+      decidedAt: '2026-06-01 16:31',
+    },
+    {
+      id: 'her2-analysis-archive-confirmation',
+      kind: 'humanConfirmation',
+      title: '确认分析报告归档',
+      status: 'confirmed',
+      actor: 'zhengjun',
+      decidedAt: '2026-06-01 16:46',
+    },
+  ],
+  capabilityRuns: [
+    {
+      id: 'her2-result-package-reader',
+      commandName: 'ResultPackageReader.loadHer2Package',
+      status: 'success',
+      summary: '读取 HER2 Experiment Result Package',
+      duration: '4.1s',
+      input: {
+        packageFiles: [
+          'HER2_wetlab_raw_result_bundle.xlsx',
+          'HER2_experiment_qc_report.md',
+          'HER2_experiment_summary_report.md',
+          'HER2_experiment_result_package_figures.png',
+        ],
+        project: 'Antibody Optimization / HER2 实验结果多模型分析',
+      },
+      output: {
+        assaySheets: ['expression', 'purification', 'SEC-HPLC', 'DSF', 'BLI', 'ELISA'],
+        candidateCount: 8,
+        packageStatus: 'loaded',
+        analysisMode: 'post-experiment only',
+      },
+      artifacts: [
+        {
+          name: 'HER2_result_package_manifest.json',
+          kind: 'json',
+        },
+      ],
+    },
+    {
+      id: 'her2-result-package-qc',
+      commandName: 'ResultPackageQc.auditCompleteness',
+      status: 'warning',
+      summary: '结果包完整，但存在一个非关键 outlier 标记',
+      duration: '5.5s',
+      input: {
+        rawBundle: 'HER2_wetlab_raw_result_bundle.xlsx',
+        qcReport: 'HER2_experiment_qc_report.md',
+      },
+      output: {
+        expectedFiles: 19,
+        importedFiles: 19,
+        missingCriticalFiles: 0,
+        flaggedOutliers: 1,
+        dsfMissingRate: '2.1%',
+      },
+      artifacts: [
+        {
+          name: 'HER2_result_package_qc_audit.md',
+          kind: 'md',
+        },
+      ],
+    },
+    {
+      id: 'her2-analysis-matrix',
+      commandName: 'AssayTableNormalizer.buildAnalysisMatrix',
+      status: 'success',
+      summary: '构建 HER2 analysis-ready assay matrix',
+      duration: '7.6s',
+      input: {
+        rawBundle: 'HER2_wetlab_raw_result_bundle.xlsx',
+        baseline: 'HER2-P0',
+      },
+      output: {
+        analysisRows: 9,
+        normalizedReadouts: ['BLI KD', 'BLI koff', 'ELISA IC50', 'cell-free binding response', 'expression', 'SEC monomer', 'Tm'],
+        retainedFlags: ['ELISA outlier', 'DSF missing values'],
+      },
+      artifacts: [
+        {
+          name: 'HER2_analysis_ready_matrix.csv',
+          kind: 'csv',
+        },
+      ],
+    },
+    {
+      id: 'her2-bli-fitting',
+      commandName: 'KineticsModel.fitBliCurves',
+      status: 'success',
+      summary: '拟合 HER2 BLI sensorgram 并输出 kinetics 参数',
+      duration: '13.8s',
+      input: {
+        assaySheet: 'BLI',
+        fittingModel: '1:1 binding with robust residual check',
+        candidates: 8,
+      },
+      output: {
+        fitPassRate: '8/8',
+        stableKoffSignals: ['HER2-A01', 'HER2-A02', 'HER2-A08'],
+        weakFitRegions: ['early association for HER2-A06'],
+        evidenceStrength: 'moderate-high',
+      },
+      artifacts: [
+        {
+          name: 'HER2_bli_curve_fit_parameters.csv',
+          kind: 'csv',
+        },
+      ],
+    },
+    {
+      id: 'her2-elisa-fitting',
+      commandName: 'ElisaCurveModel.fitDoseResponse',
+      status: 'warning',
+      summary: '拟合 ELISA dose-response 并保留 outlier flag',
+      duration: '12.2s',
+      input: {
+        assaySheet: 'ELISA',
+        model: 'four-parameter logistic',
+        outlierPolicy: 'flag first, compare later',
+      },
+      output: {
+        fitPassRate: '7/8',
+        flaggedReplicates: 1,
+        sensitiveCandidates: ['HER2-A03', 'HER2-A05'],
+        evidenceStrength: 'moderate',
+      },
+      artifacts: [
+        {
+          name: 'HER2_elisa_curve_fit_parameters.csv',
+          kind: 'csv',
+        },
+      ],
+    },
+    {
+      id: 'her2-developability-model',
+      commandName: 'DevelopabilitySignalModel.scoreHer2Readouts',
+      status: 'success',
+      summary: '整合 expression、SEC-HPLC、DSF 和 purification readouts',
+      duration: '10.8s',
+      input: {
+        analysisMatrix: 'HER2_analysis_ready_matrix.csv',
+        gates: ['expression >= 30 mg/L', 'SEC monomer >= 95%', 'Tm >= parent - 2 C'],
+      },
+      output: {
+        robustDevelopabilitySignals: ['HER2-A01', 'HER2-A08'],
+        narrowMarginSignals: ['HER2-A02'],
+        highDisagreementSignals: ['HER2-A06'],
+        evidenceStrength: 'moderate',
+      },
+      artifacts: [
+        {
+          name: 'HER2_developability_signal_table.csv',
+          kind: 'csv',
+        },
+      ],
+    },
+    {
+      id: 'her2-structural-hypothesis',
+      commandName: 'StructuralHypothesisModel.mapReadoutsToEpitope',
+      status: 'success',
+      summary: '生成 HER2 readout 的结构假设解释',
+      duration: '16.4s',
+      input: {
+        structureModel: 'HER2_candidate_complex_panel.pdb',
+        interpretationMode: 'hypothesis only',
+      },
+      output: {
+        plausibleHypotheses: ['epitope contact geometry shift', 'reduced off-rate without broad stability penalty'],
+        unsupportedClaims: ['causal mechanism', 'confirmed epitope relocation'],
+        evidenceStrength: 'low-moderate',
+        requiredValidation: 'orthogonal structural or competition assay evidence',
+      },
+      artifacts: [
+        {
+          name: 'HER2_structural_hypothesis_notes.md',
+          kind: 'md',
+        },
+      ],
+    },
+    {
+      id: 'her2-consensus-model',
+      commandName: 'ModelConsensusAnalyzer.integrateSignals',
+      status: 'success',
+      summary: '整合 kinetics、ELISA、developability 和结构假设模型',
+      duration: '14.9s',
+      input: {
+        modelInputs: [
+          'HER2_bli_curve_fit_parameters.csv',
+          'HER2_elisa_curve_fit_parameters.csv',
+          'HER2_developability_signal_table.csv',
+          'HER2_structural_hypothesis_notes.md',
+        ],
+        consensusPolicy: 'show agreement and disagreement',
+      },
+      output: {
+        robustSignals: ['HER2-A01 family', 'HER2-A08 family'],
+        disagreementDrivers: ['ELISA flagged replicate', 'DSF gate strictness', 'structural model uncertainty'],
+        modelConsensus: 'context-dependent',
+        confidenceUse: 'report intervals, not a single deterministic call',
+      },
+      artifacts: [
+        {
+          name: 'HER2_model_consensus_score_table.csv',
+          kind: 'csv',
+        },
+      ],
+    },
+    {
+      id: 'her2-uncertainty-analysis',
+      commandName: 'UncertaintyAnalyzer.runSensitivityCheck',
+      status: 'success',
+      summary: '评估 outlier、BLI weighting 和 developability gate 对结论的影响',
+      duration: '11.7s',
+      input: {
+        scenarios: ['baseline', 'exclude flagged ELISA replicate', 'robust BLI weighting', 'stricter Tm gate'],
+        consensusTable: 'HER2_model_consensus_score_table.csv',
+      },
+      output: {
+        robustSignals: ['BLI kinetics direction', 'package-level QC completeness'],
+        sensitiveSignals: ['ELISA IC50 estimate', 'Tm gate strictness'],
+        fragileClaims: ['structure-level causal explanation'],
+        recommendedReportLanguage: 'evidence-weighted and assumption-aware',
+      },
+      artifacts: [
+        {
+          name: 'HER2_uncertainty_sensitivity_summary.md',
+          kind: 'md',
+        },
+      ],
+    },
+    {
+      id: 'her2-post-analysis-save',
+      commandName: 'ProjectFile.save',
+      status: 'success',
+      summary: '保存 HER2 实验后多模型分析报告和支持文件',
+      duration: '3.4s',
+      input: {
+        project: 'Antibody Optimization',
+        files: [
+          'HER2_post_experiment_multimodel_analysis_report.md',
+          'HER2_model_consensus_score_table.csv',
+          'HER2_curve_fit_and_qc_summary.xlsx',
+          'HER2_post_analysis_figure_bundle.png',
+          'HER2_analysis_assumption_log.md',
+        ],
+      },
+      output: {
+        savedFiles: 5,
+        report: 'HER2_post_experiment_multimodel_analysis_report.md',
+        consensusTable: 'HER2_model_consensus_score_table.csv',
+        curveFitSummary: 'HER2_curve_fit_and_qc_summary.xlsx',
+        figureBundle: 'HER2_post_analysis_figure_bundle.png',
+        assumptionLog: 'HER2_analysis_assumption_log.md',
+      },
+      artifacts: [
+        {
+          name: 'HER2_post_experiment_multimodel_analysis_report.md',
+          kind: 'md',
+        },
+        {
+          name: 'HER2_model_consensus_score_table.csv',
+          kind: 'csv',
+        },
+        {
+          name: 'HER2_curve_fit_and_qc_summary.xlsx',
+          kind: 'xlsx',
+        },
+        {
+          name: 'HER2_post_analysis_figure_bundle.png',
+          kind: 'png',
+        },
+        {
+          name: 'HER2_analysis_assumption_log.md',
+          kind: 'md',
+        },
+      ],
+    },
+  ],
+}
+
 export const projects: Project[] = [
   {
     id: 'antibody-optimization',
@@ -2610,6 +3589,13 @@ export const projects: Project[] = [
         lastActivity: '1 天前',
         transcript: her2WetlabExecutionTranscript,
         runInspector: her2WetlabRunInspector,
+      },
+      {
+        id: 'her2-post-experiment-analysis',
+        title: 'HER2 实验结果多模型分析',
+        lastActivity: '刚刚',
+        transcript: her2PostExperimentAnalysisTranscript,
+        runInspector: her2PostExperimentAnalysisRunInspector,
       },
       { id: 'cd3-bispecific', title: 'CD3 双抗序列优化分析', lastActivity: '1 小时' },
       { id: 'affinity-maturation', title: '亲和力成熟实验方案', lastActivity: '昨天' },
