@@ -150,6 +150,9 @@ describe('xTrimo model assets', () => {
       getButton(container, '亲和力').click()
     })
 
+    expect(getButton(container, '亲和力').getAttribute('aria-pressed')).toBe(
+      'true',
+    )
     expect(container.textContent).toContain('xTrimoAbAffinity_DDG')
     expect(container.textContent).toContain('xTrimoTCR-PeptideBinding')
     expect(container.textContent).not.toContain('xTrimoGene')
@@ -158,9 +161,32 @@ describe('xTrimo model assets', () => {
       getButton(container, '抗体').click()
     })
 
+    expect(getButton(container, '抗体').getAttribute('aria-pressed')).toBe('true')
     expect(container.textContent).toContain('xTrimoAbAffinity_DDG')
     expect(container.textContent).not.toContain('xTrimoTCR-PeptideBinding')
 
+    act(() => {
+      getButton(container, '即将上线').click()
+    })
+
+    expect(getButton(container, '即将上线').getAttribute('aria-pressed')).toBe(
+      'true',
+    )
+    expect(getButton(container, '亲和力').getAttribute('aria-pressed')).toBe(
+      'true',
+    )
+    expect(getButton(container, '抗体').getAttribute('aria-pressed')).toBe('true')
+    expect(container.textContent).not.toContain('xTrimoAAVViability')
+
+    act(() => {
+      getButton(container, '全部状态').click()
+    })
+    act(() => {
+      getButton(container, '全部能力').click()
+    })
+    act(() => {
+      getButton(container, '全部实体').click()
+    })
     act(() => {
       getButton(container, '即将上线').click()
     })

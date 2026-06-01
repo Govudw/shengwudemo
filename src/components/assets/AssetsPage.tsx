@@ -617,15 +617,6 @@ function XtrimoModelAssetsView({
       xtrimoModelMatches(record, query),
   )
 
-  function handleStatusChange(status: XtrimoModelStatus | 'all') {
-    setSelectedStatus(status)
-
-    if (status !== 'all') {
-      setSelectedCapability('all')
-      setSelectedEntity('all')
-    }
-  }
-
   return (
     <section className="assets-content assets-content--xtrimo">
       <div className="assets-xtrimo-header">
@@ -663,6 +654,7 @@ function XtrimoModelAssetsView({
           <button
             type="button"
             className={selectedCapability === 'all' ? 'active' : ''}
+            aria-pressed={selectedCapability === 'all'}
             onClick={() => setSelectedCapability('all')}
           >
             全部能力
@@ -672,6 +664,7 @@ function XtrimoModelAssetsView({
               type="button"
               key={capability}
               className={selectedCapability === capability ? 'active' : ''}
+              aria-pressed={selectedCapability === capability}
               onClick={() => setSelectedCapability(capability)}
             >
               {capability}
@@ -683,6 +676,7 @@ function XtrimoModelAssetsView({
           <button
             type="button"
             className={selectedEntity === 'all' ? 'active' : ''}
+            aria-pressed={selectedEntity === 'all'}
             onClick={() => setSelectedEntity('all')}
           >
             全部实体
@@ -692,6 +686,7 @@ function XtrimoModelAssetsView({
               type="button"
               key={entity}
               className={selectedEntity === entity ? 'active' : ''}
+              aria-pressed={selectedEntity === entity}
               onClick={() => setSelectedEntity(entity)}
             >
               {entity}
@@ -702,21 +697,24 @@ function XtrimoModelAssetsView({
           <button
             type="button"
             className={selectedStatus === 'all' ? 'active' : ''}
-            onClick={() => handleStatusChange('all')}
+            aria-pressed={selectedStatus === 'all'}
+            onClick={() => setSelectedStatus('all')}
           >
             全部状态
           </button>
           <button
             type="button"
             className={selectedStatus === 'online' ? 'active' : ''}
-            onClick={() => handleStatusChange('online')}
+            aria-pressed={selectedStatus === 'online'}
+            onClick={() => setSelectedStatus('online')}
           >
             已上线
           </button>
           <button
             type="button"
             className={selectedStatus === 'comingSoon' ? 'active' : ''}
-            onClick={() => handleStatusChange('comingSoon')}
+            aria-pressed={selectedStatus === 'comingSoon'}
+            onClick={() => setSelectedStatus('comingSoon')}
           >
             即将上线
           </button>
@@ -812,17 +810,7 @@ function XtrimoModelCard({
   const isCallable = record.callability === 'callable'
 
   return (
-    <button
-      type="button"
-      className="assets-record-card assets-record-card--generic assets-record-card--xtrimo"
-      onClick={() =>
-        onNotify(
-          isCallable
-            ? '模型详情将在后续 Demo 中展开'
-            : '该模型即将上线，当前仅支持预览',
-        )
-      }
-    >
+    <article className="assets-record-card assets-record-card--generic assets-record-card--xtrimo">
       <div className="assets-record-card__top">
         <PackageIcon className="assets-record-card__icon" />
         <span className="assets-record-card__badge">
@@ -843,7 +831,20 @@ function XtrimoModelCard({
         <span>输入：{record.input}</span>
         <span>输出：{record.output}</span>
       </div>
-    </button>
+      <button
+        type="button"
+        className="assets-record-card__action"
+        onClick={() =>
+          onNotify(
+            isCallable
+              ? '模型详情将在后续 Demo 中展开'
+              : '该模型即将上线，当前仅支持预览',
+          )
+        }
+      >
+        {isCallable ? '查看详情' : '预览模型'}
+      </button>
+    </article>
   )
 }
 
