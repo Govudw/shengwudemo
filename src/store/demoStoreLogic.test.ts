@@ -181,6 +181,197 @@ describe('demo store logic', () => {
     })
   })
 
+  it('seeds the IL-17A analysis-design Thread without changing the New Thread Draft default', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const il17aThread = findThreadById(state.projects, 'il17a-affinity-design')?.thread
+    const blocks = il17aThread?.transcript.flatMap((turn) => turn.contentBlocks ?? []) ?? []
+    const scientificFigures = blocks.filter(
+      (block) => block.type === 'scientificFigure',
+    )
+
+    expect(state.selectedThreadId).toBeNull()
+    expect(state.isDraftingNewThread).toBe(true)
+    expect(il17aThread?.title).toBe('IL-17A 亲和力成熟实验设计')
+    expect(il17aThread?.transcript).toHaveLength(19)
+    expect(il17aThread?.transcript.filter((turn) => turn.role === 'user')).toHaveLength(4)
+    expect(scientificFigures).toHaveLength(5)
+    expect(
+      scientificFigures.every(
+        (block) => block.width > 0 && block.height > 0 && Boolean(block.src),
+      ),
+    ).toBe(true)
+    expect(blocks.filter((block) => block.type === 'approvalRequestReplay')).toHaveLength(0)
+    expect(blocks.filter((block) => block.type === 'approvalGatePreview')).toHaveLength(0)
+    expect(blocks.filter((block) => block.type === 'elapsedWorkReplay')).toHaveLength(0)
+  })
+
+  it('seeds structured Run Inspector data for the IL-17A analysis design replay', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const il17aThread = findThreadById(state.projects, 'il17a-affinity-design')?.thread
+    const runInspector = il17aThread?.runInspector
+
+    expect(runInspector?.summary).toMatchObject({
+      stage: '实验前分析设计完成',
+      status: 'completed',
+      completedSteps: 7,
+      totalSteps: 7,
+      outputCount: 4,
+      pendingCount: 0,
+    })
+    expect(runInspector?.progress).toHaveLength(7)
+    expect(runInspector?.outputs).toHaveLength(4)
+    expect(runInspector?.outputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'IL17A_affinity_maturation_design_package.md',
+          kind: 'report',
+        }),
+        expect.objectContaining({
+          name: 'IL17A_library_design_matrix.csv',
+          kind: 'dataset',
+        }),
+        expect.objectContaining({
+          name: 'IL17A_assay_readout_plan.xlsx',
+          kind: 'projectFile',
+        }),
+        expect.objectContaining({
+          name: 'IL17A_scientific_figures.png',
+          kind: 'figure',
+        }),
+      ]),
+    )
+    expect(runInspector?.approvals).toEqual([
+      expect.objectContaining({
+        kind: 'humanConfirmation',
+        title: '确认 Experiment Design Package',
+        status: 'confirmed',
+      }),
+    ])
+    expect(runInspector?.capabilityRuns).toHaveLength(8)
+    expect(
+      runInspector?.capabilityRuns.every(
+        (run) =>
+          !JSON.stringify(run.output).includes('predictedWinner') &&
+          !JSON.stringify(run.output).includes('provenCause'),
+      ),
+    ).toBe(true)
+  })
+
+  it('seeds the HER2 wet-lab execution Thread without changing the New Thread Draft default', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const her2Thread = findThreadById(state.projects, 'her2-wetlab-validation')?.thread
+    const blocks = her2Thread?.transcript.flatMap((turn) => turn.contentBlocks ?? []) ?? []
+    const scientificFigures = blocks.filter(
+      (block) => block.type === 'scientificFigure',
+    )
+    const allText = her2Thread?.transcript.map((turn) => turn.markdown ?? '').join('\n') ?? ''
+
+    expect(state.selectedThreadId).toBeNull()
+    expect(state.isDraftingNewThread).toBe(true)
+    expect(her2Thread?.id).toBe('her2-wetlab-validation')
+    expect(her2Thread?.title).toBe('HER2 抗体候选湿实验验证')
+    expect(her2Thread?.transcript).toHaveLength(19)
+    expect(her2Thread?.transcript.filter((turn) => turn.role === 'user')).toHaveLength(5)
+    expect(scientificFigures).toHaveLength(5)
+    expect(
+      scientificFigures.every(
+        (block) => block.width > 0 && block.height > 0 && Boolean(block.src),
+      ),
+    ).toBe(true)
+    expect(blocks.filter((block) => block.type === 'experimentOrderDraft')).toHaveLength(1)
+    expect(blocks.filter((block) => block.type === 'approvalRequestReplay')).toHaveLength(1)
+    expect(blocks.filter((block) => block.type === 'elapsedWorkReplay')).toHaveLength(2)
+    expect(blocks.filter((block) => block.type === 'humanConfirmation')).toHaveLength(3)
+    expect(blocks.filter((block) => block.type === 'approvalGatePreview')).toHaveLength(0)
+    expect(blocks.filter((block) => block.type === 'candidateMoleculeTable')).toHaveLength(0)
+    expect(allText).toContain('HER2-EXPTASK-20260531-001')
+    expect(allText).toContain('Preset QC Check')
+    expect(allText).toContain('Experiment Result Package')
+    expect(allText).not.toContain('最佳突变组合')
+    expect(allText).not.toContain('下一轮设计')
+  })
+
+  it('seeds structured Run Inspector data for the HER2 wet-lab execution replay', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const her2Thread = findThreadById(state.projects, 'her2-wetlab-validation')?.thread
+    const runInspector = her2Thread?.runInspector
+
+    expect(runInspector?.summary).toMatchObject({
+      stage: '湿实验验证完成',
+      status: 'completed',
+      completedSteps: 7,
+      totalSteps: 7,
+      outputCount: 5,
+      pendingCount: 0,
+    })
+    expect(runInspector?.progress).toHaveLength(7)
+    expect(runInspector?.progress[3]).toMatchObject({
+      title: 'Experiment Task 执行回放',
+      status: 'done',
+    })
+    expect(runInspector?.outputs).toHaveLength(5)
+    expect(runInspector?.outputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'BM-LAB-HER2-20260531-001',
+          kind: 'experimentOrder',
+          status: 'submitted',
+        }),
+        expect.objectContaining({
+          name: 'HER2_wetlab_raw_result_bundle.xlsx',
+          kind: 'dataset',
+          status: 'completed',
+        }),
+        expect.objectContaining({
+          name: 'HER2_experiment_qc_report.md',
+          kind: 'report',
+          status: 'saved',
+        }),
+        expect.objectContaining({
+          name: 'HER2_experiment_summary_report.md',
+          kind: 'report',
+          status: 'saved',
+        }),
+        expect.objectContaining({
+          name: 'HER2_experiment_result_package_figures.png',
+          kind: 'figure',
+          status: 'saved',
+        }),
+      ]),
+    )
+    expect(runInspector?.outputs.some((output) => output.name.includes('EXPTASK'))).toBe(false)
+    expect(runInspector?.approvals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'approvalRequest',
+          title: '提交 HER2 Experiment Order',
+          status: 'approved',
+        }),
+      ]),
+    )
+    expect(runInspector?.approvals).toHaveLength(4)
+    expect(runInspector?.capabilityRuns).toHaveLength(9)
+    expect(runInspector?.capabilityRuns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ commandName: 'ExperimentTaskReplay.syncStatus' }),
+        expect.objectContaining({ commandName: 'PresetQcChecker.evaluateAssayFiles' }),
+      ]),
+    )
+    expect(
+      runInspector?.capabilityRuns.some((run) =>
+        JSON.stringify(run.output).includes('HER2-EXPTASK-20260531-001'),
+      ),
+    ).toBe(true)
+    expect(
+      runInspector?.capabilityRuns.every(
+        (run) =>
+          !JSON.stringify(run.output).includes('recommendedLead') &&
+          !JSON.stringify(run.output).includes('mechanismExplanation') &&
+          !JSON.stringify(run.output).includes('nextRoundDesign'),
+      ),
+    ).toBe(true)
+  })
+
   it('toggles Run Inspector open state and clears it when a Thread is deleted', () => {
     const state = createInitialDemoState(seedProjects, now)
 
@@ -323,9 +514,9 @@ describe('demo store logic', () => {
       })),
     }))
 
-    const recentEntries = getRecentThreadEntries(updatedProjects, 3)
+    const recentEntries = getRecentThreadEntries(updatedProjects, 5)
 
-    expect(recentEntries).toHaveLength(3)
+    expect(recentEntries).toHaveLength(5)
     expect(recentEntries.some((entry) => entry.thread.id === 'egfr-affinity')).toBe(false)
     expect(recentEntries.map((entry) => entry.thread.lastActivityAt)).toEqual(
       recentEntries

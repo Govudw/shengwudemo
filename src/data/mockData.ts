@@ -6,6 +6,16 @@ import egfrOrderWorkflow from '../assets/mock-science/egfr/egfr-order-workflow.p
 import egfrParetoOptimization from '../assets/mock-science/egfr/egfr-pareto-optimization.png'
 import egfrResultSummaryChart from '../assets/mock-science/egfr/egfr-result-summary-chart.png'
 import egfrSecHplcChromatogram from '../assets/mock-science/egfr/egfr-sec-hplc-chromatogram.png'
+import il17aCdrSiteEvidenceMap from '../assets/mock-science/il17a/il17a-cdr-site-evidence-map.png'
+import il17aDiscordancePlot from '../assets/mock-science/il17a/il17a-discordance-plot.png'
+import il17aHypothesisTriageDiagram from '../assets/mock-science/il17a/il17a-hypothesis-triage-diagram.png'
+import il17aLibraryAssayDesignMatrix from '../assets/mock-science/il17a/il17a-library-assay-design-matrix.png'
+import il17aVariantEvidenceHeatmap from '../assets/mock-science/il17a/il17a-variant-evidence-heatmap.png'
+import her2ExperimentOrderExecutionFlow from '../assets/mock-science/her2/her2-experiment-order-execution-flow.png'
+import her2ExperimentResultPackageSummary from '../assets/mock-science/her2/her2-experiment-result-package-summary.png'
+import her2ExpressionPurificationQc from '../assets/mock-science/her2/her2-expression-purification-qc.png'
+import her2SamplePlateMap from '../assets/mock-science/her2/her2-sample-plate-map.png'
+import her2SecDsfBliQcDashboard from '../assets/mock-science/her2/her2-sec-dsf-bli-qc-dashboard.png'
 import type { ConversationTurn, RunInspectorData } from './conversationTypes'
 
 export type Thread = {
@@ -937,6 +947,1644 @@ export const egfrRunInspector: RunInspectorData = {
   ],
 }
 
+export const il17aAffinityDesignTranscript: ConversationTurn[] = [
+  {
+    id: 'il17a-turn-001',
+    role: 'user',
+    markdown:
+      '我们准备做 IL-17A 中和抗体下一轮亲和力成熟。先不要直接下实验订单，帮我基于历史变体数据做实验前分析设计，重点看为什么 KD 变好以后 cell potency 没有同步提升。',
+    contentBlocks: [
+      {
+        type: 'projectFile',
+        fileName: 'IL17A_parent_and_variant_history.xlsx',
+        fileKind: 'xlsx',
+        location: 'Antibody Optimization / Files / Inputs',
+        note: 'XLSX · parent + 12 个历史变体 · BLI、ELISA、cell potency、表达、SEC-HPLC 和 Tm。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'IL17A_variant_sequences.fasta',
+        fileKind: 'fasta',
+        location: 'Antibody Optimization / Files / Inputs',
+        note: 'FASTA · heavy/light variable region 序列，用于位点和 CDR 证据映射。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'IL17A_assay_notes.md',
+        fileKind: 'md',
+        location: 'Antibody Optimization / Files / Notes',
+        note: 'MD · 细胞 assay 噪声、历史团队观察和实验边界说明。',
+      },
+    ],
+  },
+  {
+    id: 'il17a-turn-002',
+    role: 'mainAgent',
+    markdown:
+      '我先把三个 Project Files 作为同一个输入文件束读取。当前数据适合做下一轮实验设计，但不适合直接推出“最佳突变组合”。\n\n初始观察：\n\n- Parent `IL17A-P0` 的 BLI KD 约 **18 nM**。\n- 历史变体中已有 4 个把 KD 推到 **2-4 nM**。\n- 细胞中和 IC50 的改善并没有和 KD 等比例同步。\n- 一部分高亲和力变体出现表达量或 Tm 风险。\n\n我会先把问题拆成 evidence、hypothesis 和 design constraint，而不是直接给单一候选结论。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'ProjectFileReader.extractIl17aHistory',
+        status: 'success',
+        summary: '读取 IL-17A parent、12 个历史变体和 assay notes',
+        defaultCollapsed: true,
+        input: {
+          files: [
+            'IL17A_parent_and_variant_history.xlsx',
+            'IL17A_variant_sequences.fasta',
+            'IL17A_assay_notes.md',
+          ],
+          project: 'Antibody Optimization / IL-17A 亲和力成熟实验设计',
+        },
+        output: {
+          parentAntibody: 'IL17A-P0',
+          historicalVariants: 12,
+          baselineBliKd: '18 nM',
+          bestHistoricalKdRange: '2-4 nM',
+          availableReadouts: ['BLI', 'competition ELISA', 'cell neutralization', 'expression', 'SEC-HPLC', 'Tm'],
+        },
+        duration: '5.1s',
+        artifacts: [
+          {
+            name: 'IL17A_history_extract.json',
+            kind: 'json',
+            description: 'Parent、历史变体、readout 字段和 assay notes 摘要。',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'il17a-turn-003',
+    role: 'mainAgent',
+    markdown:
+      '输入文件束质控结果：数据量不大，但足够支持“区分假设”的实验设计。\n\n我不会把它当成可训练预测模型的数据集。这里更合理的用法是：\n\n- 找出 readout 之间的冲突。\n- 看哪些位点和 readout 变化有一致信号。\n- 明确哪些结论只能作为假设。\n- 设计下一轮实验去验证这些假设。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'InputBundleQc.checkCompleteness',
+        status: 'warning',
+        summary: '数据可用于实验设计，但不足以做确定性预测',
+        defaultCollapsed: true,
+        input: {
+          variants: 12,
+          readouts: ['BLI KD', 'ELISA IC50', 'cell IC50', 'expression', 'SEC monomer', 'Tm'],
+          sequenceCoverage: 'VH/VL variable regions',
+        },
+        output: {
+          completeness: 'usable for design',
+          replicateCoverage: 'mixed',
+          causalCertainty: 'low',
+          recommendedUse: 'hypothesis-driven experiment design',
+        },
+        duration: '4.7s',
+        artifacts: [
+          {
+            name: 'IL17A_input_bundle_qc.md',
+            kind: 'md',
+            description: '输入文件完整性、缺口和可用边界。',
+          },
+        ],
+      },
+      {
+        type: 'scientificFigure',
+        figureId: 'il17a-variant-evidence-heatmap',
+        title: 'Variant evidence heatmap',
+        description: '12 个历史变体在 BLI、ELISA blocking、cell potency、表达、SEC-HPLC、Tm 和序列风险上的证据矩阵。',
+        imagegenPrompt:
+          'Scientific heatmap for IL-17A antibody historical variants across BLI KD, ELISA blocking, cell potency, expression, SEC monomer, thermal stability, and sequence liability risk; clean biomedical report style, synthetic data, uncertainty-aware, no brand UI.',
+        placeholder: '图片：IL-17A 历史变体 evidence heatmap。',
+        src: il17aVariantEvidenceHeatmap,
+        width: 900,
+        height: 494,
+        alt: 'Heatmap of IL-17A antibody historical variant evidence across affinity function and developability readouts',
+      },
+    ],
+  },
+  {
+    id: 'il17a-turn-004',
+    role: 'mainAgent',
+    markdown:
+      '我把 BLI KD 和 cell neutralization IC50 放在同一张图里看。主冲突很明显：一组变体 KD 明显更好，但 cell potency 仍然弱；另一组变体 KD 只中等改善，但 cell potency 反而更好。\n\n这说明下一轮不能只做 affinity hotspot scanning。更合理的是设计一组能区分以下问题的实验：binding kinetics、epitope blocking、细胞 assay context 哪一个更限制功能。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'AssayDiscordanceAnalyzer.compareBindingAndFunction',
+        status: 'success',
+        summary: '识别 BLI KD 与 cell potency 不一致的历史变体组',
+        defaultCollapsed: true,
+        input: {
+          bindingReadout: 'BLI KD',
+          functionalReadout: 'IL-17A cell neutralization IC50',
+          historicalVariants: 12,
+        },
+        output: {
+          discordantHighAffinityVariants: ['IL17A-H03', 'IL17A-H04', 'IL17A-H07'],
+          moderateBindingFunctionalVariants: ['IL17A-H05', 'IL17A-H09'],
+          evidenceStrength: 'moderate',
+          remainingUncertainty: 'epitope geometry and assay context are not separated',
+        },
+        duration: '9.4s',
+        artifacts: [
+          {
+            name: 'IL17A_binding_function_discordance.csv',
+            kind: 'csv',
+            description: 'BLI KD、cell IC50 和 discordance 分组。',
+          },
+        ],
+      },
+      {
+        type: 'scientificFigure',
+        figureId: 'il17a-discordance-plot',
+        title: 'BLI vs cell potency discordance',
+        description: 'KD 变好但细胞中和活性没有同步提升的变体被单独标出。',
+        imagegenPrompt:
+          'BLI KD versus IL-17A cell neutralization potency scatter plot showing discordant antibody variants, clean scientific report chart, synthetic data, no brand UI.',
+        placeholder: '图片：BLI KD 与 cell potency 的 discordance plot。',
+        src: il17aDiscordancePlot,
+        width: 900,
+        height: 600,
+        alt: 'Scatter plot showing discordance between IL-17A antibody BLI affinity and cell neutralization potency',
+      },
+    ],
+  },
+  {
+    id: 'il17a-turn-005',
+    role: 'user',
+    markdown:
+      '对，这轮不要单纯追 KD。我们更关心 cell potency，而且之前团队感觉 HCDR3 附近的变体对 ELISA blocking 的影响比 KD 更明显。稳定性也不能明显掉。',
+  },
+  {
+    id: 'il17a-turn-006',
+    role: 'mainAgent',
+    markdown:
+      '我把目标函数改成“功能优先、亲和力和 developability 约束”。\n\n修正后的设计目标：\n\n- Primary：cell neutralization IC50 至少改善 **3x**。\n- Secondary：BLI KD 进入 **<5 nM** 或 koff 有明确改善。\n- Blocking：competition ELISA 需要和 cell potency 同向变化。\n- Developability gate：表达量不低于 parent 的 **80%**，SEC monomer 不低于 **95%**，Tm 下降不超过 **2 C**。\n\n这样下一轮实验要服务于判断，而不是只筛一个表面上 KD 最好的分子。',
+  },
+  {
+    id: 'il17a-turn-007',
+    role: 'mainAgent',
+    markdown:
+      '我把历史变体序列变化映射到 CDR 和 framework 邻近区域。当前证据支持优先看 HCDR3、HCDR2 与 LCDR3 的界面邻近位点；framework-proximal 位点只作为 rescue 或 rollback 设计，不作为主要亲和力优化区域。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'SequenceEvidenceMapper.mapCdrSignals',
+        status: 'success',
+        summary: '将历史变体信号映射到 CDR/site 证据区域',
+        defaultCollapsed: true,
+        input: {
+          sequences: 'IL17A_variant_sequences.fasta',
+          readoutTable: 'IL17A_parent_and_variant_history.xlsx',
+          cdrDefinition: 'IMGT',
+        },
+        output: {
+          priorityRegions: ['HCDR3', 'HCDR2', 'LCDR3'],
+          cautionRegions: ['LCDR2 periphery', 'framework-proximal VH'],
+          excludedSignals: ['high hydrophobicity patches', 'Tm penalty cluster'],
+          evidenceStrength: 'moderate',
+        },
+        duration: '11.6s',
+        artifacts: [
+          {
+            name: 'IL17A_cdr_site_evidence.csv',
+            kind: 'csv',
+            description: 'CDR/site 区域、readout 关联和风险标签。',
+          },
+        ],
+      },
+      {
+        type: 'scientificFigure',
+        figureId: 'il17a-cdr-site-evidence-map',
+        title: 'CDR and site evidence map',
+        description: 'HCDR3、HCDR2 和 LCDR3 的优先证据区域，以及需要排除的高风险位点。',
+        imagegenPrompt:
+          'Scientific CDR and site evidence map for IL-17A antibody affinity maturation, priority CDR loops, excluded high-risk regions, uncertainty markers, clean biomedical report style, no real sequence text.',
+        placeholder: '图片：IL-17A CDR/site evidence map。',
+        src: il17aCdrSiteEvidenceMap,
+        width: 900,
+        height: 600,
+        alt: 'CDR and site evidence map for IL-17A antibody affinity maturation design',
+      },
+    ],
+  },
+  {
+    id: 'il17a-turn-008',
+    role: 'mainAgent',
+    markdown:
+      '我把当前证据分成 3 个互斥但都可能成立的假设：\n\n1. **Affinity-limited**：亲和力或 koff 仍然限制功能。\n2. **Epitope/blocking-limited**：抗体结合了 IL-17A，但没有充分遮挡功能表位。\n3. **Assay/context-limited**：细胞体系、局部浓度或 readout 噪声掩盖了 binding gain。\n\n当前最值得优先验证的是第二个假设，但证据还不足以把另外两个排除。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'HypothesisTriage.rankUncertainty',
+        status: 'success',
+        summary: '对 binding-function discordance 的候选解释分层',
+        defaultCollapsed: true,
+        input: {
+          discordanceGroups: ['high affinity / weak cell potency', 'moderate affinity / stronger cell potency'],
+          userContext: 'HCDR3 variants changed ELISA blocking more than KD',
+        },
+        output: {
+          leadingHypothesis: 'epitope/blocking-limited',
+          alternateHypotheses: ['affinity-limited', 'assay/context-limited'],
+          evidenceStrength: 'moderate',
+          remainingUncertainty: 'needs orthogonal blocking and cell assay confirmation',
+        },
+        duration: '8.2s',
+        artifacts: [
+          {
+            name: 'IL17A_hypothesis_triage_summary.md',
+            kind: 'md',
+            description: '假设分层、证据强度和下一轮验证逻辑。',
+          },
+        ],
+      },
+      {
+        type: 'scientificFigure',
+        figureId: 'il17a-hypothesis-triage-diagram',
+        title: 'Hypothesis triage',
+        description: '把 affinity、epitope/blocking 和 assay/context 三类解释拆开，并标出剩余不确定性。',
+        imagegenPrompt:
+          'Scientific hypothesis triage diagram for IL-17A antibody binding-function discordance with three competing hypotheses, evidence strength, remaining uncertainty, recommended validation, clean biomedical report style.',
+        placeholder: '图片：IL-17A hypothesis triage diagram。',
+        src: il17aHypothesisTriageDiagram,
+        width: 900,
+        height: 600,
+        alt: 'Hypothesis triage diagram for IL-17A antibody binding function discordance',
+      },
+    ],
+  },
+  {
+    id: 'il17a-turn-009',
+    role: 'user',
+    markdown:
+      '这个判断方向对。补充一下：之前 HCDR3 有两个变体在 blocking ELISA 里更好，但 cell assay 波动比较大。我们不想只因为一批细胞数据就完全放弃这个方向。',
+  },
+  {
+    id: 'il17a-turn-010',
+    role: 'mainAgent',
+    markdown:
+      '我会把 HCDR3 blocking 信号保留为主线，但不把它当成已证明机制。\n\n更新后的解释方式：\n\n- HCDR3 方向：优先验证，因为它同时触及 ELISA blocking 和 cell potency 的可疑差异。\n- HCDR2/LCDR3：作为界面几何和组合补偿的第二层。\n- 单纯降低 KD 的设计：保留少量对照，用来判断 affinity gain 是否真的不转化为功能。\n- Assay/context：通过重复、orthogonal blocking 和 negative control 来隔离噪声。\n\n下一轮实验的价值是区分这些解释，而不是提前宣布哪条解释正确。',
+  },
+  {
+    id: 'il17a-turn-011',
+    role: 'mainAgent',
+    markdown:
+      '我先草拟设计空间，分成四类变体：\n\n| Group | Intent | Design logic | What it tests |\n| --- | --- | --- | --- |\n| G1 | Binding-focused | HCDR3/HCDR2 小步亲和力扫描 | KD 或 koff 改善是否能转成 cell potency |\n| G2 | Epitope/blocking-focused | 保留中等 KD，优化 blocking geometry | ELISA blocking 是否比 KD 更接近功能读数 |\n| G3 | Developability-safe rescue | 避免疏水堆积，降低 Tm/表达风险 | 功能改善能否不牺牲可开发性 |\n| G4 | Controls/recombinations | rollback、parent、组合和阴性设计 | 区分真实信号和 assay/context 噪声 |\n\n这里还不是实验订单，只是 Experiment Design Package 的设计空间。',
+  },
+  {
+    id: 'il17a-turn-012',
+    role: 'user',
+    markdown:
+      '边界明确一下：这轮最多 48 个表达构建，不要高疏水突变，不要去碰 framework core。BLI、ELISA blocking、cell neutralization 都要保留。也不要直接替我选一个“最佳突变组合”，我更想知道怎么设计实验把问题问清楚。',
+  },
+  {
+    id: 'il17a-turn-013',
+    role: 'mainAgent',
+    markdown:
+      '按你的边界，我把设计收敛到 **48 个变体**，四组各 12 个。\n\n- G1：12 个 binding-focused variants，作为 affinity/koff 是否仍限制功能的检验组。\n- G2：12 个 epitope/blocking-focused variants，优先覆盖 HCDR3 和 HCDR2/LCDR3 组合。\n- G3：12 个 developability-safe rescue variants，避免高疏水和 framework core 变化。\n- G4：12 个 controls、recombinations 和 rollback variants，用于解释 assay/context 噪声。\n\n这套设计不会假定某个突变必然成功，而是让下一轮数据能告诉我们哪类设计逻辑值得继续。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'LibraryDesignPlanner.composeVariantGroups',
+        status: 'success',
+        summary: '将实验边界收敛为 48-variant library strategy',
+        defaultCollapsed: true,
+        input: {
+          maxExpressionConstructs: 48,
+          requiredReadouts: ['BLI', 'competition ELISA', 'cell neutralization'],
+          excludedDesigns: ['high hydrophobicity', 'framework core mutations'],
+        },
+        output: {
+          variantGroups: ['G1 binding-focused', 'G2 epitope/blocking-focused', 'G3 developability-safe rescue', 'G4 controls/recombinations/rollback'],
+          variantsPerGroup: 12,
+          totalVariants: 48,
+          recommendedValidation: 'compare group-level readout concordance before selecting leads',
+        },
+        duration: '18.8s',
+        artifacts: [
+          {
+            name: 'IL17A_library_design_matrix.csv',
+            kind: 'csv',
+            description: '48 个变体的分组、设计意图、readout 和风险门控。',
+          },
+        ],
+      },
+      {
+        type: 'scientificFigure',
+        figureId: 'il17a-library-assay-design-matrix',
+        title: '48-variant library and assay design matrix',
+        description: '四组 48 个变体、关键 readout、controls、replicates 和 decision gate。',
+        imagegenPrompt:
+          'Scientific experiment planning matrix for 48 IL-17A antibody variants, four design groups, readouts, controls, replicates, decision gates, clean biomedical report style, not an experiment order.',
+        placeholder: '图片：48-variant library and assay design matrix。',
+        src: il17aLibraryAssayDesignMatrix,
+        width: 900,
+        height: 600,
+        alt: 'Matrix showing 48 variant library and assay panel design for IL-17A antibody affinity maturation',
+      },
+    ],
+  },
+  {
+    id: 'il17a-turn-014',
+    role: 'mainAgent',
+    markdown:
+      'Assay panel 我建议保持三层 readout：\n\n1. **Binding layer**：BLI kinetics，拆 KD、kon、koff，避免只看单个 KD 数值。\n2. **Blocking layer**：competition ELISA，判断是否遮挡功能相关表位。\n3. **Function layer**：IL-17A cell neutralization，作为 primary decision readout。\n\nDevelopability gate 放在同一轮：表达量、SEC-HPLC monomer、DSF/Tm。这样可以防止下一轮只筛出“功能好但不可开发”的变体。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'AssayPanelDesigner.defineReadouts',
+        status: 'success',
+        summary: '定义 affinity、blocking、function 和 developability readout',
+        defaultCollapsed: true,
+        input: {
+          librarySize: 48,
+          primaryQuestion: 'why affinity gain does not consistently improve cell potency',
+          requiredAssays: ['BLI', 'competition ELISA', 'cell neutralization'],
+        },
+        output: {
+          primaryReadout: 'IL-17A cell neutralization IC50',
+          secondaryReadouts: ['BLI kinetics', 'competition ELISA IC50'],
+          developabilityGates: ['expression >= 80% parent', 'SEC monomer >= 95%', 'Tm drop <= 2 C'],
+          remainingUncertainty: 'cell assay context still needs replicate confirmation',
+        },
+        duration: '10.3s',
+        artifacts: [
+          {
+            name: 'IL17A_assay_readout_plan.xlsx',
+            kind: 'xlsx',
+            description: 'Assay panel、controls、replicates、acceptance thresholds 和解释规则。',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'il17a-turn-015',
+    role: 'mainAgent',
+    markdown:
+      '我会把下一轮结果解释成“假设更新”，而不是简单 winner ranking：\n\n- 如果 G1 提升 KD 但不提升 cell potency，affinity-limited 假设降权。\n- 如果 G2 的 ELISA blocking 和 cell potency 同步改善，epitope/blocking-limited 假设升权。\n- 如果同一变体 cell readout replicate 差异大，但 BLI/ELISA 稳定，assay/context-limited 假设升权。\n- 如果 G3 保住稳定性且功能改善，下一轮可以把它作为更稳的 design backbone。\n\n这能避免把一次 noisy cell assay 误读成确定机制。',
+  },
+  {
+    id: 'il17a-turn-016',
+    role: 'mainAgent',
+    markdown:
+      '关于你说的“不要直接选一个最佳突变组合”：我同意。\n\n当前 12 个历史变体只支持设计一个能区分机制的实验，不支持直接锁定最优突变。原因有三点：\n\n- KD 与 cell potency 已经出现 discordance，单一 score 会掩盖问题。\n- HCDR3 blocking 信号来自有限历史数据，证据强度是 moderate，不是 proof。\n- 细胞 assay 有已知波动，必须用重复和正交 readout 保护解释。\n\n所以这里的 Main Agent 输出是 Experiment Design Package，不是 lead nomination。',
+  },
+  {
+    id: 'il17a-turn-017',
+    role: 'mainAgent',
+    markdown:
+      '最终 decision rules：\n\n| Rule | Advance if | De-prioritize if |\n| --- | --- | --- |\n| Function | cell IC50 improves >= 3x | cell IC50 unchanged across replicates |\n| Blocking | ELISA blocking improves with function | KD improves but blocking stays flat |\n| Binding | koff improves without developability loss | KD gain requires risky sequence features |\n| Developability | expression >= 80% parent, monomer >= 95% | Tm drop > 2 C or aggregation risk rises |\n\n如果结果只支持某一条 readout，我会建议补验证；如果 function、blocking 和 developability 同向，才进入下一步湿实验 Workflow。',
+  },
+  {
+    id: 'il17a-turn-018',
+    role: 'mainAgent',
+    markdown:
+      '`ProjectFile.save` 已写回 IL-17A 的 Experiment Design Package 和两个支持文件。\n\n保存内容：\n\n- `IL17A_affinity_maturation_design_package.md`\n- `IL17A_library_design_matrix.csv`\n- `IL17A_assay_readout_plan.xlsx`\n\n这些文件可以作为后续 wet-lab Workflow 的输入，但当前 Thread 不提交 Experiment Order。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'ProjectFile.save',
+        status: 'success',
+        summary: '写回 Experiment Design Package 和支持文件',
+        defaultCollapsed: true,
+        input: {
+          project: 'Antibody Optimization',
+          files: [
+            'IL17A_affinity_maturation_design_package.md',
+            'IL17A_library_design_matrix.csv',
+            'IL17A_assay_readout_plan.xlsx',
+          ],
+        },
+        output: {
+          savedFiles: 3,
+          package: 'IL17A_affinity_maturation_design_package.md',
+          matrix: 'IL17A_library_design_matrix.csv',
+          assayPlan: 'IL17A_assay_readout_plan.xlsx',
+          nextWorkflowInput: true,
+        },
+        duration: '3.2s',
+        artifacts: [
+          {
+            name: 'IL17A_affinity_maturation_design_package.md',
+            kind: 'md',
+            description: '假设、约束、48-variant strategy、assay panel 和 decision rules。',
+          },
+          {
+            name: 'IL17A_library_design_matrix.csv',
+            kind: 'csv',
+            description: '48 个变体分组、设计意图、位点策略和风险门控。',
+          },
+          {
+            name: 'IL17A_assay_readout_plan.xlsx',
+            kind: 'xlsx',
+            description: 'Assay readouts、controls、replicates 和阈值。',
+          },
+        ],
+      },
+      {
+        type: 'projectFile',
+        fileName: 'IL17A_affinity_maturation_design_package.md',
+        fileKind: 'md',
+        location: 'Antibody Optimization / Files / Reports',
+        note: 'Experiment Design Package：包含假设分层、实验边界、48-variant strategy 和 decision rules。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'IL17A_library_design_matrix.csv',
+        fileKind: 'csv',
+        location: 'Antibody Optimization / Files / Design Matrices',
+        note: '48-variant library matrix，按 binding、blocking、rescue 和 controls 分组。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'IL17A_assay_readout_plan.xlsx',
+        fileKind: 'xlsx',
+        location: 'Antibody Optimization / Files / Assay Plans',
+        note: 'BLI、competition ELISA、cell neutralization 和 developability gate 的 readout plan。',
+      },
+    ],
+  },
+  {
+    id: 'il17a-turn-019',
+    role: 'mainAgent',
+    markdown:
+      '已记录最终确认。\n\n下一步建议：\n\n1. 用 `IL17A_library_design_matrix.csv` 进入构建设计评审。\n2. 用 `IL17A_assay_readout_plan.xlsx` 对齐 CRO 或内部实验平台的 readout 和 replicate。\n3. 只有在人工确认物料、预算和审批边界后，再从这个 Experiment Design Package 启动后续 wet-lab Workflow。\n\n当前 Thread 到这里停止，不模拟实验执行，也不返回湿实验结果。',
+    contentBlocks: [
+      {
+        type: 'humanConfirmation',
+        title: 'human.confirmed · 确认 Experiment Design Package',
+        confirmedBy: 'zhengjun',
+        confirmedAt: '2026-05-29 17:40',
+        decision:
+          '确认 IL17A_affinity_maturation_design_package.md 可作为后续 wet-lab Workflow 的输入；当前不提交 Experiment Order。',
+      },
+    ],
+  },
+]
+
+export const il17aRunInspector: RunInspectorData = {
+  summary: {
+    stage: '实验前分析设计完成',
+    status: 'completed',
+    completedSteps: 7,
+    totalSteps: 7,
+    outputCount: 4,
+    pendingCount: 0,
+  },
+  progress: [
+    {
+      id: 'input-qc',
+      title: '输入文件导入与质控',
+      status: 'done',
+      detail: '读取 parent、12 个历史变体、序列和 assay notes。',
+    },
+    {
+      id: 'discordance',
+      title: 'Assay discordance 分析',
+      status: 'done',
+      detail: '识别 BLI KD 与 cell potency 不一致的变体组。',
+    },
+    {
+      id: 'site-evidence',
+      title: '序列和位点证据归因',
+      status: 'done',
+      detail: '将 readout 信号映射到 HCDR3、HCDR2 和 LCDR3 等区域。',
+    },
+    {
+      id: 'hypothesis-triage',
+      title: '假设分层与不确定性标注',
+      status: 'done',
+      detail: '区分 affinity、epitope/blocking 和 assay/context 三类解释。',
+    },
+    {
+      id: 'human-goal',
+      title: '用户目标修正',
+      status: 'done',
+      detail: '将目标从单纯追 KD 修正为 cell potency 优先。',
+    },
+    {
+      id: 'library-assay',
+      title: 'Library 和 assay panel 设计',
+      status: 'done',
+      detail: '收敛为 48 个变体、三层 readout 和 developability gate。',
+    },
+    {
+      id: 'project-files',
+      title: 'Experiment Design Package 写回项目文件',
+      status: 'done',
+      detail: '保存设计包、library matrix 和 assay readout plan。',
+    },
+  ],
+  outputs: [
+    {
+      id: 'design-package',
+      name: 'IL17A_affinity_maturation_design_package.md',
+      kind: 'report',
+      location: 'Antibody Optimization / Files / Reports',
+      status: 'saved',
+    },
+    {
+      id: 'library-matrix',
+      name: 'IL17A_library_design_matrix.csv',
+      kind: 'dataset',
+      location: 'Antibody Optimization / Files / Design Matrices',
+      status: 'saved',
+    },
+    {
+      id: 'assay-plan',
+      name: 'IL17A_assay_readout_plan.xlsx',
+      kind: 'projectFile',
+      location: 'Antibody Optimization / Files / Assay Plans',
+      status: 'saved',
+    },
+    {
+      id: 'scientific-figures',
+      name: 'IL17A_scientific_figures.png',
+      kind: 'figure',
+      location: 'Antibody Optimization / Files / Figures',
+      status: 'saved',
+    },
+  ],
+  approvals: [
+    {
+      id: 'design-package-confirmation',
+      kind: 'humanConfirmation',
+      title: '确认 Experiment Design Package',
+      status: 'confirmed',
+      actor: 'zhengjun',
+      decidedAt: '2026-05-29 17:40',
+    },
+  ],
+  capabilityRuns: [
+    {
+      id: 'project-file-reader',
+      commandName: 'ProjectFileReader.extractIl17aHistory',
+      status: 'success',
+      summary: '读取 IL-17A parent、12 个历史变体和 assay notes',
+      duration: '5.1s',
+      input: {
+        files: [
+          'IL17A_parent_and_variant_history.xlsx',
+          'IL17A_variant_sequences.fasta',
+          'IL17A_assay_notes.md',
+        ],
+        project: 'Antibody Optimization / IL-17A 亲和力成熟实验设计',
+      },
+      output: {
+        parentAntibody: 'IL17A-P0',
+        historicalVariants: 12,
+        baselineBliKd: '18 nM',
+        availableReadouts: ['BLI', 'competition ELISA', 'cell neutralization', 'expression', 'SEC-HPLC', 'Tm'],
+      },
+      artifacts: [
+        {
+          name: 'IL17A_history_extract.json',
+          kind: 'json',
+        },
+      ],
+    },
+    {
+      id: 'input-bundle-qc',
+      commandName: 'InputBundleQc.checkCompleteness',
+      status: 'warning',
+      summary: '数据可用于实验设计，但不足以做确定性预测',
+      duration: '4.7s',
+      input: {
+        variants: 12,
+        sequenceCoverage: 'VH/VL variable regions',
+      },
+      output: {
+        completeness: 'usable for design',
+        causalCertainty: 'low',
+        recommendedUse: 'hypothesis-driven experiment design',
+      },
+      artifacts: [
+        {
+          name: 'IL17A_input_bundle_qc.md',
+          kind: 'md',
+        },
+      ],
+    },
+    {
+      id: 'discordance-analyzer',
+      commandName: 'AssayDiscordanceAnalyzer.compareBindingAndFunction',
+      status: 'success',
+      summary: '识别 BLI KD 与 cell potency 不一致的历史变体组',
+      duration: '9.4s',
+      input: {
+        bindingReadout: 'BLI KD',
+        functionalReadout: 'IL-17A cell neutralization IC50',
+        historicalVariants: 12,
+      },
+      output: {
+        discordantHighAffinityVariants: ['IL17A-H03', 'IL17A-H04', 'IL17A-H07'],
+        moderateBindingFunctionalVariants: ['IL17A-H05', 'IL17A-H09'],
+        evidenceStrength: 'moderate',
+        remainingUncertainty: 'epitope geometry and assay context are not separated',
+      },
+      artifacts: [
+        {
+          name: 'IL17A_binding_function_discordance.csv',
+          kind: 'csv',
+        },
+      ],
+    },
+    {
+      id: 'sequence-evidence-mapper',
+      commandName: 'SequenceEvidenceMapper.mapCdrSignals',
+      status: 'success',
+      summary: '将历史变体信号映射到 CDR/site 证据区域',
+      duration: '11.6s',
+      input: {
+        sequences: 'IL17A_variant_sequences.fasta',
+        cdrDefinition: 'IMGT',
+      },
+      output: {
+        priorityRegions: ['HCDR3', 'HCDR2', 'LCDR3'],
+        cautionRegions: ['LCDR2 periphery', 'framework-proximal VH'],
+        excludedSignals: ['high hydrophobicity patches', 'Tm penalty cluster'],
+        evidenceStrength: 'moderate',
+      },
+    },
+    {
+      id: 'hypothesis-triage',
+      commandName: 'HypothesisTriage.rankUncertainty',
+      status: 'success',
+      summary: '对 binding-function discordance 的候选解释分层',
+      duration: '8.2s',
+      input: {
+        discordanceGroups: ['high affinity / weak cell potency', 'moderate affinity / stronger cell potency'],
+        userContext: 'HCDR3 variants changed ELISA blocking more than KD',
+      },
+      output: {
+        leadingHypothesis: 'epitope/blocking-limited',
+        alternateHypotheses: ['affinity-limited', 'assay/context-limited'],
+        evidenceStrength: 'moderate',
+        remainingUncertainty: 'needs orthogonal blocking and cell assay confirmation',
+      },
+    },
+    {
+      id: 'library-design-planner',
+      commandName: 'LibraryDesignPlanner.composeVariantGroups',
+      status: 'success',
+      summary: '将实验边界收敛为 48-variant library strategy',
+      duration: '18.8s',
+      input: {
+        maxExpressionConstructs: 48,
+        requiredReadouts: ['BLI', 'competition ELISA', 'cell neutralization'],
+        excludedDesigns: ['high hydrophobicity', 'framework core mutations'],
+      },
+      output: {
+        variantGroups: ['G1 binding-focused', 'G2 epitope/blocking-focused', 'G3 developability-safe rescue', 'G4 controls/recombinations/rollback'],
+        variantsPerGroup: 12,
+        totalVariants: 48,
+        recommendedValidation: 'compare group-level readout concordance before selecting leads',
+      },
+    },
+    {
+      id: 'assay-panel-designer',
+      commandName: 'AssayPanelDesigner.defineReadouts',
+      status: 'success',
+      summary: '定义 affinity、blocking、function 和 developability readout',
+      duration: '10.3s',
+      input: {
+        librarySize: 48,
+        primaryQuestion: 'why affinity gain does not consistently improve cell potency',
+        requiredAssays: ['BLI', 'competition ELISA', 'cell neutralization'],
+      },
+      output: {
+        primaryReadout: 'IL-17A cell neutralization IC50',
+        secondaryReadouts: ['BLI kinetics', 'competition ELISA IC50'],
+        developabilityGates: ['expression >= 80% parent', 'SEC monomer >= 95%', 'Tm drop <= 2 C'],
+        remainingUncertainty: 'cell assay context still needs replicate confirmation',
+      },
+    },
+    {
+      id: 'project-file-save-il17a',
+      commandName: 'ProjectFile.save',
+      status: 'success',
+      summary: '写回 Experiment Design Package 和支持文件',
+      duration: '3.2s',
+      input: {
+        project: 'Antibody Optimization',
+        files: [
+          'IL17A_affinity_maturation_design_package.md',
+          'IL17A_library_design_matrix.csv',
+          'IL17A_assay_readout_plan.xlsx',
+        ],
+      },
+      output: {
+        savedFiles: 3,
+        package: 'IL17A_affinity_maturation_design_package.md',
+        matrix: 'IL17A_library_design_matrix.csv',
+        assayPlan: 'IL17A_assay_readout_plan.xlsx',
+        nextWorkflowInput: true,
+      },
+    },
+  ],
+}
+
+export const her2WetlabExecutionTranscript: ConversationTurn[] = [
+  {
+    id: 'her2-turn-001',
+    role: 'user',
+    markdown:
+      '请基于已有 HER2 候选和物料文件，推进一次湿实验验证执行。输入 Project Files 是 `HER2_candidate_antibody_manifest.xlsx`、`HER2_material_inventory.csv` 和 `HER2_validation_sop.pdf`。',
+    contentBlocks: [
+      {
+        type: 'projectFile',
+        fileName: 'HER2_candidate_antibody_manifest.xlsx',
+        fileKind: 'xlsx',
+        location: 'Antibody Optimization / Files / Inputs',
+        note: 'XLSX · HER2 候选抗体清单、批次、浓度和待验证 readouts。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'HER2_material_inventory.csv',
+        fileKind: 'csv',
+        location: 'Antibody Optimization / Files / Inputs',
+        note: 'CSV · 抗原、cells、buffer、plate、sensor 和 controls 库存。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'HER2_validation_sop.pdf',
+        fileKind: 'pdf',
+        location: 'Antibody Optimization / Files / SOPs',
+        note: 'PDF · HER2 wet-lab validation SOP、acceptance criteria 和记录模板。',
+      },
+    ],
+  },
+  {
+    id: 'her2-turn-002',
+    role: 'mainAgent',
+    markdown:
+      '我会把这条 Thread 作为 HER2 wet-lab execution flow 处理：这是执行流，不是 candidate analysis、不是 redesign，也不是新的 Workflow object。\n\n执行边界：\n\n- 只读取已给定候选、物料和 SOP。\n- 只准备并提交 Experiment Order。\n- 只回放 Experiment Task 的执行状态和结果导入。\n- 不做机制解释、候选排序、突变设计或后续建议。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'ProjectFileReader.extractHer2ExecutionInputs',
+        status: 'success',
+        summary: '读取 HER2 候选、物料库存和验证 SOP',
+        defaultCollapsed: true,
+        input: {
+          files: [
+            'HER2_candidate_antibody_manifest.xlsx',
+            'HER2_material_inventory.csv',
+            'HER2_validation_sop.pdf',
+          ],
+          project: 'Antibody Optimization / HER2 抗体候选湿实验验证',
+        },
+        output: {
+          candidateCount: 8,
+          assays: ['expression', 'purification', 'SEC-HPLC', 'DSF', 'BLI'],
+          controls: ['HER2-parent', 'blank', 'isotype-control'],
+          sopCriteriaLoaded: true,
+        },
+        duration: '4.9s',
+        artifacts: [
+          {
+            name: 'HER2_execution_input_extract.json',
+            kind: 'json',
+            description: '候选、物料、assay 和 SOP criteria 摘要。',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'her2-turn-003',
+    role: 'user',
+    markdown:
+      '确认 scope：只做这些候选的验证执行，沿用 SOP 里的固定标准。不要把 Experiment Task 单独放到侧边栏，也不要自动生成 Asset。',
+  },
+  {
+    id: 'her2-turn-004',
+    role: 'mainAgent',
+    markdown:
+      '已确认 scope。我把执行拆成 7 个步骤：输入确认、样本需求、controls、订单审批、任务回放、结果导入、预设 QC 和归档。',
+    contentBlocks: [
+      {
+        type: 'humanConfirmation',
+        title: 'human.confirmed · HER2 scope confirmation',
+        confirmedBy: 'zhengjun',
+        confirmedAt: '2026-05-31 09:18',
+        decision:
+          '确认 HER2 Thread 只做湿实验验证执行流，不创建新的 Workflow object，不暴露 Experiment Task 到侧边栏。',
+      },
+      {
+        type: 'scientificFigure',
+        figureId: 'her2-experiment-order-execution-flow',
+        title: 'HER2 experiment order execution flow',
+        description: 'HER2 从 Project Files、Experiment Order、Experiment Task 回放到 Result Package 归档的执行流。',
+        imagegenPrompt:
+          'Scientific operations flow diagram for HER2 antibody wet-lab validation, project files to experiment order to task replay to result package archive, clean biomedical workflow figure, no product UI.',
+        placeholder: '图片：HER2 Experiment Order execution flow。',
+        src: her2ExperimentOrderExecutionFlow,
+        width: 900,
+        height: 540,
+        alt: 'HER2 wet-lab experiment order execution flow diagram',
+      },
+    ],
+  },
+  {
+    id: 'her2-turn-005',
+    role: 'mainAgent',
+    markdown:
+      '样本需求估算完成：8 个候选加 parent、blank 和 isotype control；每个候选覆盖表达、纯化、SEC-HPLC、DSF 和 BLI。当前库存满足一次标准验证批次，但需要锁定 plate、sensor 和 HER2-ECD 批号。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'SampleRequirementEstimator.calculate',
+        status: 'success',
+        summary: '计算 HER2 验证批次样本、reagent 和 consumable 需求',
+        defaultCollapsed: true,
+        input: {
+          candidateCount: 8,
+          controls: ['HER2-parent', 'blank', 'isotype-control'],
+          assays: ['expression', 'SEC-HPLC', 'DSF', 'BLI'],
+        },
+        output: {
+          expressionConstructs: 8,
+          controlWells: 12,
+          bliSensorsReserved: 96,
+          her2EcdLot: 'HER2-ECD-2605-L03',
+        },
+        duration: '6.4s',
+        artifacts: [
+          {
+            name: 'HER2_sample_requirement_estimate.csv',
+            kind: 'csv',
+            description: '样本、controls、reagent 和 consumable 需求。',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'her2-turn-006',
+    role: 'user',
+    markdown:
+      '预算和排期可以按一次标准验证批次走。BLI 必须包含 parent 和 isotype control，DSF 和 SEC-HPLC 也要跟 SOP 阈值对齐。',
+  },
+  {
+    id: 'her2-turn-007',
+    role: 'mainAgent',
+    markdown:
+      '已确认预算、排期和 assay 约束。我生成 plate map，只用于执行排布和 controls 检查。',
+    contentBlocks: [
+      {
+        type: 'humanConfirmation',
+        title: 'human.confirmed · budget schedule assay constraints',
+        confirmedBy: 'zhengjun',
+        confirmedAt: '2026-05-31 09:27',
+        decision:
+          '确认按一次标准验证批次执行；BLI、DSF 和 SEC-HPLC 必须使用 SOP 中的固定阈值。',
+      },
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'PlateMapDesigner.createLayout',
+        status: 'success',
+        summary: '生成 HER2 验证批次 plate map 和 controls 布局',
+        defaultCollapsed: true,
+        input: {
+          candidates: 8,
+          plateFormat: 96,
+          requiredControls: ['HER2-parent', 'blank', 'isotype-control'],
+        },
+        output: {
+          plates: 1,
+          sampleWells: 64,
+          controlWells: 12,
+          layoutId: 'HER2-PLATEMAP-20260531-001',
+        },
+        duration: '8.6s',
+        artifacts: [
+          {
+            name: 'HER2_sample_plate_map.csv',
+            kind: 'csv',
+            description: '96-well sample、replicate 和 control 布局。',
+          },
+        ],
+      },
+      {
+        type: 'scientificFigure',
+        figureId: 'her2-sample-plate-map',
+        title: 'HER2 sample plate map',
+        description: 'HER2 候选、parent、blank 和 isotype control 的 plate map。',
+        imagegenPrompt:
+          'Scientific 96-well plate map for HER2 antibody validation with samples and controls, clean lab report figure, readable colored groups but no exact tiny text.',
+        placeholder: '图片：HER2 sample plate map。',
+        src: her2SamplePlateMap,
+        width: 900,
+        height: 600,
+        alt: 'HER2 sample plate map with candidate and control wells',
+      },
+    ],
+  },
+  {
+    id: 'her2-turn-008',
+    role: 'mainAgent',
+    markdown:
+      'Controls 检查完成：parent、blank、isotype control、buffer control 和 HER2-ECD lot 都已覆盖。这个检查只确认执行完整性，不产生候选优先级。',
+  },
+  {
+    id: 'her2-turn-009',
+    role: 'mainAgent',
+    markdown:
+      'controls 要求已准备好，可以进入 Experiment Order 草稿。订单里会写清楚结果只归档成 Project Files。',
+  },
+  {
+    id: 'her2-turn-010',
+    role: 'mainAgent',
+    markdown:
+      '我已生成 Experiment Order draft `BM-LAB-HER2-20260531-001`，等待审批后提交到实验执行队列。',
+    contentBlocks: [
+      {
+        type: 'humanConfirmation',
+        title: 'human.confirmed · HER2 control requirements',
+        confirmedBy: 'zhengjun',
+        confirmedAt: '2026-05-31 09:35',
+        decision:
+          '确认 parent、blank、isotype control、buffer control 和 HER2-ECD lot 要求完整。',
+      },
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'ExperimentOrderDraft.create',
+        status: 'success',
+        summary: '创建 HER2 Experiment Order draft',
+        defaultCollapsed: true,
+        input: {
+          project: 'Antibody Optimization',
+          candidates: 8,
+          resultHandling: 'save as Project Files',
+        },
+        output: {
+          orderId: 'BM-LAB-HER2-20260531-001',
+          status: 'draft',
+          assays: ['expression', 'purification', 'SEC-HPLC', 'DSF', 'BLI'],
+        },
+        duration: '5.8s',
+        artifacts: [
+          {
+            name: 'BM-LAB-HER2-20260531-001_draft.md',
+            kind: 'md',
+            description: 'HER2 Experiment Order draft。',
+          },
+        ],
+      },
+      {
+        type: 'experimentOrderDraft',
+        title: 'HER2 Experiment Order Draft',
+        orderId: 'BM-LAB-HER2-20260531-001',
+        status: 'draft',
+        items: [
+          { label: 'Candidates', value: '8 HER2 antibody candidates' },
+          { label: 'Assays', value: 'Expression, purification, SEC-HPLC, DSF, BLI' },
+          { label: 'Controls', value: 'Parent, blank, isotype, buffer control' },
+          { label: 'Result handling', value: 'Archive Experiment Result Package as Project Files' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'her2-turn-011',
+    role: 'user',
+    markdown:
+      '审批通过，提交 HER2 Experiment Order。后续只回放执行状态和保存结果文件。',
+    contentBlocks: [
+      {
+        type: 'approvalRequestReplay',
+        title: '提交 HER2 Experiment Order',
+        approvalType: 'experimentOrder',
+        status: 'approved',
+        decidedBy: 'zhengjun',
+        decidedAt: '2026-05-31 09:42',
+        decision: '批准提交 Experiment Order `BM-LAB-HER2-20260531-001`。',
+        requestSummary:
+          '提交 HER2 wet-lab validation order，结果仅作为 Project Files 归档。',
+      },
+    ],
+  },
+  {
+    id: 'her2-turn-012',
+    role: 'mainAgent',
+    markdown:
+      'Experiment Order 已提交，系统返回 Experiment Task `HER2-EXPTASK-20260531-001`。我开始同步执行状态，只在当前 Thread 中回放。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'ExperimentOrder.submit',
+        status: 'success',
+        summary: '提交 HER2 Experiment Order',
+        defaultCollapsed: true,
+        input: {
+          orderId: 'BM-LAB-HER2-20260531-001',
+          approvedBy: 'zhengjun',
+          resultHandling: 'Project Files only',
+        },
+        output: {
+          orderId: 'BM-LAB-HER2-20260531-001',
+          status: 'submitted',
+          experimentTaskId: 'HER2-EXPTASK-20260531-001',
+        },
+        duration: '3.1s',
+      },
+      {
+        type: 'elapsedWorkReplay',
+        target: 'HER2-EXPTASK-20260531-001',
+        elapsed: '0h-12h',
+        status: 'completed',
+        summary: '样本接收、plate setup、表达启动和初始记录完成。',
+      },
+    ],
+  },
+  {
+    id: 'her2-turn-013',
+    role: 'mainAgent',
+    markdown:
+      '继续同步 `HER2-EXPTASK-20260531-001`：表达、纯化、SEC-HPLC、DSF 和 BLI 数据采集已完成，结果包进入导入阶段。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'ExperimentTaskReplay.syncStatus',
+        status: 'success',
+        summary: '同步 HER2 Experiment Task 执行状态',
+        defaultCollapsed: true,
+        input: {
+          experimentTaskId: 'HER2-EXPTASK-20260531-001',
+          orderId: 'BM-LAB-HER2-20260531-001',
+        },
+        output: {
+          experimentTaskId: 'HER2-EXPTASK-20260531-001',
+          status: 'completed',
+          completedAssays: ['expression', 'purification', 'SEC-HPLC', 'DSF', 'BLI'],
+          rawBundleReady: true,
+        },
+        duration: '7.4s',
+      },
+      {
+        type: 'elapsedWorkReplay',
+        target: 'HER2-EXPTASK-20260531-001',
+        elapsed: '12h-48h',
+        status: 'completed',
+        summary: '表达 harvest、protein A purification、SEC-HPLC、DSF 和 BLI acquisition 完成。',
+      },
+    ],
+  },
+  {
+    id: 'her2-turn-014',
+    role: 'mainAgent',
+    markdown:
+      '我导入原始结果文件束，并生成表达、纯化和 SEC-HPLC 的执行摘要。这里仅描述 assay 文件完整性和预设指标结果。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'ExperimentResultReader.importResults',
+        status: 'success',
+        summary: '导入 HER2 湿实验原始结果文件束',
+        defaultCollapsed: true,
+        input: {
+          experimentTaskId: 'HER2-EXPTASK-20260531-001',
+          rawBundle: 'HER2_wetlab_raw_result_bundle.xlsx',
+        },
+        output: {
+          importedFiles: 5,
+          rows: 96,
+          missingValues: 0,
+          rawBundle: 'HER2_wetlab_raw_result_bundle.xlsx',
+        },
+        duration: '9.2s',
+        artifacts: [
+          {
+            name: 'HER2_wetlab_raw_result_bundle.xlsx',
+            kind: 'xlsx',
+            description: '表达、纯化、SEC-HPLC、DSF 和 BLI 原始结果。',
+          },
+        ],
+      },
+      {
+        type: 'scientificFigure',
+        figureId: 'her2-expression-purification-qc',
+        title: 'HER2 expression and purification QC',
+        description: 'HER2 候选表达量、纯化回收率和 SEC-HPLC monomer 的预设 QC 摘要。',
+        imagegenPrompt:
+          'Scientific QC dashboard for HER2 antibody expression purification and SEC-HPLC, pass fail thresholds, clean biomedical report chart, synthetic lab data.',
+        placeholder: '图片：HER2 expression purification QC。',
+        src: her2ExpressionPurificationQc,
+        width: 900,
+        height: 600,
+        alt: 'HER2 expression purification and SEC-HPLC QC summary',
+      },
+    ],
+  },
+  {
+    id: 'her2-turn-015',
+    role: 'mainAgent',
+    markdown:
+      'SEC、DSF 和 BLI dashboard 已生成，用于后续 Preset QC Check。图中只展示 SOP 字段和阈值状态。',
+    contentBlocks: [
+      {
+        type: 'scientificFigure',
+        figureId: 'her2-sec-dsf-bli-qc-dashboard',
+        title: 'HER2 SEC DSF BLI QC dashboard',
+        description: 'SEC-HPLC monomer、DSF Tm 和 BLI control fit 的预设 QC dashboard。',
+        imagegenPrompt:
+          'Scientific QC dashboard combining SEC-HPLC monomer percent, DSF Tm and BLI fit quality for HER2 antibody validation, pass fail criteria, clean report figure.',
+        placeholder: '图片：HER2 SEC DSF BLI QC dashboard。',
+        src: her2SecDsfBliQcDashboard,
+        width: 900,
+        height: 600,
+        alt: 'HER2 SEC DSF and BLI QC dashboard with pass fail criteria',
+      },
+    ],
+  },
+  {
+    id: 'her2-turn-016',
+    role: 'mainAgent',
+    markdown:
+      'Preset QC Check\n\n| Predefined criterion | Result |\n| --- | --- |\n| Expression file complete | PASS |\n| Purification recovery recorded | PASS |\n| SEC-HPLC monomer >= SOP threshold | PASS |\n| DSF Tm within SOP window | PASS |\n| BLI parent control valid | PASS |\n| BLI isotype control valid | PASS |\n| Missing required assay file | FAIL |\n\n结论只限于预定义 pass/fail QC，不扩展为候选解释。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'PresetQcChecker.evaluateAssayFiles',
+        status: 'success',
+        summary: '按 SOP 预设阈值执行 pass/fail QC',
+        defaultCollapsed: true,
+        input: {
+          rawBundle: 'HER2_wetlab_raw_result_bundle.xlsx',
+          criteriaSource: 'HER2_validation_sop.pdf',
+        },
+        output: {
+          evaluatedCriteria: 7,
+          passRows: 6,
+          failRows: 1,
+          qcReport: 'HER2_experiment_qc_report.md',
+        },
+        duration: '5.7s',
+        artifacts: [
+          {
+            name: 'HER2_experiment_qc_report.md',
+            kind: 'md',
+            description: '预设 QC pass/fail 检查表。',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'her2-turn-017',
+    role: 'user',
+    markdown:
+      '请只归档 Experiment Result Package，不要产生 next-round design advice，也不要把结果自动变成 Asset。',
+  },
+  {
+    id: 'her2-turn-018',
+    role: 'mainAgent',
+    markdown:
+      '`ProjectFile.save` 已保存 HER2 Experiment Result Package 的 Project Files。\n\n保存内容：\n\n- `HER2_wetlab_raw_result_bundle.xlsx`\n- `HER2_experiment_qc_report.md`\n- `HER2_experiment_summary_report.md`\n- `HER2_experiment_result_package_figures.png`\n\n这些文件只进入 Project Files，不自动发布为 Asset。',
+    contentBlocks: [
+      {
+        type: 'capabilityRunReplay',
+        commandName: 'ProjectFile.save',
+        status: 'success',
+        summary: '保存 HER2 Experiment Result Package Project Files',
+        defaultCollapsed: true,
+        input: {
+          project: 'Antibody Optimization',
+          files: [
+            'HER2_wetlab_raw_result_bundle.xlsx',
+            'HER2_experiment_qc_report.md',
+            'HER2_experiment_summary_report.md',
+            'HER2_experiment_result_package_figures.png',
+          ],
+        },
+        output: {
+          savedFiles: 4,
+          rawBundle: 'HER2_wetlab_raw_result_bundle.xlsx',
+          qcReport: 'HER2_experiment_qc_report.md',
+          summaryReport: 'HER2_experiment_summary_report.md',
+          figures: 'HER2_experiment_result_package_figures.png',
+        },
+        duration: '3.6s',
+        artifacts: [
+          {
+            name: 'HER2_wetlab_raw_result_bundle.xlsx',
+            kind: 'xlsx',
+            description: 'HER2 wet-lab 原始结果文件束。',
+          },
+          {
+            name: 'HER2_experiment_qc_report.md',
+            kind: 'md',
+            description: 'HER2 预设 QC 报告。',
+          },
+          {
+            name: 'HER2_experiment_summary_report.md',
+            kind: 'md',
+            description: 'HER2 实验结果摘要报告。',
+          },
+          {
+            name: 'HER2_experiment_result_package_figures.png',
+            kind: 'png',
+            description: 'HER2 实验结果包图集。',
+          },
+        ],
+      },
+      {
+        type: 'projectFile',
+        fileName: 'HER2_wetlab_raw_result_bundle.xlsx',
+        fileKind: 'xlsx',
+        location: 'Antibody Optimization / Files / Assays',
+        note: 'HER2 expression、purification、SEC-HPLC、DSF 和 BLI 原始结果。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'HER2_experiment_qc_report.md',
+        fileKind: 'md',
+        location: 'Antibody Optimization / Files / Reports',
+        note: 'Preset QC Check pass/fail 报告。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'HER2_experiment_summary_report.md',
+        fileKind: 'md',
+        location: 'Antibody Optimization / Files / Reports',
+        note: 'Experiment Result Package 摘要报告。',
+      },
+      {
+        type: 'projectFile',
+        fileName: 'HER2_experiment_result_package_figures.png',
+        fileKind: 'png',
+        location: 'Antibody Optimization / Files / Figures',
+        note: 'HER2 Experiment Result Package 图集。',
+      },
+    ],
+  },
+  {
+    id: 'her2-turn-019',
+    role: 'mainAgent',
+    markdown:
+      'HER2 Experiment Result Package 已归档完成。当前 Thread 到这里停止：不生成设计建议、不创建 Asset、不把 Experiment Task 暴露为侧边栏对象。',
+    contentBlocks: [
+      {
+        type: 'scientificFigure',
+        figureId: 'her2-experiment-result-package-summary',
+        title: 'HER2 experiment result package summary',
+        description: 'HER2 Experiment Result Package 的文件组成、QC 状态和归档位置摘要。',
+        imagegenPrompt:
+          'Scientific result package summary figure for HER2 antibody wet-lab validation, archived project files, QC status, clean biomedical report layout.',
+        placeholder: '图片：HER2 Experiment Result Package summary。',
+        src: her2ExperimentResultPackageSummary,
+        width: 900,
+        height: 600,
+        alt: 'HER2 experiment result package summary figure',
+      },
+    ],
+  },
+]
+
+export const her2WetlabRunInspector: RunInspectorData = {
+  summary: {
+    stage: '湿实验验证完成',
+    status: 'completed',
+    completedSteps: 7,
+    totalSteps: 7,
+    outputCount: 5,
+    pendingCount: 0,
+  },
+  progress: [
+    {
+      id: 'input-confirmation',
+      title: '候选与订单输入确认',
+      status: 'done',
+      detail: '读取 HER2 候选、物料库存和 SOP。',
+    },
+    {
+      id: 'sample-controls',
+      title: '样本需求和 controls 检查',
+      status: 'done',
+      detail: '计算样本需求并生成 plate map。',
+    },
+    {
+      id: 'order-approval',
+      title: 'Experiment Order 审批',
+      status: 'done',
+      detail: '审批并提交 BM-LAB-HER2-20260531-001。',
+    },
+    {
+      id: 'task-replay',
+      title: 'Experiment Task 执行回放',
+      status: 'done',
+      detail: '同步 HER2-EXPTASK-20260531-001 的执行状态。',
+    },
+    {
+      id: 'result-import',
+      title: '结果文件导入',
+      status: 'done',
+      detail: '导入 HER2 wet-lab raw result bundle。',
+    },
+    {
+      id: 'preset-qc',
+      title: '预设 QC 检查',
+      status: 'done',
+      detail: '按 SOP criteria 执行 pass/fail QC。',
+    },
+    {
+      id: 'result-package',
+      title: 'Experiment Result Package 归档',
+      status: 'done',
+      detail: '将结果包保存为 Project Files。',
+    },
+  ],
+  outputs: [
+    {
+      id: 'her2-experiment-order',
+      name: 'BM-LAB-HER2-20260531-001',
+      kind: 'experimentOrder',
+      location: 'Antibody Optimization / Experiment Orders',
+      status: 'submitted',
+    },
+    {
+      id: 'her2-raw-result-bundle',
+      name: 'HER2_wetlab_raw_result_bundle.xlsx',
+      kind: 'dataset',
+      location: 'Antibody Optimization / Files / Assays',
+      status: 'completed',
+    },
+    {
+      id: 'her2-qc-report',
+      name: 'HER2_experiment_qc_report.md',
+      kind: 'report',
+      location: 'Antibody Optimization / Files / Reports',
+      status: 'saved',
+    },
+    {
+      id: 'her2-summary-report',
+      name: 'HER2_experiment_summary_report.md',
+      kind: 'report',
+      location: 'Antibody Optimization / Files / Reports',
+      status: 'saved',
+    },
+    {
+      id: 'her2-figures',
+      name: 'HER2_experiment_result_package_figures.png',
+      kind: 'figure',
+      location: 'Antibody Optimization / Files / Figures',
+      status: 'saved',
+    },
+  ],
+  approvals: [
+    {
+      id: 'her2-scope-confirmation',
+      kind: 'humanConfirmation',
+      title: '确认 HER2 execution scope',
+      status: 'confirmed',
+      actor: 'zhengjun',
+      decidedAt: '2026-05-31 09:18',
+    },
+    {
+      id: 'her2-budget-schedule-confirmation',
+      kind: 'humanConfirmation',
+      title: '确认预算、排期和 assay 约束',
+      status: 'confirmed',
+      actor: 'zhengjun',
+      decidedAt: '2026-05-31 09:27',
+    },
+    {
+      id: 'her2-control-confirmation',
+      kind: 'humanConfirmation',
+      title: '确认 control requirements',
+      status: 'confirmed',
+      actor: 'zhengjun',
+      decidedAt: '2026-05-31 09:35',
+    },
+    {
+      id: 'her2-order-approval',
+      kind: 'approvalRequest',
+      title: '提交 HER2 Experiment Order',
+      status: 'approved',
+      actor: 'zhengjun',
+      decidedAt: '2026-05-31 09:42',
+    },
+  ],
+  capabilityRuns: [
+    {
+      id: 'her2-input-reader',
+      commandName: 'ProjectFileReader.extractHer2ExecutionInputs',
+      status: 'success',
+      summary: '读取 HER2 候选、物料库存和验证 SOP',
+      duration: '4.9s',
+      input: {
+        files: [
+          'HER2_candidate_antibody_manifest.xlsx',
+          'HER2_material_inventory.csv',
+          'HER2_validation_sop.pdf',
+        ],
+        project: 'Antibody Optimization / HER2 抗体候选湿实验验证',
+      },
+      output: {
+        candidateCount: 8,
+        assays: ['expression', 'purification', 'SEC-HPLC', 'DSF', 'BLI'],
+        controls: ['HER2-parent', 'blank', 'isotype-control'],
+        sopCriteriaLoaded: true,
+      },
+      artifacts: [
+        {
+          name: 'HER2_execution_input_extract.json',
+          kind: 'json',
+        },
+      ],
+    },
+    {
+      id: 'her2-order-draft',
+      commandName: 'ExperimentOrderDraft.create',
+      status: 'success',
+      summary: '创建 HER2 Experiment Order draft',
+      duration: '5.8s',
+      input: {
+        project: 'Antibody Optimization',
+        candidates: 8,
+        resultHandling: 'save as Project Files',
+      },
+      output: {
+        orderId: 'BM-LAB-HER2-20260531-001',
+        status: 'draft',
+        assayCount: 5,
+      },
+      artifacts: [
+        {
+          name: 'BM-LAB-HER2-20260531-001_draft.md',
+          kind: 'md',
+        },
+      ],
+    },
+    {
+      id: 'her2-sample-estimator',
+      commandName: 'SampleRequirementEstimator.calculate',
+      status: 'success',
+      summary: '计算 HER2 验证批次样本需求',
+      duration: '6.4s',
+      input: {
+        candidateCount: 8,
+        controls: ['HER2-parent', 'blank', 'isotype-control'],
+        assayCount: 5,
+      },
+      output: {
+        expressionConstructs: 8,
+        controlWells: 12,
+        bliSensorsReserved: 96,
+        her2EcdLot: 'HER2-ECD-2605-L03',
+      },
+    },
+    {
+      id: 'her2-plate-map',
+      commandName: 'PlateMapDesigner.createLayout',
+      status: 'success',
+      summary: '生成 HER2 验证批次 plate map',
+      duration: '8.6s',
+      input: {
+        candidates: 8,
+        plateFormat: 96,
+        requiredControls: ['HER2-parent', 'blank', 'isotype-control'],
+      },
+      output: {
+        plates: 1,
+        sampleWells: 64,
+        controlWells: 12,
+        layoutId: 'HER2-PLATEMAP-20260531-001',
+      },
+      artifacts: [
+        {
+          name: 'HER2_sample_plate_map.csv',
+          kind: 'csv',
+        },
+      ],
+    },
+    {
+      id: 'her2-order-submit',
+      commandName: 'ExperimentOrder.submit',
+      status: 'success',
+      summary: '提交 HER2 Experiment Order',
+      duration: '3.1s',
+      input: {
+        orderId: 'BM-LAB-HER2-20260531-001',
+        approvedBy: 'zhengjun',
+        resultHandling: 'Project Files only',
+      },
+      output: {
+        orderId: 'BM-LAB-HER2-20260531-001',
+        status: 'submitted',
+        experimentTaskId: 'HER2-EXPTASK-20260531-001',
+      },
+    },
+    {
+      id: 'her2-task-replay',
+      commandName: 'ExperimentTaskReplay.syncStatus',
+      status: 'success',
+      summary: '同步 HER2 Experiment Task 执行状态',
+      duration: '7.4s',
+      input: {
+        experimentTaskId: 'HER2-EXPTASK-20260531-001',
+        orderId: 'BM-LAB-HER2-20260531-001',
+      },
+      output: {
+        experimentTaskId: 'HER2-EXPTASK-20260531-001',
+        status: 'completed',
+        completedAssays: ['expression', 'purification', 'SEC-HPLC', 'DSF', 'BLI'],
+        rawBundleReady: true,
+      },
+    },
+    {
+      id: 'her2-result-reader',
+      commandName: 'ExperimentResultReader.importResults',
+      status: 'success',
+      summary: '导入 HER2 湿实验原始结果文件束',
+      duration: '9.2s',
+      input: {
+        experimentTaskId: 'HER2-EXPTASK-20260531-001',
+        rawBundle: 'HER2_wetlab_raw_result_bundle.xlsx',
+      },
+      output: {
+        importedFiles: 5,
+        rows: 96,
+        missingValues: 0,
+        rawBundle: 'HER2_wetlab_raw_result_bundle.xlsx',
+      },
+      artifacts: [
+        {
+          name: 'HER2_wetlab_raw_result_bundle.xlsx',
+          kind: 'xlsx',
+        },
+      ],
+    },
+    {
+      id: 'her2-preset-qc',
+      commandName: 'PresetQcChecker.evaluateAssayFiles',
+      status: 'success',
+      summary: '按 SOP 预设阈值执行 pass/fail QC',
+      duration: '5.7s',
+      input: {
+        rawBundle: 'HER2_wetlab_raw_result_bundle.xlsx',
+        criteriaSource: 'HER2_validation_sop.pdf',
+      },
+      output: {
+        evaluatedCriteria: 7,
+        passRows: 6,
+        failRows: 1,
+        qcReport: 'HER2_experiment_qc_report.md',
+      },
+      artifacts: [
+        {
+          name: 'HER2_experiment_qc_report.md',
+          kind: 'md',
+        },
+      ],
+    },
+    {
+      id: 'her2-project-file-save',
+      commandName: 'ProjectFile.save',
+      status: 'success',
+      summary: '保存 HER2 Experiment Result Package Project Files',
+      duration: '3.6s',
+      input: {
+        project: 'Antibody Optimization',
+        files: [
+          'HER2_wetlab_raw_result_bundle.xlsx',
+          'HER2_experiment_qc_report.md',
+          'HER2_experiment_summary_report.md',
+          'HER2_experiment_result_package_figures.png',
+        ],
+      },
+      output: {
+        savedFiles: 4,
+        rawBundle: 'HER2_wetlab_raw_result_bundle.xlsx',
+        qcReport: 'HER2_experiment_qc_report.md',
+        summaryReport: 'HER2_experiment_summary_report.md',
+        figures: 'HER2_experiment_result_package_figures.png',
+      },
+      artifacts: [
+        {
+          name: 'HER2_wetlab_raw_result_bundle.xlsx',
+          kind: 'xlsx',
+        },
+        {
+          name: 'HER2_experiment_qc_report.md',
+          kind: 'md',
+        },
+        {
+          name: 'HER2_experiment_summary_report.md',
+          kind: 'md',
+        },
+        {
+          name: 'HER2_experiment_result_package_figures.png',
+          kind: 'png',
+        },
+      ],
+    },
+  ],
+}
+
 export const projects: Project[] = [
   {
     id: 'antibody-optimization',
@@ -948,6 +2596,20 @@ export const projects: Project[] = [
         lastActivity: '2 分钟',
         transcript: egfrAffinityTranscript,
         runInspector: egfrRunInspector,
+      },
+      {
+        id: 'il17a-affinity-design',
+        title: 'IL-17A 亲和力成熟实验设计',
+        lastActivity: '2 天前',
+        transcript: il17aAffinityDesignTranscript,
+        runInspector: il17aRunInspector,
+      },
+      {
+        id: 'her2-wetlab-validation',
+        title: 'HER2 抗体候选湿实验验证',
+        lastActivity: '1 天前',
+        transcript: her2WetlabExecutionTranscript,
+        runInspector: her2WetlabRunInspector,
       },
       { id: 'cd3-bispecific', title: 'CD3 双抗序列优化分析', lastActivity: '1 小时' },
       { id: 'affinity-maturation', title: '亲和力成熟实验方案', lastActivity: '昨天' },
