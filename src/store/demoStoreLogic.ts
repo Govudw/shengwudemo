@@ -28,8 +28,49 @@ export type DemoStateSnapshot = {
   expandedProjectIds: string[]
   sidebarCollapsed: boolean
   runInspectorByThreadId: Record<string, { open: boolean }>
+  activeTopNav: ActiveTopNav
+  assetsActiveSection: AssetsSection
+  assetsActiveItem: AssetMenuItemId
+  assetsFileViewMode: AssetsFileViewMode
+  assetsOpenFolderId: string | null
   statusMessage: string
 }
+
+export type ActiveTopNav = 'Workspace' | 'Assets'
+
+export type AssetsSection = 'file' | 'data' | 'experiment' | 'model'
+
+export type FileAssetItemId =
+  | 'public-files'
+  | 'project-files'
+  | 'recent-uploads'
+  | 'archived-files'
+
+export type DataAssetItemId =
+  | 'datasets'
+  | 'tables'
+  | 'analysis-results'
+  | 'catalog'
+
+export type ExperimentAssetItemId =
+  | 'request'
+  | 'execution'
+  | 'inventory'
+  | 'configuration'
+
+export type ModelAssetItemId =
+  | 'xtrimo'
+  | 'public-models'
+  | 'project-models'
+  | 'oracles'
+
+export type AssetMenuItemId =
+  | FileAssetItemId
+  | DataAssetItemId
+  | ExperimentAssetItemId
+  | ModelAssetItemId
+
+export type AssetsFileViewMode = 'list' | 'grid'
 
 export type ThreadEntry = {
   projectId: string
@@ -45,6 +86,15 @@ export type SearchView = {
 const minute = 60 * 1000
 const hour = 60 * minute
 const day = 24 * hour
+const activeTopNavItems = ['Workspace', 'Assets'] as const
+const assetsSections = ['file', 'data', 'experiment', 'model'] as const
+const assetsFileViewModes = ['list', 'grid'] as const
+const assetMenuItemsBySection = {
+  file: ['public-files', 'project-files', 'recent-uploads', 'archived-files'],
+  data: ['datasets', 'tables', 'analysis-results', 'catalog'],
+  experiment: ['request', 'execution', 'inventory', 'configuration'],
+  model: ['xtrimo', 'public-models', 'project-models', 'oracles'],
+} as const satisfies Record<AssetsSection, readonly AssetMenuItemId[]>
 const selectedThreadAcknowledgement =
   '已记录到当前对话。第一版 Demo 先把这条输入加入对话历史，不触发真实 BioMap OS 操作。'
 
@@ -61,6 +111,11 @@ export function createInitialDemoState(
     expandedProjectIds: seedProjects.map((project) => project.id),
     sidebarCollapsed: false,
     runInspectorByThreadId: {},
+    activeTopNav: 'Workspace',
+    assetsActiveSection: 'file',
+    assetsActiveItem: 'project-files',
+    assetsFileViewMode: 'list',
+    assetsOpenFolderId: null,
     statusMessage: '',
   }
 }
@@ -313,6 +368,7 @@ export function sanitizeDemoState(state: DemoStateSnapshot): DemoStateSnapshot {
   const hasValidSelectedThread = Boolean(
     selectedEntry && !selectedEntry.thread.archived,
   )
+  const sanitizedAssets = sanitizeAssetsStateFields(state)
 
   if (hasValidSelectedThread && selectedEntry) {
     return {
@@ -332,6 +388,7 @@ export function sanitizeDemoState(state: DemoStateSnapshot): DemoStateSnapshot {
         state.runInspectorByThreadId,
         projects,
       ),
+      ...sanitizedAssets,
       statusMessage: '',
     }
   }
@@ -353,7 +410,76 @@ export function sanitizeDemoState(state: DemoStateSnapshot): DemoStateSnapshot {
       state.runInspectorByThreadId,
       projects,
     ),
+    ...sanitizedAssets,
     statusMessage: '',
+  }
+}
+
+export function selectTopNavSnapshot(
+  state: DemoStateSnapshot,
+  activeTopNav: ActiveTopNav,
+): DemoStateSnapshot {
+  if (!isActiveTopNav(activeTopNav)) {
+    return state
+  }
+
+  return {
+    ...state,
+    activeTopNav,
+  }
+}
+
+export function setAssetsSelectionSnapshot(
+  state: DemoStateSnapshot,
+  section: AssetsSection,
+  item: AssetMenuItemId,
+): DemoStateSnapshot {
+  if (!isAssetsSection(section) || !isAssetMenuItemForSection(section, item)) {
+    return state
+  }
+
+  return {
+    ...state,
+    assetsActiveSection: section,
+    assetsActiveItem: item,
+    assetsOpenFolderId:
+      section === 'file' && item === 'project-files'
+        ? state.assetsOpenFolderId
+        : null,
+  }
+}
+
+export function setAssetsFileViewModeSnapshot(
+  state: DemoStateSnapshot,
+  assetsFileViewMode: AssetsFileViewMode,
+): DemoStateSnapshot {
+  if (!isAssetsFileViewMode(assetsFileViewMode)) {
+    return state
+  }
+
+  return {
+    ...state,
+    assetsFileViewMode,
+  }
+}
+
+export function setAssetsOpenFolderSnapshot(
+  state: DemoStateSnapshot,
+  assetsOpenFolderId: string | null,
+): DemoStateSnapshot {
+  if (
+    state.assetsActiveSection !== 'file' ||
+    state.assetsActiveItem !== 'project-files'
+  ) {
+    return {
+      ...state,
+      assetsOpenFolderId: null,
+    }
+  }
+
+  return {
+    ...state,
+    assetsOpenFolderId,
   }
 }
 
@@ -663,6 +789,74 @@ function sanitizeRunInspectorByThreadId(
         typeof value.open === 'boolean',
     ),
   )
+}
+
+function sanitizeAssetsStateFields(
+  state: DemoStateSnapshot,
+): Pick<
+  DemoStateSnapshot,
+  | 'activeTopNav'
+  | 'assetsActiveSection'
+  | 'assetsActiveItem'
+  | 'assetsFileViewMode'
+  | 'assetsOpenFolderId'
+> {
+  const activeTopNav = isActiveTopNav(state.activeTopNav)
+    ? state.activeTopNav
+    : 'Workspace'
+  const assetsActiveSection = isAssetsSection(state.assetsActiveSection)
+    ? state.assetsActiveSection
+    : 'file'
+  const assetsActiveItem = isAssetMenuItemForSection(
+    assetsActiveSection,
+    state.assetsActiveItem,
+  )
+    ? state.assetsActiveItem
+    : getDefaultAssetMenuItem(assetsActiveSection)
+  const assetsFileViewMode = isAssetsFileViewMode(state.assetsFileViewMode)
+    ? state.assetsFileViewMode
+    : 'list'
+  const assetsOpenFolderId =
+    assetsActiveSection === 'file' &&
+    assetsActiveItem === 'project-files' &&
+    (typeof state.assetsOpenFolderId === 'string' || state.assetsOpenFolderId === null)
+      ? state.assetsOpenFolderId
+      : null
+
+  return {
+    activeTopNav,
+    assetsActiveSection,
+    assetsActiveItem,
+    assetsFileViewMode,
+    assetsOpenFolderId,
+  }
+}
+
+function isActiveTopNav(value: unknown): value is ActiveTopNav {
+  return activeTopNavItems.includes(value as ActiveTopNav)
+}
+
+function isAssetsSection(value: unknown): value is AssetsSection {
+  return assetsSections.includes(value as AssetsSection)
+}
+
+function isAssetsFileViewMode(value: unknown): value is AssetsFileViewMode {
+  return assetsFileViewModes.includes(value as AssetsFileViewMode)
+}
+
+function isAssetMenuItemForSection(
+  section: AssetsSection,
+  item: unknown,
+): item is AssetMenuItemId {
+  return (assetMenuItemsBySection[section] as readonly unknown[]).includes(item)
+}
+
+function getDefaultAssetMenuItem(section: AssetsSection): AssetMenuItemId {
+  if (section === 'file') {
+    return 'project-files'
+  }
+
+  return assetMenuItemsBySection[section][0]
 }
 
 function sanitizeExpandedProjectIds(

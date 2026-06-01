@@ -194,6 +194,82 @@ describe('demo store persistence', () => {
     expect(useDemoStore.getState().sidebarCollapsed).toBe(false)
   })
 
+  it('persists Assets navigation and view state', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        activeTopNav: 'Assets',
+        assetsActiveSection: 'model',
+        assetsActiveItem: 'oracles',
+        assetsFileViewMode: 'grid',
+        assetsOpenFolderId: 'project-antibody-optimization',
+      },
+      version: demoStorePersistVersion,
+    })
+
+    expect(useDemoStore.getState().activeTopNav).toBe('Assets')
+    expect(useDemoStore.getState().assetsActiveSection).toBe('model')
+    expect(useDemoStore.getState().assetsActiveItem).toBe('oracles')
+    expect(useDemoStore.getState().assetsFileViewMode).toBe('grid')
+    expect(useDemoStore.getState().assetsOpenFolderId).toBeNull()
+
+    useDemoStore.getState().setAssetsSelection('experiment', 'execution')
+    useDemoStore.getState().setAssetsFileViewMode('list')
+    useDemoStore.getState().setAssetsOpenFolder(null)
+
+    const { demoStorePersistKey } = await import('./useDemoStore')
+    const persistedPayload = JSON.parse(localStorage.getItem(demoStorePersistKey) ?? '{}')
+
+    expect(persistedPayload.state.assetsActiveSection).toBe('experiment')
+    expect(persistedPayload.state.assetsActiveItem).toBe('execution')
+    expect(persistedPayload.state.assetsFileViewMode).toBe('list')
+    expect(persistedPayload.state.assetsOpenFolderId).toBeNull()
+
+    useDemoStore.getState().resetDemoState()
+    expect(useDemoStore.getState().activeTopNav).toBe('Workspace')
+    expect(useDemoStore.getState().assetsActiveSection).toBe('file')
+    expect(useDemoStore.getState().assetsActiveItem).toBe('project-files')
+  })
+
+  it('sanitizes invalid persisted Assets state', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        activeTopNav: 'Admin',
+        assetsActiveSection: 'private',
+        assetsActiveItem: 'templates',
+        assetsFileViewMode: 'kanban',
+        assetsOpenFolderId: 123,
+      },
+      version: demoStorePersistVersion,
+    })
+
+    expect(useDemoStore.getState().activeTopNav).toBe('Workspace')
+    expect(useDemoStore.getState().assetsActiveSection).toBe('file')
+    expect(useDemoStore.getState().assetsActiveItem).toBe('project-files')
+    expect(useDemoStore.getState().assetsFileViewMode).toBe('list')
+    expect(useDemoStore.getState().assetsOpenFolderId).toBeNull()
+  })
+
+  it('clears a persisted project folder when the active Assets menu is not project files', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        activeTopNav: 'Assets',
+        assetsActiveSection: 'file',
+        assetsActiveItem: 'public-files',
+        assetsOpenFolderId: 'project-antibody-optimization',
+      },
+      version: demoStorePersistVersion,
+    })
+
+    expect(useDemoStore.getState().assetsActiveItem).toBe('public-files')
+    expect(useDemoStore.getState().assetsOpenFolderId).toBeNull()
+  })
+
   it('ignores invalid persisted sidebar collapsed values', async () => {
     const { demoStorePersistVersion } = await import('./useDemoStore')
     const { useDemoStore } = await loadStoreWithPersistedState({

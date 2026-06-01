@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import AssetsPage from './components/assets/AssetsPage'
 import Composer from './components/Composer'
 import Sidebar from './components/Sidebar'
 import ThreadWorkspace from './components/ThreadWorkspace'
 import TopNav from './components/TopNav'
+import type { PrimaryNavItem } from './components/TopNav'
 import UseCaseGrid from './components/UseCaseGrid'
 import { capabilityChips, useCases } from './data/mockData'
 import {
@@ -24,6 +26,11 @@ function App() {
   const draft = useDemoStore((state) => state.draft)
   const expandedProjectIds = useDemoStore((state) => state.expandedProjectIds)
   const sidebarCollapsed = useDemoStore((state) => state.sidebarCollapsed)
+  const activeTopNav = useDemoStore((state) => state.activeTopNav)
+  const assetsActiveSection = useDemoStore((state) => state.assetsActiveSection)
+  const assetsActiveItem = useDemoStore((state) => state.assetsActiveItem)
+  const assetsFileViewMode = useDemoStore((state) => state.assetsFileViewMode)
+  const assetsOpenFolderId = useDemoStore((state) => state.assetsOpenFolderId)
   const statusMessage = useDemoStore((state) => state.statusMessage)
   const startNewThread = useDemoStore((state) => state.startNewThread)
   const selectThread = useDemoStore((state) => state.selectThread)
@@ -40,6 +47,10 @@ function App() {
   const toggleSidebarCollapsed = useDemoStore(
     (state) => state.toggleSidebarCollapsed,
   )
+  const selectTopNav = useDemoStore((state) => state.selectTopNav)
+  const setAssetsSelection = useDemoStore((state) => state.setAssetsSelection)
+  const setAssetsFileViewMode = useDemoStore((state) => state.setAssetsFileViewMode)
+  const setAssetsOpenFolder = useDemoStore((state) => state.setAssetsOpenFolder)
   const showStatus = useDemoStore((state) => state.showStatus)
   const clearStatus = useDemoStore((state) => state.clearStatus)
 
@@ -93,90 +104,116 @@ function App() {
     submitDraft()
   }
 
+  function handlePrimaryNav(item: PrimaryNavItem) {
+    if (item === 'Workspace' || item === 'Assets') {
+      selectTopNav(item)
+      return
+    }
+
+    showStatus('该模块将在后续 Demo 中展开')
+  }
+
   return (
     <div className="agent-app">
-      <TopNav onNotify={showStatus} />
-      <div
-        className={`agent-shell${
-          sidebarCollapsed ? ' agent-shell--sidebar-collapsed' : ''
-        }`}
-      >
-        <Sidebar
-          projects={projects}
-          selectedThreadId={selectedThreadId}
-          searchOpen={searchOpen}
-          searchQuery={searchQuery}
-          expandedProjectIds={expandedProjectIds}
-          sidebarCollapsed={sidebarCollapsed}
-          onSidebarCollapsedChange={toggleSidebarCollapsed}
-          onNewThread={handleNewThread}
-          onSearchOpenChange={setSearchOpen}
-          onSearchQueryChange={setSearchQuery}
-          onToggleProject={toggleProject}
-          onSelectThread={handleSelectThread}
-          onTogglePinned={togglePinned}
-          onRenameThread={renameThread}
-          onArchiveThread={archiveThread}
-          onDeleteThread={deleteThread}
+      <TopNav
+        activeItem={activeTopNav}
+        onNavigate={handlePrimaryNav}
+        onNotify={showStatus}
+      />
+      {statusMessage ? (
+        <div className="status-toast" role="status" aria-live="polite">
+          {statusMessage}
+        </div>
+      ) : null}
+      {activeTopNav === 'Assets' ? (
+        <AssetsPage
+          activeSection={assetsActiveSection}
+          activeItem={assetsActiveItem}
+          fileViewMode={assetsFileViewMode}
+          openFolderId={assetsOpenFolderId}
+          onSelectionChange={setAssetsSelection}
+          onFileViewModeChange={setAssetsFileViewMode}
+          onOpenFolderChange={setAssetsOpenFolder}
           onNotify={showStatus}
         />
-        <main
-          className={`workspace-main${
-            showThreadWorkspace ? ' workspace-main--thread' : ''
+      ) : (
+        <div
+          className={`agent-shell${
+            sidebarCollapsed ? ' agent-shell--sidebar-collapsed' : ''
           }`}
-          aria-label={
-            selectedThreadTitle
-              ? `Workspace for ${selectedThreadTitle}`
-              : 'New conversation workspace'
-          }
-          data-drafting-new-thread={isDraftingNewThread}
         >
-          {statusMessage ? (
-            <div className="status-toast" role="status" aria-live="polite">
-              {statusMessage}
-            </div>
-          ) : null}
-          {selectedThreadEntry && !isDraftingNewThread ? (
-            <ThreadWorkspace
-              thread={selectedThreadEntry.thread}
-              projectName={selectedThreadEntry.project.name}
-              draft={draft}
-              onDraftChange={setDraft}
-              onSubmit={handleSubmit}
-              onRenameThread={renameThread}
-              onArchiveThread={archiveThread}
-              onDeleteThread={deleteThread}
-              onNotify={showStatus}
-              runInspectorOpen={runInspectorOpen}
-              onRunInspectorOpenChange={(open) =>
-                toggleRunInspector(selectedThreadEntry.thread.id, open)
-              }
-            />
-          ) : (
-            <section className="workspace-inner">
-              <Composer
-                projects={projects}
-                selectedProjectId={selectedProjectId}
-                isDraftingNewThread={isDraftingNewThread}
+          <Sidebar
+            projects={projects}
+            selectedThreadId={selectedThreadId}
+            searchOpen={searchOpen}
+            searchQuery={searchQuery}
+            expandedProjectIds={expandedProjectIds}
+            sidebarCollapsed={sidebarCollapsed}
+            onSidebarCollapsedChange={toggleSidebarCollapsed}
+            onNewThread={handleNewThread}
+            onSearchOpenChange={setSearchOpen}
+            onSearchQueryChange={setSearchQuery}
+            onToggleProject={toggleProject}
+            onSelectThread={handleSelectThread}
+            onTogglePinned={togglePinned}
+            onRenameThread={renameThread}
+            onArchiveThread={archiveThread}
+            onDeleteThread={deleteThread}
+            onNotify={showStatus}
+          />
+          <main
+            className={`workspace-main${
+              showThreadWorkspace ? ' workspace-main--thread' : ''
+            }`}
+            aria-label={
+              selectedThreadTitle
+                ? `Workspace for ${selectedThreadTitle}`
+                : 'New conversation workspace'
+            }
+            data-drafting-new-thread={isDraftingNewThread}
+          >
+            {selectedThreadEntry && !isDraftingNewThread ? (
+              <ThreadWorkspace
+                thread={selectedThreadEntry.thread}
+                projectName={selectedThreadEntry.project.name}
                 draft={draft}
-                textareaRef={composerTextAreaRef}
-                projectMenuOpen={projectMenuOpen}
                 onDraftChange={setDraft}
-                onProjectMenuOpenChange={setProjectMenuOpen}
-                onProjectChange={setSelectedProject}
                 onSubmit={handleSubmit}
+                onRenameThread={renameThread}
+                onArchiveThread={archiveThread}
+                onDeleteThread={deleteThread}
                 onNotify={showStatus}
+                runInspectorOpen={runInspectorOpen}
+                onRunInspectorOpenChange={(open) =>
+                  toggleRunInspector(selectedThreadEntry.thread.id, open)
+                }
               />
-              <UseCaseGrid
-                chips={capabilityChips}
-                useCases={useCases}
-                onPromptSelect={handlePromptSelect}
-                onNotify={showStatus}
-              />
-            </section>
-          )}
-        </main>
-      </div>
+            ) : (
+              <section className="workspace-inner">
+                <Composer
+                  projects={projects}
+                  selectedProjectId={selectedProjectId}
+                  isDraftingNewThread={isDraftingNewThread}
+                  draft={draft}
+                  textareaRef={composerTextAreaRef}
+                  projectMenuOpen={projectMenuOpen}
+                  onDraftChange={setDraft}
+                  onProjectMenuOpenChange={setProjectMenuOpen}
+                  onProjectChange={setSelectedProject}
+                  onSubmit={handleSubmit}
+                  onNotify={showStatus}
+                />
+                <UseCaseGrid
+                  chips={capabilityChips}
+                  useCases={useCases}
+                  onPromptSelect={handlePromptSelect}
+                  onNotify={showStatus}
+                />
+              </section>
+            )}
+          </main>
+        </div>
+      )}
     </div>
   )
 }

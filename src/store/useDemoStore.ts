@@ -7,7 +7,11 @@ import {
   deleteThreadSnapshot,
   renameThreadSnapshot,
   sanitizeDemoState,
+  selectTopNavSnapshot,
   selectThreadSnapshot,
+  setAssetsFileViewModeSnapshot,
+  setAssetsOpenFolderSnapshot,
+  setAssetsSelectionSnapshot,
   setSelectedProjectSnapshot,
   startNewThreadSnapshot,
   submitDraftSnapshot,
@@ -16,7 +20,15 @@ import {
   toggleRunInspectorSnapshot,
   toggleSidebarCollapsedSnapshot,
 } from './demoStoreLogic'
-import type { DemoProject, DemoStateSnapshot, DemoThread } from './demoStoreLogic'
+import type {
+  ActiveTopNav,
+  AssetMenuItemId,
+  AssetsFileViewMode,
+  AssetsSection,
+  DemoProject,
+  DemoStateSnapshot,
+  DemoThread,
+} from './demoStoreLogic'
 
 export const demoStorePersistKey = 'biomap-agent-demo-store-v2'
 export const demoStorePersistVersion = 3
@@ -34,6 +46,10 @@ type DemoStoreState = DemoStateSnapshot & {
   deleteThread: (threadId: string) => void
   toggleRunInspector: (threadId: string, open: boolean) => void
   toggleSidebarCollapsed: (sidebarCollapsed: boolean) => void
+  selectTopNav: (activeTopNav: ActiveTopNav) => void
+  setAssetsSelection: (section: AssetsSection, item: AssetMenuItemId) => void
+  setAssetsFileViewMode: (mode: AssetsFileViewMode) => void
+  setAssetsOpenFolder: (folderId: string | null) => void
   showStatus: (message: string) => void
   clearStatus: () => void
   resetDemoState: () => void
@@ -69,6 +85,14 @@ export const useDemoStore = create<DemoStoreState>()(
         set((state) => toggleRunInspectorSnapshot(state, threadId, open)),
       toggleSidebarCollapsed: (sidebarCollapsed) =>
         set((state) => toggleSidebarCollapsedSnapshot(state, sidebarCollapsed)),
+      selectTopNav: (activeTopNav) =>
+        set((state) => selectTopNavSnapshot(state, activeTopNav)),
+      setAssetsSelection: (section, item) =>
+        set((state) => setAssetsSelectionSnapshot(state, section, item)),
+      setAssetsFileViewMode: (mode) =>
+        set((state) => setAssetsFileViewModeSnapshot(state, mode)),
+      setAssetsOpenFolder: (folderId) =>
+        set((state) => setAssetsOpenFolderSnapshot(state, folderId)),
       showStatus: (message) => set({ statusMessage: message }),
       clearStatus: () => set({ statusMessage: '' }),
       resetDemoState: () => set(createInitialState()),
@@ -87,6 +111,11 @@ export const useDemoStore = create<DemoStoreState>()(
         expandedProjectIds: state.expandedProjectIds,
         sidebarCollapsed: state.sidebarCollapsed,
         runInspectorByThreadId: state.runInspectorByThreadId,
+        activeTopNav: state.activeTopNav,
+        assetsActiveSection: state.assetsActiveSection,
+        assetsActiveItem: state.assetsActiveItem,
+        assetsFileViewMode: state.assetsFileViewMode,
+        assetsOpenFolderId: state.assetsOpenFolderId,
       }),
       merge: (persistedState, currentState) => {
         const restoredState = (persistedState ?? {}) as Partial<DemoStateSnapshot>
@@ -118,6 +147,16 @@ export const useDemoStore = create<DemoStoreState>()(
           )
             ? restoredState.runInspectorByThreadId
             : currentState.runInspectorByThreadId,
+          activeTopNav:
+            restoredState.activeTopNav ?? currentState.activeTopNav,
+          assetsActiveSection:
+            restoredState.assetsActiveSection ?? currentState.assetsActiveSection,
+          assetsActiveItem:
+            restoredState.assetsActiveItem ?? currentState.assetsActiveItem,
+          assetsFileViewMode:
+            restoredState.assetsFileViewMode ?? currentState.assetsFileViewMode,
+          assetsOpenFolderId:
+            restoredState.assetsOpenFolderId ?? currentState.assetsOpenFolderId,
           statusMessage: '',
         }
 

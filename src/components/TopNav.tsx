@@ -1,13 +1,17 @@
 import logoSrc from '../assets/biomap-agent-logo.png'
+import type { ActiveTopNav } from '../store/demoStoreLogic'
 import { BellIcon, ChevronDownIcon } from './icons'
 
 type TopNavProps = {
+  activeItem: ActiveTopNav
+  onNavigate: (item: PrimaryNavItem) => void
   onNotify: (message: string) => void
 }
 
 const navItems = ['Workspace', 'Projects', 'Assets', 'Pipelines'] as const
+export type PrimaryNavItem = (typeof navItems)[number]
 
-function TopNav({ onNotify }: TopNavProps) {
+function TopNav({ activeItem, onNavigate, onNotify }: TopNavProps) {
   return (
     <header className="top-nav">
       <div className="top-nav__brand" role="img" aria-label="BioMap Agent">
@@ -18,7 +22,7 @@ function TopNav({ onNotify }: TopNavProps) {
 
       <nav className="top-nav__items" aria-label="Primary navigation">
         {navItems.map((item) => {
-          const isActive = item === 'Workspace'
+          const isActive = item === activeItem
 
           return (
             <button
@@ -26,9 +30,7 @@ function TopNav({ onNotify }: TopNavProps) {
               type="button"
               className={`top-nav__item${isActive ? ' top-nav__item--active active' : ''}`}
               aria-current={isActive ? 'page' : undefined}
-              onClick={
-                isActive ? undefined : () => onNotify('该模块将在后续 Demo 中展开')
-              }
+              onClick={() => onNavigate(item)}
             >
               {item}
             </button>

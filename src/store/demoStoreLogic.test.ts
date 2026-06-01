@@ -10,7 +10,10 @@ import {
   getRecentThreadEntries,
   getSearchView,
   renameThreadSnapshot,
+  selectTopNavSnapshot,
   selectThreadSnapshot,
+  setAssetsFileViewModeSnapshot,
+  setAssetsSelectionSnapshot,
   setSelectedProjectSnapshot,
   submitDraftSnapshot,
   toggleSidebarCollapsedSnapshot,
@@ -29,6 +32,11 @@ describe('demo store logic', () => {
     expect(state.selectedThreadId).toBeNull()
     expect(state.isDraftingNewThread).toBe(true)
     expect(state.sidebarCollapsed).toBe(false)
+    expect(state.activeTopNav).toBe('Workspace')
+    expect(state.assetsActiveSection).toBe('file')
+    expect(state.assetsActiveItem).toBe('project-files')
+    expect(state.assetsFileViewMode).toBe('list')
+    expect(state.assetsOpenFolderId).toBeNull()
     expect(state.expandedProjectIds).toEqual(seedProjects.map((project) => project.id))
     expect(firstThread).toMatchObject({
       id: 'egfr-affinity',
@@ -42,6 +50,37 @@ describe('demo store logic', () => {
     expect('pinned' in seedProjects[0].threads[0]).toBe(false)
     expect(firstThread.transcript.length).toBeGreaterThan(0)
     expect(firstThread.transcript).not.toBe(seedProjects[0].threads[0].transcript)
+  })
+
+  it('switches between Workspace and Assets without changing conversation state', () => {
+    const selected = selectThreadSnapshot(
+      createInitialDemoState(seedProjects, now),
+      'antibody-optimization',
+      'egfr-affinity',
+    )
+
+    const assets = selectTopNavSnapshot(selected, 'Assets')
+    const workspace = selectTopNavSnapshot(assets, 'Workspace')
+
+    expect(assets.activeTopNav).toBe('Assets')
+    expect(assets.selectedThreadId).toBe('egfr-affinity')
+    expect(assets.isDraftingNewThread).toBe(false)
+    expect(workspace.activeTopNav).toBe('Workspace')
+    expect(workspace.selectedThreadId).toBe('egfr-affinity')
+  })
+
+  it('persists the current Assets menu item and file view mode as plain state', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const selectedExperiment = setAssetsSelectionSnapshot(
+      state,
+      'experiment',
+      'execution',
+    )
+    const gridMode = setAssetsFileViewModeSnapshot(selectedExperiment, 'grid')
+
+    expect(selectedExperiment.assetsActiveSection).toBe('experiment')
+    expect(selectedExperiment.assetsActiveItem).toBe('execution')
+    expect(gridMode.assetsFileViewMode).toBe('grid')
   })
 
   it('toggles the persisted sidebar collapsed state without changing Thread selection', () => {
