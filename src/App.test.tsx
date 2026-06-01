@@ -128,6 +128,10 @@ describe('xTrimo model assets', () => {
     expect(container.querySelector('.xtrimo-stats')).toBeNull()
     expect(container.querySelector('.xtrimo-recommendations')).not.toBeNull()
     expect(container.querySelector('.xtrimo-filter-bar')).not.toBeNull()
+    expect(container.querySelector('.assets-main--xtrimo > .assets-toolbar')).toBeNull()
+    expect(container.querySelector('.assets-xtrimo-filter-search')).not.toBeNull()
+    expect(container.querySelector('input[aria-label="搜索xTrimo模型"]')).not.toBeNull()
+    expect(getButton(container, '综合')).toBeTruthy()
     expect(container.querySelector('.xtrimo-card-grid')).not.toBeNull()
     expect(
       container.querySelectorAll(
@@ -277,27 +281,27 @@ describe('xTrimo model assets', () => {
       getButton(container, '模型').click()
     })
 
-    setAssetsSearch(container, 'xTrimoMonomer_Fast')
+    setXtrimoSearch(container, 'xTrimoMonomer_Fast')
     expect(getModelCard(container, 'xTrimoMonomer_Fast')).toBeTruthy()
     expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
 
-    setAssetsSearch(container, 'MSA 辅助')
+    setXtrimoSearch(container, 'MSA 辅助')
     expect(getModelCard(container, 'xTrimoMonomer')).toBeTruthy()
     expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
 
-    setAssetsSearch(container, '底物信息')
+    setXtrimoSearch(container, '底物信息')
     expect(getModelCard(container, 'xTrimoEnzymeKcat')).toBeTruthy()
     expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
 
-    setAssetsSearch(container, 'Kcat 预测值')
+    setXtrimoSearch(container, 'Kcat 预测值')
     expect(getModelCard(container, 'xTrimoEnzymeKcat')).toBeTruthy()
     expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
 
-    setAssetsSearch(container, '细胞活力')
+    setXtrimoSearch(container, '细胞活力')
     expect(getModelCard(container, 'xTrimoAAVViability')).toBeTruthy()
     expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
 
-    setAssetsSearch(container, 'TCR-多肽-MHC')
+    setXtrimoSearch(container, 'TCR-多肽-MHC')
     expect(getModelCard(container, 'xTrimoNeoantigen')).toBeTruthy()
     expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
 
@@ -393,13 +397,17 @@ function getStatus(container: HTMLElement) {
   return status
 }
 
-function setAssetsSearch(container: HTMLElement, value: string) {
+function setXtrimoSearch(container: HTMLElement, value: string) {
+  setSearchInput(container, '搜索xTrimo模型', value)
+}
+
+function setSearchInput(container: HTMLElement, label: string, value: string) {
   act(() => {
     const searchInput = container.querySelector<HTMLInputElement>(
-      'input[aria-label="搜索当前资产"]',
+      `input[aria-label="${label}"]`,
     )
     if (!searchInput) {
-      throw new Error('Assets search input not found')
+      throw new Error(`Search input not found: ${label}`)
     }
     const valueSetter = Object.getOwnPropertyDescriptor(
       HTMLInputElement.prototype,

@@ -28,6 +28,7 @@ import type {
 } from '../../store/demoStoreLogic'
 import {
   ArchiveIcon,
+  ChevronDownIcon,
   ChevronRightIcon,
   DatabaseIcon,
   FolderIcon,
@@ -241,41 +242,44 @@ function AssetsPage({
           </div>
         </header>
 
-        <section className="assets-toolbar" aria-label="Assets tools">
-          <label className="assets-search">
-            <SearchIcon className="assets-search__icon" />
-            <input
-              aria-label="搜索当前资产"
-              value={query}
-              placeholder="搜索当前资产"
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
-          {isFileAssetItem(activeItem) ? (
-            <div className="assets-view-toggle" aria-label="文件显示方式">
-              <button
-                type="button"
-                className={fileViewMode === 'list' ? 'active' : ''}
-                onClick={() => onFileViewModeChange('list')}
-              >
-                列表
-              </button>
-              <button
-                type="button"
-                className={fileViewMode === 'grid' ? 'active' : ''}
-                onClick={() => onFileViewModeChange('grid')}
-              >
-                网格
-              </button>
-            </div>
-          ) : null}
-        </section>
+        {!isXtrimoView ? (
+          <section className="assets-toolbar" aria-label="Assets tools">
+            <label className="assets-search">
+              <SearchIcon className="assets-search__icon" />
+              <input
+                aria-label="搜索当前资产"
+                value={query}
+                placeholder="搜索当前资产"
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </label>
+            {isFileAssetItem(activeItem) ? (
+              <div className="assets-view-toggle" aria-label="文件显示方式">
+                <button
+                  type="button"
+                  className={fileViewMode === 'list' ? 'active' : ''}
+                  onClick={() => onFileViewModeChange('list')}
+                >
+                  列表
+                </button>
+                <button
+                  type="button"
+                  className={fileViewMode === 'grid' ? 'active' : ''}
+                  onClick={() => onFileViewModeChange('grid')}
+                >
+                  网格
+                </button>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
 
         <AssetContent
           activeItem={activeItem}
           fileViewMode={fileViewMode}
           openFolderId={openFolderId}
           query={query}
+          onQueryChange={setQuery}
           onOpenFolderChange={onOpenFolderChange}
           onNotify={onNotify}
         />
@@ -337,6 +341,7 @@ function AssetContent({
   fileViewMode,
   openFolderId,
   query,
+  onQueryChange,
   onOpenFolderChange,
   onNotify,
 }: {
@@ -344,6 +349,7 @@ function AssetContent({
   fileViewMode: AssetsFileViewMode
   openFolderId: string | null
   query: string
+  onQueryChange: (query: string) => void
   onOpenFolderChange: (folderId: string | null) => void
   onNotify: (message: string) => void
 }) {
@@ -377,6 +383,7 @@ function AssetContent({
     <ModelAssetsView
       item={activeItem as ModelAssetRecord['category']}
       query={query}
+      onQueryChange={onQueryChange}
       onNotify={onNotify}
     />
   )
@@ -557,14 +564,22 @@ function ExperimentAssetsView({
 function ModelAssetsView({
   item,
   query,
+  onQueryChange,
   onNotify,
 }: {
   item: ModelAssetRecord['category']
   query: string
+  onQueryChange: (query: string) => void
   onNotify: (message: string) => void
 }) {
   if (item === 'xtrimo') {
-    return <XtrimoModelAssetsView query={query} onNotify={onNotify} />
+    return (
+      <XtrimoModelAssetsView
+        query={query}
+        onQueryChange={onQueryChange}
+        onNotify={onNotify}
+      />
+    )
   }
 
   const records = modelAssetRecords.filter(
@@ -599,9 +614,11 @@ const xtrimoEntities = Array.from(
 
 function XtrimoModelAssetsView({
   query,
+  onQueryChange,
   onNotify,
 }: {
   query: string
+  onQueryChange: (query: string) => void
   onNotify: (message: string) => void
 }) {
   const [selectedCapability, setSelectedCapability] = useState<
@@ -625,27 +642,26 @@ function XtrimoModelAssetsView({
 
   return (
     <section className="assets-content assets-content--xtrimo">
-      <section
-        className="assets-xtrimo-recommendations xtrimo-recommendations"
-        aria-label="Agent 推荐"
-      >
-        <div className="assets-list-header">
-          <h2>Agent 推荐</h2>
-          <span>{recommendedRecords.length} 项</span>
-        </div>
-        <div className="assets-record-grid assets-record-grid--dense xtrimo-card-grid">
-          {recommendedRecords.map((record) => (
-            <XtrimoModelCard
-              key={record.id}
-              record={record}
-              density="compact"
-              onNotify={onNotify}
-            />
-          ))}
-        </div>
-      </section>
-
       <div className="assets-xtrimo-filters xtrimo-filter-bar" aria-label="xTrimo 模型筛选">
+        <div className="assets-xtrimo-filter-search">
+          <button
+            type="button"
+            className="assets-xtrimo-search-scope"
+            aria-haspopup="listbox"
+            onClick={() => onNotify('搜索范围切换将在后续 Demo 中展开')}
+          >
+            <span>综合</span>
+            <ChevronDownIcon className="assets-xtrimo-search-scope__icon" />
+          </button>
+          <label className="assets-xtrimo-search-field">
+            <input
+              aria-label="搜索xTrimo模型"
+              value={query}
+              placeholder="搜索关键词"
+              onChange={(event) => onQueryChange(event.target.value)}
+            />
+          </label>
+        </div>
         <div className="assets-xtrimo-filter-row">
           <span>能力</span>
           <button
@@ -717,6 +733,26 @@ function XtrimoModelAssetsView({
           </button>
         </div>
       </div>
+
+      <section
+        className="assets-xtrimo-recommendations xtrimo-recommendations"
+        aria-label="Agent 推荐"
+      >
+        <div className="assets-list-header">
+          <h2>Agent 推荐</h2>
+          <span>{recommendedRecords.length} 项</span>
+        </div>
+        <div className="assets-record-grid assets-record-grid--dense xtrimo-card-grid">
+          {recommendedRecords.map((record) => (
+            <XtrimoModelCard
+              key={record.id}
+              record={record}
+              density="compact"
+              onNotify={onNotify}
+            />
+          ))}
+        </div>
+      </section>
 
       <AssetListHeader title="模型目录" count={filteredRecords.length} />
       <div className="assets-record-grid assets-record-grid--dense xtrimo-card-grid">
