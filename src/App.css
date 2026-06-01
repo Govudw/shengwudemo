@@ -1690,9 +1690,7 @@
 }
 
 .xtrimo-recommendations .xtrimo-card-grid {
-  max-height: 128px;
-  overflow-y: auto;
-  padding-right: 2px;
+  align-items: stretch;
 }
 
 .xtrimo-recommendations .xtrimo-model-card {
@@ -1704,8 +1702,6 @@
   display: grid;
   gap: 8px;
   margin: 10px 0 12px;
-  max-height: 104px;
-  overflow-y: auto;
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1747,7 +1743,7 @@
 .assets-xtrimo-filter-row button.active,
 .xtrimo-filter-bar .assets-view-toggle button.active {
   color: var(--accent-strong);
-  border-color: rgba(42, 122, 92, 0.24);
+  border-color: rgba(8, 151, 191, 0.24);
   background: var(--accent-soft);
 }
 

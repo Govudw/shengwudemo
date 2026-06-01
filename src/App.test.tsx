@@ -130,6 +130,16 @@ describe('xTrimo model assets', () => {
     expect(container.querySelector('.xtrimo-filter-bar')).not.toBeNull()
     expect(container.querySelector('.xtrimo-card-grid')).not.toBeNull()
 
+    act(() => {
+      getButton(container, '公开模型').click()
+    })
+
+    expect(container.querySelector('.xtrimo-overview')).toBeNull()
+    expect(container.querySelector('.xtrimo-stats')).toBeNull()
+    expect(container.querySelector('.xtrimo-recommendations')).toBeNull()
+    expect(container.querySelector('.xtrimo-filter-bar')).toBeNull()
+    expect(container.querySelector('.xtrimo-card-grid')).toBeNull()
+
     root.unmount()
   })
 
