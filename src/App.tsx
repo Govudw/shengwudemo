@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import AssetsPage from './components/assets/AssetsPage'
 import Composer from './components/Composer'
+import CapabilitiesPage from './components/CapabilitiesPage'
 import Sidebar from './components/Sidebar'
 import ThreadWorkspace from './components/ThreadWorkspace'
 import TopNav from './components/TopNav'
-import type { PrimaryNavItem } from './components/TopNav'
+import type { TopNavItem } from './components/TopNav'
 import UseCaseGrid from './components/UseCaseGrid'
 import { capabilityChips, useCases } from './data/mockData'
 import {
@@ -104,8 +105,8 @@ function App() {
     submitDraft()
   }
 
-  function handlePrimaryNav(item: PrimaryNavItem) {
-    if (item === 'Workspace' || item === 'Assets') {
+  function handlePrimaryNav(item: TopNavItem) {
+    if (item === 'Workspace' || item === 'Assets' || item === 'Capabilities') {
       selectTopNav(item)
       return
     }
@@ -136,6 +137,8 @@ function App() {
           onOpenFolderChange={setAssetsOpenFolder}
           onNotify={showStatus}
         />
+      ) : activeTopNav === 'Capabilities' ? (
+        <CapabilitiesPage onNotify={showStatus} />
       ) : (
         <div
           className={`agent-shell${

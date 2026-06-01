@@ -4,12 +4,20 @@ import { BellIcon, ChevronDownIcon } from './icons'
 
 type TopNavProps = {
   activeItem: ActiveTopNav
-  onNavigate: (item: PrimaryNavItem) => void
+  onNavigate: (item: TopNavItem) => void
   onNotify: (message: string) => void
 }
 
-const navItems = ['Workspace', 'Projects', 'Assets', 'Pipelines'] as const
-export type PrimaryNavItem = (typeof navItems)[number]
+const navItems = ['Workspace', 'Projects', 'Assets', 'Capabilities'] as const
+export type TopNavItem = (typeof navItems)[number]
+export type PrimaryNavItem = TopNavItem
+
+const navItemLabels: Record<TopNavItem, string> = {
+  Workspace: 'Workspace',
+  Projects: 'Projects',
+  Assets: 'Assets',
+  Capabilities: 'Capabilities',
+}
 
 function TopNav({ activeItem, onNavigate, onNotify }: TopNavProps) {
   return (
@@ -20,7 +28,7 @@ function TopNav({ activeItem, onNavigate, onNotify }: TopNavProps) {
         </span>
       </div>
 
-      <nav className="top-nav__items" aria-label="Primary navigation">
+      <nav className="top-nav__items" aria-label="主导航">
         {navItems.map((item) => {
           const isActive = item === activeItem
 
@@ -32,7 +40,7 @@ function TopNav({ activeItem, onNavigate, onNotify }: TopNavProps) {
               aria-current={isActive ? 'page' : undefined}
               onClick={() => onNavigate(item)}
             >
-              {item}
+              {navItemLabels[item]}
             </button>
           )
         })}
@@ -42,8 +50,8 @@ function TopNav({ activeItem, onNavigate, onNotify }: TopNavProps) {
         <button
           type="button"
           className="top-nav__bell"
-          aria-label="Notifications"
-          onClick={() => onNotify('Notification Center 将在后续 Demo 中展开')}
+          aria-label="通知"
+          onClick={() => onNotify('通知中心将在后续演示中展开')}
         >
           <BellIcon className="top-nav__icon" />
           <span className="top-nav__badge">3</span>
@@ -52,7 +60,7 @@ function TopNav({ activeItem, onNavigate, onNotify }: TopNavProps) {
         <button
           type="button"
           className="top-nav__user"
-          onClick={() => onNotify('Account menu 将在后续 Demo 中展开')}
+          onClick={() => onNotify('账户菜单将在后续演示中展开')}
         >
           <span className="top-nav__avatar" aria-hidden="true">
             Z

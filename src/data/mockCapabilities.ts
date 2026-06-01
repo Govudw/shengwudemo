@@ -1,0 +1,662 @@
+export type CapabilityEntryKind = 'pipeline' | 'skill' | 'mcp-server' | 'plugin'
+
+export type CapabilityStatus = 'active' | 'draft' | 'inactive' | 'needs-review'
+
+export type CapabilitySource = 'preset' | 'created' | 'installed' | 'system'
+
+export type ProviderConnectionStatus = 'connected' | 'needs-review' | 'inactive'
+
+export type CapabilityMetric = {
+  label: string
+  value: string
+}
+
+export type CapabilityInterface = {
+  inputs: string[]
+  outputs: string[]
+  permissions: string[]
+}
+
+export type CapabilitySection = {
+  title: string
+  items: string[]
+}
+
+export type MockCapabilityEntry = {
+  id: string
+  kind: CapabilityEntryKind
+  name: string
+  description: string
+  status: CapabilityStatus
+  source: CapabilitySource
+  owner: string
+  version: string
+  tags: string[]
+  enabledForMainAgent?: boolean
+  connectionStatus?: ProviderConnectionStatus
+  lastUsedAt?: string
+  updatedAt: string
+  metrics: CapabilityMetric[]
+  interface: CapabilityInterface
+  sections: CapabilitySection[]
+  recentActivity: string[]
+  steps?: string[]
+  instructions?: string[]
+  triggers?: string[]
+  examples?: string[]
+  tools?: string[]
+  resources?: string[]
+  presetLocked?: boolean
+  placeholderState?: string
+}
+
+export const capabilityEntries: MockCapabilityEntry[] = [
+  {
+    id: 'pipeline-egfr-affinity',
+    kind: 'pipeline',
+    name: 'EGFR 抗体亲和力优化 Pipeline',
+    description:
+      '编排序列读取、结构评分、候选排序和湿实验订单草稿，用于 EGFR 抗体亲和力优化。',
+    status: 'active',
+    source: 'preset',
+    owner: 'BioMap 研发平台',
+    version: 'v2.3',
+    tags: ['抗体', 'EGFR', '湿实验'],
+    lastUsedAt: '18 小时前',
+    updatedAt: '2026-05-29',
+    metrics: [
+      { label: '步骤', value: '7' },
+      { label: '近期运行', value: '14' },
+      { label: '审批点', value: '1' },
+    ],
+    interface: {
+      inputs: ['靶点上下文', '候选序列', '实验约束'],
+      outputs: ['候选排序', '实验订单草稿', '优化报告'],
+      permissions: ['Top 候选需要人工确认', '实验订单提交需要审批'],
+    },
+    sections: [
+      {
+        title: '访问控制',
+        items: ['可在活跃对话线程中自动调用', '实验订单提交必须经过审批'],
+      },
+      {
+        title: '使用情况',
+        items: ['最近用于 EGFR 抗体亲和力优化', '可用于抗体方向项目'],
+      },
+    ],
+    recentActivity: [
+      '在 EGFR 抗体亲和力优化中运行候选筛选',
+      '更新湿实验订单模板映射',
+    ],
+    steps: [
+      '读取上下文',
+      '结构分析',
+      '候选排序',
+      '风险复核',
+      '生成湿实验订单草稿',
+      '人工确认',
+      '生成报告',
+    ],
+  },
+  {
+    id: 'pipeline-protein-stability',
+    kind: 'pipeline',
+    name: '蛋白稳定性改造 Pipeline',
+    description:
+      '筛查残基层面的稳定性风险，并结合表达和聚集风险提出改造候选。',
+    status: 'active',
+    source: 'preset',
+    owner: '蛋白设计团队',
+    version: 'v1.8',
+    tags: ['蛋白设计', '稳定性', '筛选'],
+    lastUsedAt: '2 天前',
+    updatedAt: '2026-05-22',
+    metrics: [
+      { label: '步骤', value: '6' },
+      { label: '近期运行', value: '9' },
+      { label: '输出', value: '4' },
+    ],
+    interface: {
+      inputs: ['蛋白序列', '结构模型', '设计约束'],
+      outputs: ['突变短名单', '稳定性报告', '表达风险表'],
+      permissions: ['下游验证前需要人工确认'],
+    },
+    sections: [
+      { title: '访问控制', items: ['只读分析可自动调用'] },
+      { title: '使用情况', items: ['用于酶改造演示对话线程'] },
+    ],
+    recentActivity: ['新增聚集风险摘要模块'],
+    steps: ['读取序列', '结构映射', '提出突变', '风险排序', '报告草稿', '复核'],
+  },
+  {
+    id: 'pipeline-wetlab-order',
+    kind: 'pipeline',
+    name: '湿实验验证订单 Pipeline',
+    description:
+      '把已选择分子和 assay 要求整理成可复核的实验订单草稿。',
+    status: 'needs-review',
+    source: 'created',
+    owner: '实验运营',
+    version: 'v0.9',
+    tags: ['湿实验', '订单', '审批'],
+    lastUsedAt: '4 天前',
+    updatedAt: '2026-05-20',
+    metrics: [
+      { label: '步骤', value: '5' },
+      { label: '审批点', value: '2' },
+      { label: '草稿', value: '6' },
+    ],
+    interface: {
+      inputs: ['候选分子', 'assay 面板', '交付时间'],
+      outputs: ['实验订单草稿', '复核清单'],
+      permissions: ['提交前必须审批'],
+    },
+    sections: [
+      { title: '访问控制', items: ['权限复核完成前仅允许生成草稿'] },
+      { title: '使用情况', items: ['用于抗体验证流程'] },
+    ],
+    recentActivity: ['已发起 CRO connector 权限复核'],
+    steps: ['校验候选', '映射 assay', '生成订单草稿', '审批点', '提交包整理'],
+  },
+  {
+    id: 'pipeline-dataset-curation',
+    kind: 'pipeline',
+    name: 'AI-ready 数据集整理 Pipeline',
+    description:
+      '规范化实验表格、标注 assay 元数据，并生成可复用的 AI-ready 数据集。',
+    status: 'active',
+    source: 'installed',
+    owner: '数据资产化团队',
+    version: 'v1.4',
+    tags: ['数据集', '资产化', '元数据'],
+    lastUsedAt: '1 周前',
+    updatedAt: '2026-05-18',
+    metrics: [
+      { label: '步骤', value: '6' },
+      { label: '数据集', value: '11' },
+      { label: '检查项', value: '8' },
+    ],
+    interface: {
+      inputs: ['原始 assay 表格', '项目元数据', '标注规则'],
+      outputs: ['AI-ready 数据集', '质量报告', 'Schema 摘要'],
+      permissions: ['读取项目文件', '创建数据集资产'],
+    },
+    sections: [
+      { title: '访问控制', items: ['确认后可创建数据集资产'] },
+      { title: '使用情况', items: ['用于数据资产化项目'] },
+    ],
+    recentActivity: ['为 assay 面板导入生成 Schema 摘要'],
+    steps: ['读取文件', '推断 Schema', '清洗数据', '标注元数据', '质量检查', '登记资产'],
+  },
+  {
+    id: 'pipeline-candidate-triage',
+    kind: 'pipeline',
+    name: '分子候选筛选 Pipeline',
+    description:
+      '从预测活性、可生产性、新颖性和验证准备度等维度比较候选分子。',
+    status: 'draft',
+    source: 'created',
+    owner: '发现策略团队',
+    version: 'v0.4',
+    tags: ['候选', '筛选', '排序'],
+    updatedAt: '2026-05-24',
+    metrics: [
+      { label: '步骤', value: '4' },
+      { label: '草稿检查', value: '5' },
+      { label: '负责人', value: '2' },
+    ],
+    interface: {
+      inputs: ['候选列表', '选择标准', '参考资产'],
+      outputs: ['优先级短名单', '风险摘要'],
+      permissions: ['推荐前需要人工确认'],
+    },
+    sections: [
+      { title: '访问控制', items: ['草稿 Pipeline，暂不可自动调用'] },
+      { title: '使用情况', items: ['暂无生产演示使用记录'] },
+    ],
+    recentActivity: ['根据发现团队笔记整理排序标准'],
+    steps: ['读取标准', '匹配证据', '归一化评分', '生成短名单草稿'],
+  },
+  {
+    id: 'skill-protein-design',
+    kind: 'skill',
+    name: '蛋白设计操作 Skill',
+    description:
+      '指导主 Agent 处理蛋白设计任务，从约束读取到突变理由说明。',
+    status: 'active',
+    source: 'preset',
+    owner: 'BioMap Skill 团队',
+    version: 'v3.1',
+    tags: ['蛋白设计', '预设'],
+    enabledForMainAgent: true,
+    presetLocked: true,
+    lastUsedAt: '今天',
+    updatedAt: '2026-05-30',
+    metrics: [
+      { label: '触发条件', value: '8' },
+      { label: '示例', value: '6' },
+      { label: '范围', value: '设计' },
+    ],
+    interface: {
+      inputs: ['设计目标', '序列或结构上下文', '约束条件'],
+      outputs: ['设计理由', '候选改动', '下一步计划'],
+      permissions: ['仅提供指导，不直接执行命令'],
+    },
+    sections: [
+      { title: '指令', items: ['提出突变前先澄清设计目标', '区分科学理由和执行步骤'] },
+      { title: '使用情况', items: ['检测到蛋白设计意图时启用'] },
+    ],
+    recentActivity: ['在蛋白稳定性改造演示中加载'],
+    instructions: [
+      '提出设计前先询问靶点、序列上下文和硬约束。',
+      '解释突变理由时同时覆盖结构、表达和 assay 取舍。',
+    ],
+    triggers: ['蛋白改造', '突变建议', '稳定性优化'],
+    examples: ['设计更稳妥的 EGFR 候选短名单', '解释某个突变为什么提升热稳定性'],
+  },
+  {
+    id: 'skill-wetlab',
+    kind: 'skill',
+    name: '湿实验操作 Skill',
+    description:
+      '帮助主 Agent 起草验证计划、assay 请求和实验交接说明。',
+    status: 'active',
+    source: 'preset',
+    owner: 'BioMap Skill 团队',
+    version: 'v2.7',
+    tags: ['湿实验', '预设'],
+    enabledForMainAgent: true,
+    presetLocked: true,
+    lastUsedAt: '18 小时前',
+    updatedAt: '2026-05-28',
+    metrics: [
+      { label: '触发条件', value: '7' },
+      { label: '示例', value: '5' },
+      { label: '范围', value: '实验' },
+    ],
+    interface: {
+      inputs: ['候选分子', 'assay 目的', '时间计划'],
+      outputs: ['实验计划', '订单草稿文案', '复核清单'],
+      permissions: ['真实提交前必须审批'],
+    },
+    sections: [
+      { title: '指令', items: ['区分订单草稿和已提交订单', '高影响操作前明确审批点'] },
+      { title: '使用情况', items: ['用于 EGFR 湿实验订单草稿'] },
+    ],
+    recentActivity: ['准备 EGFR 验证订单文案'],
+    instructions: ['订单只能作为待复核草稿，不得直接视为已提交。', '明确样本制备和测量假设。'],
+    triggers: ['验证计划', '实验订单', '湿实验交接'],
+    examples: ['起草 BLI 验证计划', '准备 CRO 交接说明'],
+  },
+  {
+    id: 'skill-experiment-data',
+    kind: 'skill',
+    name: '实验数据分析 Skill',
+    description:
+      '支持 assay 表格解读、异常值复核和结果摘要起草。',
+    status: 'active',
+    source: 'preset',
+    owner: 'BioMap Skill 团队',
+    version: 'v2.2',
+    tags: ['分析', 'assay'],
+    enabledForMainAgent: true,
+    presetLocked: true,
+    lastUsedAt: '3 天前',
+    updatedAt: '2026-05-25',
+    metrics: [
+      { label: '触发条件', value: '9' },
+      { label: '示例', value: '4' },
+      { label: '范围', value: '数据' },
+    ],
+    interface: {
+      inputs: ['assay 表格', '对照组', '分析问题'],
+      outputs: ['结果解读', '异常值说明', '图表摘要说明'],
+      permissions: ['读取项目文件'],
+    },
+    sections: [
+      { title: '指令', items: ['区分观测数据和推断解读', '标出缺失的对照组'] },
+      { title: '使用情况', items: ['用于 assay 结果摘要对话线程'] },
+    ],
+    recentActivity: ['总结 BLI 亲和力表格'],
+    instructions: ['总结前检查对照组和单位。', '回答中明确不确定性。'],
+    triggers: ['分析 assay', '解读结果', '总结表格'],
+    examples: ['总结 SEC-HPLC 纯度结果', '识别 BLI sensorgram 异常值'],
+  },
+  {
+    id: 'skill-report',
+    kind: 'skill',
+    name: '研发报告撰写 Skill',
+    description:
+      '为候选决策、实验结果和项目交付更新提供报告结构指导。',
+    status: 'active',
+    source: 'preset',
+    owner: 'BioMap Skill 团队',
+    version: 'v1.9',
+    tags: ['报告', '预设'],
+    enabledForMainAgent: true,
+    presetLocked: true,
+    lastUsedAt: '5 天前',
+    updatedAt: '2026-05-21',
+    metrics: [
+      { label: '模板', value: '4' },
+      { label: '示例', value: '5' },
+      { label: '范围', value: '报告' },
+    ],
+    interface: {
+      inputs: ['决策背景', '证据块', '受众'],
+      outputs: ['结构化报告', '执行摘要', '证据附录'],
+      permissions: ['读取对话证据'],
+    },
+    sections: [
+      { title: '指令', items: ['先给出决策背景', '把结论绑定到可见证据'] },
+      { title: '使用情况', items: ['用于候选报告起草'] },
+    ],
+    recentActivity: ['为 EGFR 优化生成报告骨架'],
+    instructions: ['结论和下一步分开写。', '科学判断使用有证据支撑的要点。'],
+    triggers: ['准备报告', '总结项目', '写交付更新'],
+    examples: ['创建 EGFR 优化报告大纲', '为管理层总结实验结果'],
+  },
+  {
+    id: 'skill-egfr-review',
+    kind: 'skill',
+    name: 'EGFR 候选复核清单 Skill',
+    description:
+      '用于湿实验验证前复核 EGFR 抗体候选的准备度。',
+    status: 'active',
+    source: 'created',
+    owner: 'zhengjun',
+    version: 'v0.6',
+    tags: ['EGFR', '清单'],
+    enabledForMainAgent: true,
+    lastUsedAt: '昨天',
+    updatedAt: '2026-05-30',
+    metrics: [
+      { label: '清单项', value: '12' },
+      { label: '示例', value: '3' },
+      { label: '范围', value: '复核' },
+    ],
+    interface: {
+      inputs: ['候选表格', '项目约束'],
+      outputs: ['复核清单', '风险说明'],
+      permissions: ['仅提供指导'],
+    },
+    sections: [
+      { title: '指令', items: ['检查亲和力、表达、稳定性和 assay 可行性'] },
+      { title: '使用情况', items: ['为 EGFR 优化演示创建'] },
+    ],
+    recentActivity: ['新增表达风险检查点'],
+    instructions: ['围绕亲和力、表达和验证准备度复核 Top 候选。'],
+    triggers: ['EGFR 候选复核', 'Top 候选清单'],
+    examples: ['验证前复核 EGFR-AF-01'],
+  },
+  {
+    id: 'skill-cro-handoff',
+    kind: 'skill',
+    name: 'CRO 交接格式化 Skill',
+    description:
+      '已安装的格式化 Skill，用于生成简洁的 CRO 实验交接说明。',
+    status: 'active',
+    source: 'installed',
+    owner: '实验运营',
+    version: 'v1.1',
+    tags: ['CRO', '交接'],
+    enabledForMainAgent: false,
+    updatedAt: '2026-05-19',
+    metrics: [
+      { label: '格式', value: '3' },
+      { label: '示例', value: '4' },
+      { label: '范围', value: '运营' },
+    ],
+    interface: {
+      inputs: ['实验草稿', '接收方上下文'],
+      outputs: ['CRO 交接说明'],
+      permissions: ['外部分享需要复核'],
+    },
+    sections: [
+      { title: '指令', items: ['使用简洁的运营语言', '标记外部分享复核'] },
+      { title: '使用情况', items: ['为运营演示安装'] },
+    ],
+    recentActivity: ['因文案复核暂未对主 Agent 启用'],
+    instructions: ['把实验计划整理成面向 CRO 的清晰假设和交付说明。'],
+    triggers: ['CRO 交接', '外部实验说明'],
+    examples: ['把 BLI assay 请求整理成 CRO 可读版本'],
+  },
+  {
+    id: 'mcp-structure-tools',
+    kind: 'mcp-server',
+    name: 'BioMap 结构工具 MCP',
+    description:
+      '已连接的结构评分、表面着色和突变图资源提供方。',
+    status: 'active',
+    source: 'system',
+    connectionStatus: 'connected',
+    owner: '平台集成团队',
+    version: 'v1.6',
+    tags: ['结构', 'MCP'],
+    lastUsedAt: '18 小时前',
+    updatedAt: '2026-05-27',
+    metrics: [
+      { label: '工具', value: '8' },
+      { label: '资源', value: '5' },
+      { label: '模式', value: '只读' },
+    ],
+    interface: {
+      inputs: ['结构 id', '突变列表', '评分请求'],
+      outputs: ['结构评分', '表面图', 'Artifact 引用'],
+      permissions: ['只读提供方', '不向外部传输'],
+    },
+    sections: [
+      { title: '访问控制', items: ['只读结构工具', '可在活跃对话线程中自动调用'] },
+      { title: '使用情况', items: ['支持 EGFR 结构分析回放'] },
+    ],
+    recentActivity: ['为 EGFR 回放返回 structure_scores.json'],
+    tools: ['structure.analyze', 'structure.colorSurface', 'mutation.map', 'stability.score'],
+    resources: ['project-structures', 'mutation-libraries', 'surface-coloring-presets'],
+  },
+  {
+    id: 'mcp-experiment-order',
+    kind: 'mcp-server',
+    name: '实验订单系统 MCP',
+    description:
+      '用于起草实验订单并检查审批准备度的提供方。',
+    status: 'needs-review',
+    source: 'installed',
+    connectionStatus: 'needs-review',
+    owner: '实验运营',
+    version: 'v0.8',
+    tags: ['订单', 'MCP', '审批'],
+    updatedAt: '2026-05-24',
+    metrics: [
+      { label: '工具', value: '5' },
+      { label: '资源', value: '2' },
+      { label: '模式', value: '仅草稿' },
+    ],
+    interface: {
+      inputs: ['订单草稿载荷', '项目上下文'],
+      outputs: ['草稿 id', '审批清单'],
+      permissions: ['复核完成前仅允许草稿'],
+    },
+    sections: [
+      { title: '访问控制', items: ['演示中禁用提交', '真实订单必须审批'] },
+      { title: '使用情况', items: ['供湿实验验证订单 Pipeline 使用'] },
+    ],
+    recentActivity: ['已发起权限复核'],
+    tools: ['order.createDraft', 'order.validate', 'approval.preview'],
+    resources: ['assay-catalog', 'order-templates'],
+  },
+  {
+    id: 'mcp-dataset-registry',
+    kind: 'mcp-server',
+    name: '数据集注册表 MCP',
+    description:
+      '用于发现和登记 AI-ready 数据集资产的已连接提供方。',
+    status: 'active',
+    source: 'system',
+    connectionStatus: 'connected',
+    owner: '数据平台',
+    version: 'v2.0',
+    tags: ['数据集', 'MCP'],
+    lastUsedAt: '1 周前',
+    updatedAt: '2026-05-17',
+    metrics: [
+      { label: '工具', value: '6' },
+      { label: '资源', value: '7' },
+      { label: '模式', value: '创建资产' },
+    ],
+    interface: {
+      inputs: ['数据集 Schema', '元数据标签'],
+      outputs: ['已登记资产 id', '质量报告'],
+      permissions: ['确认后可创建数据集资产'],
+    },
+    sections: [
+      { title: '访问控制', items: ['确认后可登记数据集资产'] },
+      { title: '使用情况', items: ['支持 AI-ready 数据集整理 Pipeline'] },
+    ],
+    recentActivity: ['登记 assay 数据集演示资产'],
+    tools: ['dataset.search', 'dataset.register', 'schema.validate'],
+    resources: ['registered-datasets', 'schema-library', 'quality-rules'],
+  },
+  {
+    id: 'mcp-literature',
+    kind: 'mcp-server',
+    name: '文献检索网关 MCP',
+    description:
+      '已安装的提供方，用于受限文献检索和引用摘要交接。',
+    status: 'inactive',
+    source: 'installed',
+    connectionStatus: 'inactive',
+    owner: '知识系统团队',
+    version: 'v0.5',
+    tags: ['文献', 'MCP'],
+    updatedAt: '2026-05-12',
+    metrics: [
+      { label: '工具', value: '3' },
+      { label: '资源', value: '1' },
+      { label: '模式', value: '已禁用' },
+    ],
+    interface: {
+      inputs: ['研究问题', '范围约束'],
+      outputs: ['引用短名单', '证据摘要'],
+      permissions: ['演示中禁用外部检索'],
+    },
+    sections: [
+      { title: '访问控制', items: ['未启用提供方', '使用前需要复核'] },
+      { title: '使用情况', items: ['暂无近期演示使用记录'] },
+    ],
+    recentActivity: ['演示加固期间已禁用'],
+    tools: ['literature.search', 'citation.extract', 'evidence.summarize'],
+    resources: ['literature-cache'],
+  },
+  {
+    id: 'plugin-sequence-viewer',
+    kind: 'plugin',
+    name: '序列查看器 Plugin',
+    description:
+      '用于查看序列比对和蛋白区域标注的预览扩展点。',
+    status: 'inactive',
+    source: 'system',
+    owner: 'BioMap 扩展团队',
+    version: '预览',
+    tags: ['plugin', '序列'],
+    updatedAt: '2026-05-10',
+    metrics: [
+      { label: '状态', value: '预览' },
+      { label: '动作', value: '申请' },
+      { label: '安装', value: '待开放' },
+    ],
+    interface: {
+      inputs: ['序列集合', '标注轨道'],
+      outputs: ['查看器面板', '区域说明'],
+      permissions: ['仅占位'],
+    },
+    sections: [
+      { title: '访问控制', items: ['即将开放的占位内容', '演示中不执行真实安装'] },
+      { title: '使用情况', items: ['预留给序列密集型流程'] },
+    ],
+    recentActivity: ['已加入 Capabilities 演示作为预览占位'],
+    placeholderState: '即将开放',
+  },
+  {
+    id: 'plugin-molecule-viz',
+    kind: 'plugin',
+    name: '分子可视化 Plugin',
+    description:
+      '用于更丰富分子可视化和对比界面的预览 Plugin。',
+    status: 'inactive',
+    source: 'system',
+    owner: 'BioMap 扩展团队',
+    version: '预览',
+    tags: ['plugin', '可视化'],
+    updatedAt: '2026-05-10',
+    metrics: [
+      { label: '状态', value: '预览' },
+      { label: '动作', value: '申请' },
+      { label: '安装', value: '待开放' },
+    ],
+    interface: {
+      inputs: ['分子 id', '可视化模式'],
+      outputs: ['交互视图占位'],
+      permissions: ['仅占位'],
+    },
+    sections: [
+      { title: '访问控制', items: ['即将开放的占位内容', '演示中不执行真实安装'] },
+      { title: '使用情况', items: ['预留给分子对比流程'] },
+    ],
+    recentActivity: ['已加入 Capabilities 演示作为预览占位'],
+    placeholderState: '即将开放',
+  },
+  {
+    id: 'plugin-cro-connector',
+    kind: 'plugin',
+    name: '外部 CRO Connector Plugin',
+    description:
+      '用于未来 CRO 交付包交换和状态更新的预览扩展。',
+    status: 'needs-review',
+    source: 'installed',
+    owner: '实验运营',
+    version: '预览',
+    tags: ['plugin', 'CRO'],
+    updatedAt: '2026-05-13',
+    metrics: [
+      { label: '状态', value: '预览' },
+      { label: '复核', value: '需要' },
+      { label: '安装', value: '待开放' },
+    ],
+    interface: {
+      inputs: ['实验交付包', '接收方元数据'],
+      outputs: ['Connector 交接占位'],
+      permissions: ['外部分享需要复核'],
+    },
+    sections: [
+      { title: '访问控制', items: ['仅预览', '演示中禁用外部分享'] },
+      { title: '使用情况', items: ['预留给 CRO 交接流程'] },
+    ],
+    recentActivity: ['已标记为未来 connector 复核项'],
+    placeholderState: '预览',
+  },
+]
+
+export const capabilityTypeLabels: Record<CapabilityEntryKind, string> = {
+  pipeline: 'Pipeline',
+  skill: 'Skill',
+  'mcp-server': 'MCP Server',
+  plugin: 'Plugin',
+}
+
+export const capabilityTypeDescriptions: Record<CapabilityEntryKind, string> = {
+  pipeline:
+    '管理主 Agent 可在研发任务中运行或按需改造的生物学 Pipeline。',
+  skill:
+    '管理可复用的 Skill，包括 BioMap 预设、自建和已安装 Skill。',
+  'mcp-server':
+    '查看已连接 MCP Server、暴露工具、资源和权限边界。',
+  plugin:
+    '管理额外 Plugin 扩展。演示中先展示预览占位条目。',
+}
+
+export const capabilityTypeOrder: CapabilityEntryKind[] = [
+  'pipeline',
+  'skill',
+  'mcp-server',
+  'plugin',
+]
