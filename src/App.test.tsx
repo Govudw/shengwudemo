@@ -4,6 +4,10 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+import {
+  modelAssetRecords,
+  xtrimoModelRecords,
+} from './data/assetsMockData'
 import { useDemoStore } from './store/useDemoStore'
 
 beforeEach(() => {
@@ -106,6 +110,56 @@ describe('App Assets navigation', () => {
     expect(findButton(container, '模板')).toBeUndefined()
 
     root.unmount()
+  })
+})
+
+describe('xTrimo model assets', () => {
+  it('seeds realistic xTrimo model records with lifecycle and callability separated', () => {
+    expect(xtrimoModelRecords).toHaveLength(33)
+    expect(
+      xtrimoModelRecords.filter((record) => record.status === 'online'),
+    ).toHaveLength(24)
+    expect(
+      xtrimoModelRecords.filter((record) => record.status === 'comingSoon'),
+    ).toHaveLength(9)
+    expect(
+      xtrimoModelRecords.filter((record) => record.callability === 'callable'),
+    ).toHaveLength(24)
+    expect(
+      xtrimoModelRecords.filter(
+        (record) => record.callability === 'previewOnly',
+      ),
+    ).toHaveLength(9)
+    expect(
+      xtrimoModelRecords.filter(
+        (record) => record.projectFit === 'recommended',
+      ),
+    ).toHaveLength(6)
+    expect(xtrimoModelRecords.every((record) => record.scope === 'public')).toBe(
+      true,
+    )
+    expect(
+      xtrimoModelRecords.some(
+        (record) => record.name === 'xTrimoAbAffinity_DDG',
+      ),
+    ).toBe(true)
+    expect(
+      xtrimoModelRecords.some((record) => record.name === 'xTrimoAAVViability'),
+    ).toBe(true)
+  })
+
+  it('keeps non-xTrimo model sections populated', () => {
+    expect(
+      modelAssetRecords.filter((record) => record.category === 'public-models')
+        .length,
+    ).toBeGreaterThanOrEqual(8)
+    expect(
+      modelAssetRecords.filter((record) => record.category === 'project-models')
+        .length,
+    ).toBeGreaterThanOrEqual(4)
+    expect(
+      modelAssetRecords.filter((record) => record.category === 'oracles').length,
+    ).toBeGreaterThanOrEqual(4)
   })
 })
 
