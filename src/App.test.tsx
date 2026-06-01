@@ -249,20 +249,20 @@ describe('xTrimo model assets', () => {
     expect(getModelCard(container, 'xTrimoMonomer')).toBeTruthy()
     expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
 
-    setAssetsSearch(container, 'Fv-抗原结构')
-    expect(getModelCard(container, 'xTrimoAbAffinity_DDG')).toBeTruthy()
+    setAssetsSearch(container, '底物信息')
+    expect(getModelCard(container, 'xTrimoEnzymeKcat')).toBeTruthy()
     expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
 
-    setAssetsSearch(container, 'ΔΔG')
-    expect(getModelCard(container, 'xTrimoAbAffinity_DDG')).toBeTruthy()
+    setAssetsSearch(container, 'Kcat 预测值')
+    expect(getModelCard(container, 'xTrimoEnzymeKcat')).toBeTruthy()
     expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
 
     setAssetsSearch(container, '细胞活力')
     expect(getModelCard(container, 'xTrimoAAVViability')).toBeTruthy()
     expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
 
-    setAssetsSearch(container, 'AAV')
-    expect(getModelCard(container, 'xTrimoAAVViability')).toBeTruthy()
+    setAssetsSearch(container, 'TCR-多肽-MHC')
+    expect(getModelCard(container, 'xTrimoNeoantigen')).toBeTruthy()
     expect(findModelCard(container, 'xTrimoGene')).toBeUndefined()
 
     root.unmount()
