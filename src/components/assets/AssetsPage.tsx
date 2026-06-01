@@ -625,23 +625,6 @@ function XtrimoModelAssetsView({
 
   return (
     <section className="assets-content assets-content--xtrimo">
-      <div className="assets-xtrimo-header xtrimo-overview">
-        <h2>xTrimo 平台模型目录</h2>
-        <p>
-          BioMap 自研生命科学基础模型与任务模型家族，覆盖结构、亲和力、稳定性、成药性和实验设计等研发流程。
-        </p>
-      </div>
-
-      <div className="assets-xtrimo-stats xtrimo-stats" aria-label="xTrimo 模型统计">
-        <span>33 模型</span>
-        <span>24 已上线</span>
-        <span>9 即将上线</span>
-        <span>14 能力类型</span>
-        <span>7 实体类型</span>
-        <span>24 可调用</span>
-        <span>6 Agent 推荐</span>
-      </div>
-
       <section
         className="assets-xtrimo-recommendations xtrimo-recommendations"
         aria-label="Agent 推荐"
