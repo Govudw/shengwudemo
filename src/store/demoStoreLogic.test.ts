@@ -372,6 +372,135 @@ describe('demo store logic', () => {
     ).toBe(true)
   })
 
+  it('seeds the HER2 post-experiment multi-model analysis Thread as analysis only', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const her2AnalysisThread = findThreadById(
+      state.projects,
+      'her2-post-experiment-analysis',
+    )?.thread
+    const blocks =
+      her2AnalysisThread?.transcript.flatMap((turn) => turn.contentBlocks ?? []) ?? []
+    const scientificFigures = blocks.filter(
+      (block) => block.type === 'scientificFigure',
+    )
+    const allText =
+      her2AnalysisThread?.transcript.map((turn) => turn.markdown ?? '').join('\n') ?? ''
+
+    expect(state.selectedThreadId).toBeNull()
+    expect(state.isDraftingNewThread).toBe(true)
+    expect(her2AnalysisThread?.title).toBe('HER2 实验结果多模型分析')
+    expect(her2AnalysisThread?.transcript).toHaveLength(19)
+    expect(her2AnalysisThread?.transcript.filter((turn) => turn.role === 'user')).toHaveLength(4)
+    expect(scientificFigures).toHaveLength(5)
+    expect(
+      scientificFigures.every(
+        (block) => block.width > 0 && block.height > 0 && Boolean(block.src),
+      ),
+    ).toBe(true)
+    expect(blocks.filter((block) => block.type === 'capabilityRunReplay')).toHaveLength(10)
+    expect(blocks.filter((block) => block.type === 'humanConfirmation')).toHaveLength(3)
+    expect(blocks.filter((block) => block.type === 'experimentOrderDraft')).toHaveLength(0)
+    expect(blocks.filter((block) => block.type === 'approvalRequestReplay')).toHaveLength(0)
+    expect(blocks.filter((block) => block.type === 'elapsedWorkReplay')).toHaveLength(0)
+    expect(allText).toContain('Experiment Result Package')
+    expect(allText).toContain('multi-model consensus')
+    expect(allText).toContain('假设性解释')
+    expect(allText).not.toContain('提交 Experiment Order')
+    expect(allText).not.toContain('下一轮实验设计')
+    expect(allText).not.toContain('最佳突变组合')
+  })
+
+  it('seeds structured Run Inspector data for the HER2 post-experiment analysis replay', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const her2AnalysisThread = findThreadById(
+      state.projects,
+      'her2-post-experiment-analysis',
+    )?.thread
+    const runInspector = her2AnalysisThread?.runInspector
+
+    expect(runInspector?.summary).toMatchObject({
+      stage: '实验后结果分析完成',
+      status: 'completed',
+      completedSteps: 7,
+      totalSteps: 7,
+      outputCount: 5,
+      pendingCount: 0,
+    })
+    expect(runInspector?.progress).toHaveLength(7)
+    expect(runInspector?.progress[2]).toMatchObject({
+      title: '多模型分析执行',
+      status: 'done',
+    })
+    expect(runInspector?.outputs).toHaveLength(5)
+    expect(runInspector?.outputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'HER2_post_experiment_multimodel_analysis_report.md',
+          kind: 'report',
+          status: 'saved',
+        }),
+        expect.objectContaining({
+          name: 'HER2_model_consensus_score_table.csv',
+          kind: 'dataset',
+          status: 'saved',
+        }),
+        expect.objectContaining({
+          name: 'HER2_curve_fit_and_qc_summary.xlsx',
+          kind: 'projectFile',
+          status: 'saved',
+        }),
+        expect.objectContaining({
+          name: 'HER2_post_analysis_figure_bundle.png',
+          kind: 'figure',
+          status: 'saved',
+        }),
+        expect.objectContaining({
+          name: 'HER2_analysis_assumption_log.md',
+          kind: 'report',
+          status: 'saved',
+        }),
+      ]),
+    )
+    expect(runInspector?.outputs.some((output) => output.kind === 'experimentOrder')).toBe(false)
+    expect(runInspector?.approvals).toHaveLength(3)
+    expect(runInspector?.approvals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'humanConfirmation',
+          title: '确认异常点处理边界',
+          status: 'confirmed',
+        }),
+        expect.objectContaining({
+          kind: 'humanConfirmation',
+          title: '确认模型解释边界',
+          status: 'confirmed',
+        }),
+        expect.objectContaining({
+          kind: 'humanConfirmation',
+          title: '确认分析报告归档',
+          status: 'confirmed',
+        }),
+      ]),
+    )
+    expect(runInspector?.capabilityRuns).toHaveLength(10)
+    expect(runInspector?.capabilityRuns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ commandName: 'ResultPackageReader.loadHer2Package' }),
+        expect.objectContaining({ commandName: 'KineticsModel.fitBliCurves' }),
+        expect.objectContaining({ commandName: 'ModelConsensusAnalyzer.integrateSignals' }),
+        expect.objectContaining({ commandName: 'UncertaintyAnalyzer.runSensitivityCheck' }),
+      ]),
+    )
+    expect(
+      runInspector?.capabilityRuns.every(
+        (run) =>
+          !JSON.stringify(run.output).includes('recommendedLead') &&
+          !JSON.stringify(run.output).includes('mechanismProven') &&
+          !JSON.stringify(run.output).includes('nextRoundDesign'),
+      ),
+    ).toBe(true)
+  })
+
   it('toggles Run Inspector open state and clears it when a Thread is deleted', () => {
     const state = createInitialDemoState(seedProjects, now)
 
