@@ -71,6 +71,9 @@ function AssetsPage({
   const activeSectionMeta = getAssetSection(activeSection)
   const activeItemMeta = getAssetMenuItem(activeSection, activeItem)
   const isXtrimoView = activeSection === 'model' && activeItem === 'xtrimo'
+  const headerDescription = isXtrimoView
+    ? 'BioMap 自研 xTrimo 模型家族，覆盖蛋白、抗体、酶、细胞与 AAV 等研发任务'
+    : activeSectionMeta?.description
 
   function handleSelection(section: AssetsSection, item: AssetMenuItemId) {
     setQuery('')
@@ -141,7 +144,7 @@ function AssetsPage({
               {activeSectionMeta?.label} / {activeItemMeta?.label}
             </span>
             <h1>{activeItemMeta?.label}</h1>
-            <p>{activeSectionMeta?.description}</p>
+            <p>{headerDescription}</p>
           </div>
           <div className="assets-main__actions">
             {!isXtrimoView ? (
@@ -649,7 +652,12 @@ function XtrimoModelAssetsView({
         </div>
         <div className="assets-record-grid assets-record-grid--dense xtrimo-card-grid">
           {recommendedRecords.map((record) => (
-            <XtrimoModelCard key={record.id} record={record} onNotify={onNotify} />
+            <XtrimoModelCard
+              key={record.id}
+              record={record}
+              density="compact"
+              onNotify={onNotify}
+            />
           ))}
         </div>
       </section>
@@ -808,15 +816,21 @@ function GenericRecordCard({
 
 function XtrimoModelCard({
   record,
+  density = 'normal',
   onNotify,
 }: {
   record: XtrimoModelRecord
+  density?: 'normal' | 'compact'
   onNotify: (message: string) => void
 }) {
   const isCallable = record.callability === 'callable'
 
   return (
-    <article className="assets-record-card assets-record-card--generic assets-record-card--xtrimo xtrimo-model-card">
+    <article
+      className={`assets-record-card assets-record-card--generic assets-record-card--xtrimo xtrimo-model-card${
+        density === 'compact' ? ' xtrimo-model-card--compact' : ''
+      }`}
+    >
       <div className="assets-record-card__top">
         <PackageIcon className="assets-record-card__icon" />
         <span className="assets-record-card__badge xtrimo-model-card__badge">

@@ -129,6 +129,11 @@ describe('xTrimo model assets', () => {
     expect(container.querySelector('.xtrimo-recommendations')).not.toBeNull()
     expect(container.querySelector('.xtrimo-filter-bar')).not.toBeNull()
     expect(container.querySelector('.xtrimo-card-grid')).not.toBeNull()
+    expect(
+      container.querySelectorAll(
+        '.xtrimo-recommendations .xtrimo-model-card--compact',
+      ),
+    ).toHaveLength(6)
 
     act(() => {
       getButton(container, '公开模型').click()
@@ -154,6 +159,7 @@ describe('xTrimo model assets', () => {
     })
 
     expect(container.textContent).toContain('xTrimo')
+    expect(container.textContent).toContain('BioMap 自研 xTrimo 模型家族')
     expect(container.textContent).toContain('33 模型')
     expect(container.textContent).toContain('24 已上线')
     expect(container.textContent).toContain('9 即将上线')
