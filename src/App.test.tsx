@@ -114,6 +114,64 @@ describe('App Assets navigation', () => {
 })
 
 describe('xTrimo model assets', () => {
+  it('renders xTrimo as a dense platform model directory', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '模型').click()
+    })
+
+    expect(container.textContent).toContain('xTrimo')
+    expect(container.textContent).toContain('33 模型')
+    expect(container.textContent).toContain('24 已上线')
+    expect(container.textContent).toContain('9 即将上线')
+    expect(container.textContent).toContain('24 可调用')
+    expect(container.textContent).toContain('Agent 推荐')
+    expect(container.textContent).toContain('xTrimoAbAffinity_DDG')
+    expect(container.textContent).not.toContain('xTrimoPFP')
+    expect(findButton(container, '上传')).toBeUndefined()
+
+    root.unmount()
+  })
+
+  it('filters xTrimo models by capability, entity, and lifecycle status', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '模型').click()
+    })
+    act(() => {
+      getButton(container, '亲和力').click()
+    })
+
+    expect(container.textContent).toContain('xTrimoAbAffinity_DDG')
+    expect(container.textContent).toContain('xTrimoTCR-PeptideBinding')
+    expect(container.textContent).not.toContain('xTrimoGene')
+
+    act(() => {
+      getButton(container, '抗体').click()
+    })
+
+    expect(container.textContent).toContain('xTrimoAbAffinity_DDG')
+    expect(container.textContent).not.toContain('xTrimoTCR-PeptideBinding')
+
+    act(() => {
+      getButton(container, '即将上线').click()
+    })
+
+    expect(container.textContent).toContain('xTrimoAAVViability')
+    expect(container.textContent).toContain('仅预览')
+    expect(container.textContent).not.toContain('可调用 · xTrimoAAVViability')
+
+    root.unmount()
+  })
+
   it('seeds realistic xTrimo model records with lifecycle and callability separated', () => {
     expect(xtrimoModelRecords).toHaveLength(33)
     expect(

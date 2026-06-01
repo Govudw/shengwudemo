@@ -9,12 +9,17 @@ import {
   isFileAssetItem,
   modelAssetRecords,
   projectFileFolders,
+  xtrimoModelRecords,
 } from '../../data/assetsMockData'
 import type {
   DataAssetRecord,
   ExperimentAssetRecord,
   FileAssetRecord,
   ModelAssetRecord,
+  XtrimoCapability,
+  XtrimoEntity,
+  XtrimoModelRecord,
+  XtrimoModelStatus,
 } from '../../data/assetsMockData'
 import type {
   AssetMenuItemId,
@@ -65,6 +70,7 @@ function AssetsPage({
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const activeSectionMeta = getAssetSection(activeSection)
   const activeItemMeta = getAssetMenuItem(activeSection, activeItem)
+  const isXtrimoView = activeSection === 'model' && activeItem === 'xtrimo'
 
   function handleSelection(section: AssetsSection, item: AssetMenuItemId) {
     setQuery('')
@@ -135,56 +141,60 @@ function AssetsPage({
             <p>{activeSectionMeta?.description}</p>
           </div>
           <div className="assets-main__actions">
-            <div className="assets-action-menu">
-              <button
-                type="button"
-                className="assets-action-button assets-action-button--primary"
-                aria-haspopup="menu"
-                aria-expanded={newMenuOpen}
-                onClick={() => {
-                  setNewMenuOpen((isOpen) => !isOpen)
-                  setMoreMenuOpen(false)
-                }}
-              >
-                <PlusIcon className="assets-action-button__icon" />
-                新建
-              </button>
-              {newMenuOpen ? (
-                <div className="assets-popover assets-popover--compact">
+            {!isXtrimoView ? (
+              <>
+                <div className="assets-action-menu">
                   <button
                     type="button"
-                    onClick={() => handleMockAction('新建文件夹将在后续 Demo 中展开')}
+                    className="assets-action-button assets-action-button--primary"
+                    aria-haspopup="menu"
+                    aria-expanded={newMenuOpen}
+                    onClick={() => {
+                      setNewMenuOpen((isOpen) => !isOpen)
+                      setMoreMenuOpen(false)
+                    }}
                   >
-                    新建文件夹
+                    <PlusIcon className="assets-action-button__icon" />
+                    新建
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMockAction('新建数据集将在后续 Demo 中展开')}
-                  >
-                    新建数据集
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMockAction('新建实验需求将在后续 Demo 中展开')}
-                  >
-                    新建实验需求
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMockAction('注册模型将在后续 Demo 中展开')}
-                  >
-                    注册模型
-                  </button>
+                  {newMenuOpen ? (
+                    <div className="assets-popover assets-popover--compact">
+                      <button
+                        type="button"
+                        onClick={() => handleMockAction('新建文件夹将在后续 Demo 中展开')}
+                      >
+                        新建文件夹
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMockAction('新建数据集将在后续 Demo 中展开')}
+                      >
+                        新建数据集
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMockAction('新建实验需求将在后续 Demo 中展开')}
+                      >
+                        新建实验需求
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMockAction('注册模型将在后续 Demo 中展开')}
+                      >
+                        注册模型
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
-            </div>
-            <button
-              type="button"
-              className="assets-action-button"
-              onClick={() => setUploadDialogOpen(true)}
-            >
-              上传
-            </button>
+                <button
+                  type="button"
+                  className="assets-action-button"
+                  onClick={() => setUploadDialogOpen(true)}
+                >
+                  上传
+                </button>
+              </>
+            ) : null}
             <div className="assets-action-menu">
               <button
                 type="button"
@@ -357,7 +367,13 @@ function AssetContent({
     )
   }
 
-  return <ModelAssetsView item={activeItem as ModelAssetRecord['category']} query={query} />
+  return (
+    <ModelAssetsView
+      item={activeItem as ModelAssetRecord['category']}
+      query={query}
+      onNotify={onNotify}
+    />
+  )
 }
 
 function FileSpaceView({
@@ -535,10 +551,16 @@ function ExperimentAssetsView({
 function ModelAssetsView({
   item,
   query,
+  onNotify,
 }: {
   item: ModelAssetRecord['category']
   query: string
+  onNotify: (message: string) => void
 }) {
+  if (item === 'xtrimo') {
+    return <XtrimoModelAssetsView query={query} onNotify={onNotify} />
+  }
+
   const records = modelAssetRecords.filter(
     (record) => record.category === item && modelMatches(record, query),
   )
@@ -558,6 +580,156 @@ function ModelAssetsView({
         ))}
       </div>
       {records.length === 0 ? <EmptyState /> : null}
+    </section>
+  )
+}
+
+const xtrimoCapabilities = Array.from(
+  new Set(xtrimoModelRecords.flatMap((record) => record.capabilities)),
+)
+const xtrimoEntities = Array.from(
+  new Set(xtrimoModelRecords.flatMap((record) => record.entities)),
+)
+
+function XtrimoModelAssetsView({
+  query,
+  onNotify,
+}: {
+  query: string
+  onNotify: (message: string) => void
+}) {
+  const [selectedCapability, setSelectedCapability] = useState<
+    XtrimoCapability | 'all'
+  >('all')
+  const [selectedEntity, setSelectedEntity] = useState<XtrimoEntity | 'all'>('all')
+  const [selectedStatus, setSelectedStatus] = useState<XtrimoModelStatus | 'all'>(
+    'all',
+  )
+  const recommendedRecords = xtrimoModelRecords.filter(
+    (record) => record.projectFit === 'recommended',
+  )
+  const filteredRecords = xtrimoModelRecords.filter(
+    (record) =>
+      (selectedCapability === 'all' ||
+        record.capabilities.includes(selectedCapability)) &&
+      (selectedEntity === 'all' || record.entities.includes(selectedEntity)) &&
+      (selectedStatus === 'all' || record.status === selectedStatus) &&
+      xtrimoModelMatches(record, query),
+  )
+
+  function handleStatusChange(status: XtrimoModelStatus | 'all') {
+    setSelectedStatus(status)
+
+    if (status !== 'all') {
+      setSelectedCapability('all')
+      setSelectedEntity('all')
+    }
+  }
+
+  return (
+    <section className="assets-content assets-content--xtrimo">
+      <div className="assets-xtrimo-header">
+        <h2>xTrimo 平台模型目录</h2>
+        <p>
+          BioMap 自研生命科学基础模型与任务模型家族，覆盖结构、亲和力、稳定性、成药性和实验设计等研发流程。
+        </p>
+      </div>
+
+      <div className="assets-xtrimo-stats" aria-label="xTrimo 模型统计">
+        <span>33 模型</span>
+        <span>24 已上线</span>
+        <span>9 即将上线</span>
+        <span>14 能力类型</span>
+        <span>7 实体类型</span>
+        <span>24 可调用</span>
+        <span>6 Agent 推荐</span>
+      </div>
+
+      <section className="assets-xtrimo-recommendations" aria-label="Agent 推荐">
+        <div className="assets-list-header">
+          <h2>Agent 推荐</h2>
+          <span>{recommendedRecords.length} 项</span>
+        </div>
+        <div className="assets-record-grid assets-record-grid--dense">
+          {recommendedRecords.map((record) => (
+            <XtrimoModelCard key={record.id} record={record} onNotify={onNotify} />
+          ))}
+        </div>
+      </section>
+
+      <div className="assets-xtrimo-filters" aria-label="xTrimo 模型筛选">
+        <div className="assets-xtrimo-filter-row">
+          <span>能力</span>
+          <button
+            type="button"
+            className={selectedCapability === 'all' ? 'active' : ''}
+            onClick={() => setSelectedCapability('all')}
+          >
+            全部能力
+          </button>
+          {xtrimoCapabilities.map((capability) => (
+            <button
+              type="button"
+              key={capability}
+              className={selectedCapability === capability ? 'active' : ''}
+              onClick={() => setSelectedCapability(capability)}
+            >
+              {capability}
+            </button>
+          ))}
+        </div>
+        <div className="assets-xtrimo-filter-row">
+          <span>实体</span>
+          <button
+            type="button"
+            className={selectedEntity === 'all' ? 'active' : ''}
+            onClick={() => setSelectedEntity('all')}
+          >
+            全部实体
+          </button>
+          {xtrimoEntities.map((entity) => (
+            <button
+              type="button"
+              key={entity}
+              className={selectedEntity === entity ? 'active' : ''}
+              onClick={() => setSelectedEntity(entity)}
+            >
+              {entity}
+            </button>
+          ))}
+        </div>
+        <div className="assets-view-toggle" aria-label="xTrimo 生命周期">
+          <button
+            type="button"
+            className={selectedStatus === 'all' ? 'active' : ''}
+            onClick={() => handleStatusChange('all')}
+          >
+            全部状态
+          </button>
+          <button
+            type="button"
+            className={selectedStatus === 'online' ? 'active' : ''}
+            onClick={() => handleStatusChange('online')}
+          >
+            已上线
+          </button>
+          <button
+            type="button"
+            className={selectedStatus === 'comingSoon' ? 'active' : ''}
+            onClick={() => handleStatusChange('comingSoon')}
+          >
+            即将上线
+          </button>
+        </div>
+      </div>
+
+      <AssetListHeader title="模型目录" count={filteredRecords.length} />
+      <div className="assets-record-grid assets-record-grid--dense">
+        {filteredRecords.map((record) => (
+          <XtrimoModelCard key={record.id} record={record} onNotify={onNotify} />
+        ))}
+      </div>
+      {filteredRecords.length === 0 ? <EmptyState /> : null}
     </section>
   )
 }
@@ -627,6 +799,51 @@ function GenericRecordCard({
         <span>{meta}</span>
       </div>
     </article>
+  )
+}
+
+function XtrimoModelCard({
+  record,
+  onNotify,
+}: {
+  record: XtrimoModelRecord
+  onNotify: (message: string) => void
+}) {
+  const isCallable = record.callability === 'callable'
+
+  return (
+    <button
+      type="button"
+      className="assets-record-card assets-record-card--generic assets-record-card--xtrimo"
+      onClick={() =>
+        onNotify(
+          isCallable
+            ? '模型详情将在后续 Demo 中展开'
+            : '该模型即将上线，当前仅支持预览',
+        )
+      }
+    >
+      <div className="assets-record-card__top">
+        <PackageIcon className="assets-record-card__icon" />
+        <span className="assets-record-card__badge">
+          {record.status === 'online' ? '已上线' : '即将上线'}
+        </span>
+        <span className="assets-record-card__badge">
+          {isCallable ? '可调用' : '仅预览'}
+        </span>
+      </div>
+      <h3>{record.name}</h3>
+      <p>{record.agentUse}</p>
+      <div className="assets-record-card__meta">
+        <span>{record.capabilities.join(' / ')}</span>
+        <span>{record.entities.join(' / ')}</span>
+        <span>{record.version}</span>
+      </div>
+      <div className="assets-record-card__meta">
+        <span>输入：{record.input}</span>
+        <span>输出：{record.output}</span>
+      </div>
+    </button>
   )
 }
 
@@ -726,6 +943,20 @@ function experimentMatches(record: ExperimentAssetRecord, query: string) {
 function modelMatches(record: ModelAssetRecord, query: string) {
   return matchesQuery(
     [record.name, record.description, record.owner, record.status, record.scope],
+    query,
+  )
+}
+
+function xtrimoModelMatches(record: XtrimoModelRecord, query: string) {
+  return matchesQuery(
+    [
+      record.name,
+      record.agentUse,
+      record.input,
+      record.output,
+      ...record.capabilities,
+      ...record.entities,
+    ],
     query,
   )
 }
