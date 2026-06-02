@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import type { KeyboardEvent, MouseEvent, ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from 'react'
 import {
   BrainIcon,
   ChevronRightIcon,
@@ -20,6 +20,11 @@ import type {
   CapabilitySource,
   CapabilityStatus,
   MockCapabilityEntry,
+  PipelineDag,
+  PipelineDagNode,
+  PipelineDagNodeKind,
+  PipelineDagNodeResource,
+  PipelineDagNodeSubtype,
 } from '../data/mockCapabilities'
 
 type CapabilitiesPageProps = {
@@ -70,6 +75,34 @@ const actionMessages: Record<CapabilityEntryKind, string> = {
   plugin: 'Plugin 申请流程会在后续演示中展开',
 }
 
+const dagNodeKindLabels: Record<PipelineDagNodeKind, string> = {
+  input: '输入',
+  operation: '操作',
+  'human-gate': 'Human Gate / 人工确认',
+  'qc-decision': 'QC Decision / QC 判断',
+  output: '输出',
+}
+
+const dagNodeSubtypeLabels: Record<PipelineDagNodeSubtype, string> = {
+  sample: '样本',
+  'lab-operation': '实验操作',
+  transport: '转运',
+  'cro-handoff': 'CRO 交接',
+  report: '报告',
+  data: '数据',
+}
+
+const dagResourceLabels: Record<PipelineDagNodeResource['kind'], string> = {
+  device: '设备',
+  robot: 'Robot',
+  'transport-vehicle': '转运工具',
+  'island-bench': '岛式台架',
+  'sample-storage': '样本存储',
+  'cro-order': 'CRO 订单',
+  'lab-system': '实验系统',
+  'data-system': '数据系统',
+}
+
 function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
   const [activeKind, setActiveKind] =
     useState<CapabilityEntryKind>('pipeline')
@@ -82,6 +115,8 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
     Record<CapabilityEntryKind, string>
   >(() => getInitialSelectedIds())
   const [dialogEntryId, setDialogEntryId] = useState<string | null>(null)
+  const [dagDialogEntryId, setDagDialogEntryId] = useState<string | null>(null)
+  const dagDialogTriggerRef = useRef<HTMLElement | null>(null)
   const [enabledById, setEnabledById] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
       capabilityEntries
@@ -131,6 +166,12 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
     capabilityEntries.find(
       (entry) => entry.kind !== 'pipeline' && entry.id === dialogEntryId,
     ) ?? null
+  const openDagEntry =
+    capabilityEntries.find(
+      (entry) =>
+        entry.kind === 'pipeline' && entry.id === dagDialogEntryId && entry.dag,
+    ) ?? null
+  const hasOpenModal = Boolean(openDialogEntry || openDagEntry)
 
   function handleKindChange(kind: CapabilityEntryKind) {
     setActiveKind(kind)
@@ -138,6 +179,7 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
     setSourceFilter('all')
     setStatusFilter('all')
     setDialogEntryId(null)
+    setDagDialogEntryId(null)
   }
 
   function handleSelectEntry(entry: MockCapabilityEntry) {
@@ -159,13 +201,28 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
     }))
   }
 
+  function handleOpenDag(entryId: string) {
+    dagDialogTriggerRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null
+    setDagDialogEntryId(entryId)
+  }
+
+  function handleCloseDag() {
+    setDagDialogEntryId(null)
+    window.setTimeout(() => {
+      dagDialogTriggerRef.current?.focus()
+    }, 0)
+  }
+
   return (
     <main className="capabilities-page" aria-label="Capabilities 管理">
       <aside
         className="capabilities-nav"
         aria-label="Capability types"
-        aria-hidden={openDialogEntry ? true : undefined}
-        inert={openDialogEntry ? true : undefined}
+        aria-hidden={hasOpenModal ? true : undefined}
+        inert={hasOpenModal ? true : undefined}
       >
         <div className="capabilities-nav__header">
           <span className="capabilities-nav__label">Capabilities</span>
@@ -213,8 +270,8 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
 
       <section
         className="capabilities-workspace"
-        aria-hidden={openDialogEntry ? true : undefined}
-        inert={openDialogEntry ? true : undefined}
+        aria-hidden={hasOpenModal ? true : undefined}
+        inert={hasOpenModal ? true : undefined}
       >
         <header className="capabilities-header">
           <div className="capabilities-header__copy">
@@ -282,6 +339,7 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
             selectedEntry={selectedEntry}
             activeKind={activeKind}
             onSelect={handleSelectEntry}
+            onOpenDag={handleOpenDag}
             onNotify={onNotify}
           />
         ) : (
@@ -304,6 +362,14 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
           }
           onClose={() => setDialogEntryId(null)}
           onNotify={onNotify}
+        />
+      ) : null}
+
+      {openDagEntry?.dag ? (
+        <PipelineDagViewerModal
+          entry={openDagEntry}
+          dag={openDagEntry.dag}
+          onClose={handleCloseDag}
         />
       ) : null}
     </main>
@@ -389,12 +455,14 @@ function CapabilityInspectorLayout({
   selectedEntry,
   activeKind,
   onSelect,
+  onOpenDag,
   onNotify,
 }: {
   entries: MockCapabilityEntry[]
   selectedEntry?: MockCapabilityEntry
   activeKind: CapabilityEntryKind
   onSelect: (entry: MockCapabilityEntry) => void
+  onOpenDag: (id: string) => void
   onNotify: (message: string) => void
 }) {
   if (!entries.length) {
@@ -435,6 +503,7 @@ function CapabilityInspectorLayout({
         <DetailPanel
           entry={selectedEntry}
           activeKind={activeKind}
+          onOpenDag={onOpenDag}
           onNotify={onNotify}
         />
       ) : null}
@@ -445,18 +514,24 @@ function CapabilityInspectorLayout({
 function DetailPanel({
   entry,
   activeKind,
+  onOpenDag,
   onNotify,
 }: {
   entry: MockCapabilityEntry
   activeKind: CapabilityEntryKind
+  onOpenDag: (id: string) => void
   onNotify: (message: string) => void
 }) {
   const detailList =
     activeKind === 'pipeline'
-      ? entry.steps
+      ? entry.dag
+        ? undefined
+        : entry.steps
       : activeKind === 'mcp-server'
         ? entry.tools
         : [entry.placeholderState ?? '仅预览']
+  const showsDetailList =
+    activeKind !== 'pipeline' || !entry.dag || Boolean(detailList?.length)
 
   return (
     <aside className="capabilities-detail" aria-label={`${entry.name} 详情`}>
@@ -504,30 +579,40 @@ function DetailPanel({
         ))}
       </div>
 
+      {activeKind === 'pipeline' && entry.dag ? (
+        <PipelineDagPreview
+          entryName={entry.name}
+          dag={entry.dag}
+          onMaximize={() => onOpenDag(entry.id)}
+        />
+      ) : null}
+
       <DetailSection title="接口">
         <DetailColumn label="输入" items={entry.interface.inputs} />
         <DetailColumn label="输出" items={entry.interface.outputs} />
         <DetailColumn label="权限" items={entry.interface.permissions} />
       </DetailSection>
 
-      <DetailSection
-        title={
-          activeKind === 'pipeline'
-            ? '步骤'
-            : activeKind === 'mcp-server'
-              ? '工具'
-              : 'Plugin 预览'
-        }
-      >
-        <ul className="capabilities-detail-list">
-          {detailList?.map((item) => (
-            <li key={item}>
-              <ChevronRightIcon className="capabilities-detail-list__icon" />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-      </DetailSection>
+      {showsDetailList ? (
+        <DetailSection
+          title={
+            activeKind === 'pipeline'
+              ? '步骤'
+              : activeKind === 'mcp-server'
+                ? '工具'
+                : 'Plugin 预览'
+          }
+        >
+          <ul className="capabilities-detail-list">
+            {detailList?.map((item) => (
+              <li key={item}>
+                <ChevronRightIcon className="capabilities-detail-list__icon" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </DetailSection>
+      ) : null}
 
       {entry.resources?.length ? (
         <DetailSection title="资源">
@@ -577,6 +662,343 @@ function DetailPanel({
             : '查看占位内容'}
       </button>
     </aside>
+  )
+}
+
+function PipelineDagPreview({
+  entryName,
+  dag,
+  onMaximize,
+}: {
+  entryName: string
+  dag: PipelineDag
+  onMaximize: () => void
+}) {
+  return (
+    <section className="capabilities-detail-section capabilities-dag-section">
+      <div className="capabilities-dag-section__header">
+        <h3>执行 DAG</h3>
+        <button
+          type="button"
+          className="capabilities-dag-section__action"
+          aria-label={`最大化查看 ${entryName} 的执行 DAG`}
+          onClick={onMaximize}
+        >
+          最大化查看
+        </button>
+      </div>
+      <PipelineDagCanvas dag={dag} mode="preview" />
+    </section>
+  )
+}
+
+function PipelineDagViewerModal({
+  entry,
+  dag,
+  onClose,
+}: {
+  entry: MockCapabilityEntry
+  dag: PipelineDag
+  onClose: () => void
+}) {
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [viewportMode, setViewportMode] = useState<'default' | 'fit'>('default')
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null)
+  const selectedNode =
+    dag.nodes.find((node) => node.id === selectedNodeId) ?? null
+
+  useEffect(() => {
+    closeButtonRef.current?.focus()
+
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  function clearSelection() {
+    setSelectedNodeId(null)
+    setViewportMode('default')
+  }
+
+  function handleFit() {
+    setViewportMode('fit')
+  }
+
+  return (
+    <div className="capabilities-modal-backdrop" role="presentation">
+      <section
+        className="capabilities-dag-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pipeline-dag-dialog-title"
+      >
+        <header className="capabilities-dag-modal__header">
+          <div>
+            <p className="capabilities-eyebrow">Pipeline DAG Viewer</p>
+            <h2 id="pipeline-dag-dialog-title">执行 DAG</h2>
+            <p>{entry.name}</p>
+          </div>
+          <div className="capabilities-dag-modal__actions">
+            <button
+              type="button"
+              className="capabilities-secondary-action"
+              onClick={handleFit}
+            >
+              Fit
+            </button>
+            <button
+              type="button"
+              className="capabilities-secondary-action"
+              onClick={clearSelection}
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              className="dialog-close"
+              aria-label="关闭 Pipeline DAG Viewer"
+              ref={closeButtonRef}
+              onClick={onClose}
+            >
+              ×
+            </button>
+          </div>
+        </header>
+        <div className="capabilities-dag-modal__body">
+          <div className="capabilities-dag-modal__canvas">
+            <PipelineDagCanvas
+              dag={dag}
+              mode="modal"
+              viewportMode={viewportMode}
+              selectedNodeId={selectedNodeId}
+              onSelectNode={setSelectedNodeId}
+            />
+          </div>
+          <aside
+            className="capabilities-dag-modal__details"
+            aria-label="Pipeline DAG 节点详情"
+          >
+            <h3>节点详情</h3>
+            {selectedNode ? (
+              <PipelineDagNodeDetails node={selectedNode} />
+            ) : (
+              <PipelineDagSummary dag={dag} />
+            )}
+          </aside>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function PipelineDagCanvas({
+  dag,
+  mode,
+  viewportMode = 'default',
+  selectedNodeId,
+  onSelectNode,
+}: {
+  dag: PipelineDag
+  mode: 'preview' | 'modal'
+  viewportMode?: 'default' | 'fit'
+  selectedNodeId?: string | null
+  onSelectNode?: (id: string) => void
+}) {
+  const positions = getDagNodePositions(dag)
+  const viewportStyle =
+    mode === 'modal' && viewportMode === 'fit'
+      ? getDagFitViewportStyle(positions)
+      : undefined
+
+  return (
+    <div className={`capabilities-dag-canvas capabilities-dag-canvas--${mode}`}>
+      <div
+        className="capabilities-dag-canvas__viewport"
+        data-viewport={mode === 'modal' ? viewportMode : 'preview'}
+        style={viewportStyle}
+      >
+        <svg
+          className="capabilities-dag-canvas__edges"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          {dag.edges.map((edge) => {
+            const from = positions[edge.from]
+            const to = positions[edge.to]
+
+            if (!from || !to) {
+              return null
+            }
+
+            const midY = (from.y + to.y) / 2
+
+          return (
+              <g key={`${edge.from}-${edge.to}`}>
+                <path
+                  d={`M ${from.x} ${from.y} C ${from.x} ${midY}, ${to.x} ${midY}, ${to.x} ${to.y}`}
+                  className="capabilities-dag-edge"
+                />
+                {edge.label && mode === 'modal' ? (
+                  <text
+                    x={(from.x + to.x) / 2}
+                    y={midY - 1.5}
+                    className="capabilities-dag-edge__label"
+                  >
+                    {edge.label}
+                  </text>
+                ) : null}
+              </g>
+          )
+          })}
+        </svg>
+        {dag.nodes.map((node) => {
+          const position = positions[node.id]
+
+          if (!position) {
+            return null
+          }
+
+          const isSelected = node.id === selectedNodeId
+          const nodeClassName = `capabilities-dag-node capabilities-dag-node--${node.kind}${
+            isSelected ? ' capabilities-dag-node--selected' : ''
+          }`
+          const nodeStyle = {
+            left: `${position.x}%`,
+            top: `${position.y}%`,
+          }
+          const nodeContent = (
+            <>
+              <span className="capabilities-dag-node__title">
+                {node.shortTitle}
+              </span>
+              <span className="capabilities-dag-node__meta">
+                {dagNodeKindLabels[node.kind]}
+              </span>
+              {node.subtype ? (
+                <span className="capabilities-dag-node__subtype">
+                  {dagNodeSubtypeLabels[node.subtype]}
+                </span>
+              ) : null}
+            </>
+          )
+
+          if (!onSelectNode) {
+            return (
+              <div
+                key={node.id}
+                className={nodeClassName}
+                style={nodeStyle}
+                aria-label={`${node.title}，${dagNodeKindLabels[node.kind]}`}
+              >
+                {nodeContent}
+              </div>
+            )
+          }
+
+          return (
+            <button
+              key={node.id}
+              type="button"
+              className={nodeClassName}
+              style={nodeStyle}
+              aria-label={`${node.title}，${dagNodeKindLabels[node.kind]}`}
+              aria-pressed={isSelected}
+              onClick={() => onSelectNode(node.id)}
+            >
+              {nodeContent}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function PipelineDagSummary({ dag }: { dag: PipelineDag }) {
+  const humanGateCount = dag.nodes.filter(
+    (node) => node.kind === 'human-gate',
+  ).length
+  const qcDecisionCount = dag.nodes.filter(
+    (node) => node.kind === 'qc-decision',
+  ).length
+  const resourceNames = Array.from(
+    new Set(
+      dag.nodes.flatMap((node) =>
+        (node.resources ?? []).map((resource) => resource.name),
+      ),
+    ),
+  )
+
+  return (
+    <div className="capabilities-dag-summary">
+      <p className="capabilities-dag-modal__empty">
+        选择一个节点查看执行条件。
+      </p>
+      <dl className="capabilities-dag-details-list">
+        <DetailRow label="节点" value={`${dag.nodes.length} 个`} />
+        <DetailRow label="依赖" value={`${dag.edges.length} 条`} />
+        <DetailRow label="Human Gate" value={`${humanGateCount} 个`} />
+        <DetailRow label="QC Decision" value={`${qcDecisionCount} 个`} />
+        <DetailRow
+          label="Lab Resources"
+          value={resourceNames.length ? resourceNames.join('；') : '无'}
+        />
+      </dl>
+    </div>
+  )
+}
+
+function PipelineDagNodeDetails({ node }: { node: PipelineDagNode }) {
+  return (
+    <dl className="capabilities-dag-details-list">
+      <DetailRow label="名称" value={node.title} />
+      <DetailRow label="类型" value={dagNodeKindLabels[node.kind]} />
+      <DetailRow
+        label="subtype"
+        value={node.subtype ? dagNodeSubtypeLabels[node.subtype] : '未设置'}
+      />
+      <DetailRow label="描述" value={node.description} />
+      <DetailRow
+        label="Lab Resources"
+        value={
+          node.resources?.length
+            ? node.resources
+                .map(
+                  (resource) =>
+                    `${dagResourceLabels[resource.kind]}: ${resource.name}`,
+                )
+                .join('；')
+            : '无'
+        }
+      />
+      <DetailRow label="输入" value={node.inputs.join('；')} />
+      <DetailRow label="输出" value={node.outputs.join('；')} />
+      <DetailRow label="前置条件" value={node.prerequisites.join('；')} />
+      <DetailRow
+        label="控制条件"
+        value={
+          node.control
+            ? `${node.control.kind}: ${node.control.summary}`
+            : '无控制条件'
+        }
+      />
+    </dl>
+  )
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
   )
 }
 
@@ -889,6 +1311,53 @@ function getInitialSelectedIds(): Record<CapabilityEntryKind, string> {
       capabilityEntries.find((entry) => entry.kind === kind)?.id ?? '',
     ]),
   ) as Record<CapabilityEntryKind, string>
+}
+
+function getDagNodePositions(dag: PipelineDag) {
+  if (!dag.nodes.length) {
+    return {}
+  }
+
+  const maxRow = Math.max(...dag.nodes.map((node) => node.layout.row), 1)
+  const maxColumn = Math.max(...dag.nodes.map((node) => node.layout.column), 0)
+
+  return Object.fromEntries(
+    dag.nodes.map((node) => {
+      const x =
+        maxColumn === 0
+          ? 50
+          : 12 + (node.layout.column / maxColumn) * 76
+      const y = 8 + (node.layout.row / maxRow) * 84
+
+      return [node.id, { x, y }]
+    }),
+  ) as Record<string, { x: number; y: number }>
+}
+
+function getDagFitViewportStyle(
+  positions: Record<string, { x: number; y: number }>,
+): CSSProperties {
+  const points = Object.values(positions)
+
+  if (!points.length) {
+    return {}
+  }
+
+  const xs = points.map((point) => point.x)
+  const ys = points.map((point) => point.y)
+  const minX = Math.min(...xs)
+  const maxX = Math.max(...xs)
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+  const centerX = (minX + maxX) / 2
+  const centerY = (minY + maxY) / 2
+  const widthSpan = Math.max(maxX - minX, 20) + 18
+  const heightSpan = Math.max(maxY - minY, 20) + 18
+  const scale = Math.min(1, 88 / widthSpan, 88 / heightSpan)
+
+  return {
+    transform: `translate(${50 - centerX}%, ${50 - centerY}%) scale(${scale.toFixed(3)})`,
+  }
 }
 
 function getDialogActionLabel(entry: MockCapabilityEntry) {
