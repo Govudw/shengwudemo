@@ -22,7 +22,33 @@ import {
   togglePinnedSnapshot,
 } from './demoStoreLogic'
 
-const now = Date.parse('2026-05-27T10:00:00+08:00')
+const now = Date.parse('2026-06-02T18:30:00+08:00')
+const industrialEnzymeThreadIds = [
+  'enzyme-full-loop',
+  'enzyme-design-breakdown',
+  'enzyme-experiment-execution',
+  'enzyme-analysis-iteration',
+]
+const forbiddenEnzymeCapabilityPrefixes = [
+  'DataCenter.',
+  'KnowledgeAssistant.',
+  'PredictBestEnzyme.',
+  'ProveMechanism.',
+  'AutoSelectLead.',
+]
+const forbiddenEnzymeOutputClaims = [
+  'mechanismProven',
+  'predictedWinner',
+  'recommendedLead',
+  'finalLead',
+  'leadAutoSelected',
+  'bestEnzymeClaimed',
+  'autoSelectLead',
+]
+
+function parseDemoDateTime(value: string) {
+  return Date.parse(`${value.replace(' ', 'T')}:00+08:00`)
+}
 
 describe('demo store logic', () => {
   it('creates demo state from seed projects without mutating seed data', () => {
@@ -509,6 +535,119 @@ describe('demo store logic', () => {
     ).toBe(true)
   })
 
+  it('seeds the Industrial Enzyme Design project with four complete Agent OS Threads', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const enzymeProject = state.projects.find(
+      (project) => project.id === 'enzyme-discovery',
+    )
+
+    expect(enzymeProject?.name).toBe('Industrial Enzyme Design')
+    expect(enzymeProject?.threads.map((thread) => thread.id)).toEqual(
+      industrialEnzymeThreadIds,
+    )
+    expect(enzymeProject?.threads.map((thread) => thread.title)).toEqual([
+      '工业酶设计全流程闭环',
+      '设计拆解：目标定义与候选生成',
+      '实验拆解：酶库订单与执行回收',
+      '分析拆解：结果解释与迭代结论',
+    ])
+    expect(enzymeProject?.threads.map((thread) => thread.id)).not.toEqual(
+      expect.arrayContaining(['enzyme-family', 'screening-plan', 'enzymekcat']),
+    )
+
+    for (const thread of enzymeProject?.threads ?? []) {
+      const blocks = thread.transcript.flatMap((turn) => turn.contentBlocks ?? [])
+      const runInspector = thread.runInspector
+      const scientificFigures = blocks.filter(
+        (block) => block.type === 'scientificFigure',
+      )
+      const elapsedBlocks = blocks.filter((block) => block.type === 'elapsedWorkReplay')
+      const blockEventTimes = blocks.flatMap((block) => {
+        if (block.type === 'humanConfirmation') {
+          return [block.confirmedAt]
+        }
+        if (block.type === 'approvalRequestReplay') {
+          return [block.decidedAt]
+        }
+        return []
+      })
+      const inspectorEventTimes =
+        runInspector?.approvals.flatMap((approval) => approval.decidedAt ?? []) ?? []
+      const markdownText = thread.transcript.map((turn) => turn.markdown ?? '').join('\n')
+
+      expect(thread.transcript).toHaveLength(19)
+      expect(thread.transcript.filter((turn) => turn.role === 'user')).toHaveLength(5)
+      expect(scientificFigures).toHaveLength(7)
+      expect(
+        scientificFigures.every(
+          (block) => block.width > 0 && block.height > 0 && Boolean(block.src),
+        ),
+      ).toBe(true)
+      expect(elapsedBlocks.every((block) => !block.elapsed.includes('天'))).toBe(true)
+      for (const eventTime of [...blockEventTimes, ...inspectorEventTimes]) {
+        const timestamp = parseDemoDateTime(eventTime)
+
+        expect(Number.isNaN(timestamp)).toBe(false)
+        expect(timestamp).toBeLessThanOrEqual(thread.lastActivityAt)
+      }
+      expect(markdownText).toContain('ENZ-LIB-20260602-048')
+      expect(markdownText).toContain('BM-LAB-ENZ-20260602-001')
+      expect(markdownText).toContain('Enzyme_Experiment_Result_Package.xlsx')
+
+      expect(runInspector).toBeDefined()
+      expect(runInspector?.summary).toBeDefined()
+      expect(runInspector?.progress.length).toBeGreaterThanOrEqual(7)
+      expect(runInspector?.progress.length).toBeLessThanOrEqual(9)
+      expect(runInspector?.outputs.length).toBe(runInspector?.summary.outputCount)
+      expect(runInspector?.outputs.length).toBeGreaterThan(0)
+      expect(runInspector?.approvals.length).toBeGreaterThan(0)
+      expect(runInspector?.capabilityRuns.length).toBeGreaterThanOrEqual(8)
+      expect(runInspector?.capabilityRuns.length).toBeLessThanOrEqual(12)
+      expect(
+        runInspector?.capabilityRuns.every((run) =>
+          forbiddenEnzymeCapabilityPrefixes.every(
+            (prefix) => !run.commandName.startsWith(prefix),
+          ),
+        ),
+      ).toBe(true)
+      expect(
+        forbiddenEnzymeOutputClaims.every(
+          (claim) => !JSON.stringify(runInspector?.capabilityRuns).includes(claim),
+        ),
+      ).toBe(true)
+    }
+  })
+
+  it('seeds enzyme thread-specific human boundaries and candidate evidence blocks', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const fullLoopThread = findThreadById(state.projects, 'enzyme-full-loop')?.thread
+    const designThread = findThreadById(state.projects, 'enzyme-design-breakdown')?.thread
+    const experimentThread = findThreadById(
+      state.projects,
+      'enzyme-experiment-execution',
+    )?.thread
+    const analysisThread = findThreadById(state.projects, 'enzyme-analysis-iteration')?.thread
+    const designBlocks = designThread?.transcript.flatMap((turn) => turn.contentBlocks ?? []) ?? []
+    const analysisBlocks =
+      analysisThread?.transcript.flatMap((turn) => turn.contentBlocks ?? []) ?? []
+
+    for (const thread of [fullLoopThread, experimentThread]) {
+      const blocks = thread?.transcript.flatMap((turn) => turn.contentBlocks ?? []) ?? []
+
+      expect(blocks.filter((block) => block.type === 'experimentOrderDraft')).toHaveLength(1)
+      expect(blocks.filter((block) => block.type === 'approvalRequestReplay')).toHaveLength(1)
+      expect(blocks.filter((block) => block.type === 'elapsedWorkReplay').length).toBeGreaterThan(
+        0,
+      )
+      expect(blocks.filter((block) => block.type === 'projectFile').length).toBeGreaterThan(0)
+    }
+
+    for (const blocks of [designBlocks, analysisBlocks]) {
+      expect(blocks.filter((block) => block.type === 'candidateEvidenceTable')).toHaveLength(1)
+      expect(blocks.filter((block) => block.type === 'candidateMoleculeTable')).toHaveLength(0)
+    }
+  })
+
   it('toggles Run Inspector open state and clears it when a Thread is deleted', () => {
     const state = createInitialDemoState(seedProjects, now)
 
@@ -565,7 +704,7 @@ describe('demo store logic', () => {
       ...selectThreadSnapshot(
         createInitialDemoState(seedProjects, now),
         'enzyme-discovery',
-        'screening-plan',
+        'enzyme-full-loop',
       ),
       draft: draftText,
     }
@@ -574,9 +713,9 @@ describe('demo store logic', () => {
     const next = submitDraftSnapshot(selected, now + 5000, () => 'unused-id')
 
     expect(next.projects[1].threads).toHaveLength(beforeCount)
-    expect(next.projects[1].threads[0].id).toBe('screening-plan')
+    expect(next.projects[1].threads[0].id).toBe('enzyme-full-loop')
     expect(next.projects[1].threads[0].lastActivityAt).toBe(now + 5000)
-    expect(next.selectedThreadId).toBe('screening-plan')
+    expect(next.selectedThreadId).toBe('enzyme-full-loop')
     expect(next.isDraftingNewThread).toBe(false)
     expect(next.draft).toBe('')
     expect(next.statusMessage).toBe('')
@@ -646,8 +785,8 @@ describe('demo store logic', () => {
         ...thread,
         lastActivityAt: now + index,
         archived: thread.id === 'egfr-affinity',
-        pinned: thread.id === 'screening-plan',
-        pinnedAt: thread.id === 'screening-plan' ? now + 100_000 : null,
+        pinned: thread.id === 'enzyme-full-loop',
+        pinnedAt: thread.id === 'enzyme-full-loop' ? now + 100_000 : null,
       })),
     }))
 
@@ -661,7 +800,7 @@ describe('demo store logic', () => {
         .toSorted((left, right) => right - left),
     )
     expect(recentEntries.map((entry) => entry.projectName)).toEqual(
-      expect.arrayContaining(['Antibody Optimization', 'Enzyme Discovery']),
+      expect.arrayContaining(['Antibody Optimization', 'Industrial Enzyme Design']),
     )
   })
 

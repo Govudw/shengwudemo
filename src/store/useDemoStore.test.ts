@@ -90,6 +90,44 @@ describe('demo store persistence', () => {
     expectCurrentEgfrReplaySeed(useDemoStore.getState().projects)
   })
 
+  it('removes obsolete enzyme placeholder Threads during hydrate while preserving user Threads', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: createOldEnzymePersistedState(),
+      version: demoStorePersistVersion,
+    })
+
+    const state = useDemoStore.getState()
+    const enzymeProject = state.projects.find(
+      (project) => project.id === 'enzyme-discovery',
+    )
+    const antibodyProject = state.projects.find(
+      (project) => project.id === 'antibody-optimization',
+    )
+    const projectIds = state.projects.map((project) => project.id)
+
+    expect(enzymeProject?.threads.map((thread) => thread.id)).not.toEqual(
+      expect.arrayContaining(['enzyme-family', 'screening-plan', 'enzymekcat']),
+    )
+    expect(enzymeProject?.threads).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'custom-enzyme-thread' }),
+      ]),
+    )
+    expect(antibodyProject?.threads).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'custom-antibody-thread' }),
+      ]),
+    )
+    expect(projectIds).toEqual(seedProjects.map((project) => project.id))
+    expect(antibodyProject?.threads).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: 'egfr-affinity' })]),
+    )
+    expect(state.selectedProjectId).toBe('enzyme-discovery')
+    expect(state.selectedThreadId).toBeNull()
+    expect(state.isDraftingNewThread).toBe(true)
+  })
+
   it('keeps turns appended after the current seeded EGFR replay during hydrate', async () => {
     const { demoStorePersistVersion } = await import('./useDemoStore')
     const extraTurns = [
@@ -473,6 +511,56 @@ function createOldEgfrPersistedState() {
     isDraftingNewThread: false,
     draft: '',
     expandedProjectIds: ['antibody-optimization'],
+  }
+}
+
+function createOldEnzymePersistedState() {
+  return {
+    projects: [
+      {
+        id: 'enzyme-discovery',
+        name: 'Industrial Enzyme Discovery',
+        threads: [
+          createPersistedThread('enzyme-family', '新型噬酸酶家族调研', 0),
+          createPersistedThread('screening-plan', '底盘筛选实验方案', 1),
+          createPersistedThread('enzymekcat', 'EnzymeKcat 模型探索', 2),
+          createPersistedThread(
+            'custom-enzyme-thread',
+            '用户新增的酶设计对话',
+            3,
+          ),
+        ],
+      },
+      {
+        id: 'antibody-optimization',
+        name: 'Antibody Optimization',
+        threads: [
+          createPersistedThread(
+            'custom-antibody-thread',
+            '用户新增的抗体项目对话',
+            4,
+          ),
+        ],
+      },
+    ],
+    selectedProjectId: 'enzyme-discovery',
+    selectedThreadId: 'screening-plan',
+    isDraftingNewThread: false,
+    draft: '',
+    expandedProjectIds: ['enzyme-discovery'],
+  }
+}
+
+function createPersistedThread(id: string, title: string, timestamp: number) {
+  return {
+    id,
+    title,
+    lastActivityAt: timestamp,
+    pinned: false,
+    pinnedAt: null,
+    archived: false,
+    createdAt: timestamp,
+    transcript: [],
   }
 }
 

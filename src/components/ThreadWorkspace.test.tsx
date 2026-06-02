@@ -70,6 +70,65 @@ afterEach(() => {
 })
 
 describe('ThreadWorkspace', () => {
+  it('renders candidate evidence table blocks with configured enzyme columns', () => {
+    const enzymeThread: DemoThread = {
+      ...thread,
+      id: 'enzyme-design',
+      title: 'Enzyme design evidence',
+      transcript: [
+        {
+          id: 'enzyme-candidates',
+          role: 'mainAgent',
+          contentBlocks: [
+            {
+              type: 'candidateEvidenceTable',
+              title: 'Enzyme candidate evidence',
+              columns: [
+                { key: 'kcatKmProxy', label: 'kcat/Km proxy' },
+                { key: 'tm', label: 'Tm' },
+                { key: 'phWindow', label: 'pH window' },
+              ],
+              rows: [
+                {
+                  id: 'ENZ-MUT-021',
+                  group: 'active-site loop',
+                  evidence: {
+                    kcatKmProxy: '+2.1x',
+                    tm: '68 C',
+                    phWindow: '6.5-8.0',
+                  },
+                  risk: 'medium',
+                  rationale: 'Improves turnover proxy while preserving thermostability.',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    }
+
+    const html = renderToString(
+      <ThreadWorkspace
+        thread={enzymeThread}
+        projectName="Enzyme Design"
+        draft=""
+        onDraftChange={noop}
+        onSubmit={noop}
+        onRenameThread={noop}
+        onArchiveThread={noop}
+        onDeleteThread={noop}
+        onNotify={noop}
+        runInspectorOpen={false}
+        onRunInspectorOpenChange={noop}
+      />,
+    )
+
+    expect(html).toContain('kcat/Km proxy')
+    expect(html).toContain('Tm')
+    expect(html).toContain('pH window')
+    expect(html).toContain('ENZ-MUT-021')
+  })
+
   it('renders the compact run info action while closed', () => {
     const html = renderToString(
       <ThreadWorkspace

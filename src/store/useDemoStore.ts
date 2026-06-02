@@ -36,6 +36,14 @@ import type {
 export const demoStorePersistKey = 'biomap-agent-demo-store-v2'
 export const demoStorePersistVersion = 3
 
+const obsoleteSeedThreadIdsByProjectId: Record<string, ReadonlySet<string>> = {
+  'enzyme-discovery': new Set([
+    'enzyme-family',
+    'screening-plan',
+    'enzymekcat',
+  ]),
+}
+
 type DemoStoreState = DemoStateSnapshot & {
   startNewThread: () => void
   selectThread: (projectId: string, threadId: string) => void
@@ -131,6 +139,14 @@ export const useDemoStore = create<DemoStoreState>()(
       }),
       merge: (persistedState, currentState) => {
         const restoredState = (persistedState ?? {}) as Partial<DemoStateSnapshot>
+        const selectedProjectId =
+          restoredState.selectedProjectId ?? currentState.selectedProjectId
+        const selectedThreadId =
+          restoredState.selectedThreadId ?? currentState.selectedThreadId
+        const selectedObsoleteThread = isObsoleteSeedThreadId(
+          selectedProjectId,
+          selectedThreadId,
+        )
         const mergedState: DemoStateSnapshot = {
           ...currentState,
           ...restoredState,
@@ -140,13 +156,13 @@ export const useDemoStore = create<DemoStoreState>()(
                 currentState.projects,
               )
             : currentState.projects,
-          selectedProjectId:
-            restoredState.selectedProjectId ?? currentState.selectedProjectId,
-          selectedThreadId:
-            restoredState.selectedThreadId ?? currentState.selectedThreadId,
+          selectedProjectId,
+          selectedThreadId: selectedObsoleteThread ? null : selectedThreadId,
           isDraftingNewThread:
-            restoredState.isDraftingNewThread ??
-            currentState.isDraftingNewThread,
+            selectedObsoleteThread
+              ? true
+              : (restoredState.isDraftingNewThread ??
+                currentState.isDraftingNewThread),
           draft: restoredState.draft ?? currentState.draft,
           expandedProjectIds:
             restoredState.expandedProjectIds ?? currentState.expandedProjectIds,
@@ -282,11 +298,18 @@ function mergeProjectsWithCurrentSeed(
       return currentProject
     }
 
+    const obsoleteThreadIds = obsoleteSeedThreadIdsByProjectId[currentProject.id]
+    const currentSeedThreads = obsoleteThreadIds
+      ? currentProject.threads.filter((thread) => !obsoleteThreadIds.has(thread.id))
+      : currentProject.threads
+    const restoredThreads = obsoleteThreadIds
+      ? restoredProject.threads.filter((thread) => !obsoleteThreadIds.has(thread.id))
+      : restoredProject.threads
     const currentSeedThreadsById = new Map(
-      currentProject.threads.map((thread) => [thread.id, thread]),
+      currentSeedThreads.map((thread) => [thread.id, thread]),
     )
     const mergedThreadIds = new Set<string>()
-    const restoredOrSeededThreads = restoredProject.threads.map((thread) => {
+    const restoredOrSeededThreads = restoredThreads.map((thread) => {
       const currentSeedThread = currentSeedThreadsById.get(thread.id)
 
       if (!currentSeedThread) {
@@ -297,7 +320,7 @@ function mergeProjectsWithCurrentSeed(
       mergedThreadIds.add(currentSeedThread.id)
       return mergeSeedThread(currentSeedThread, thread)
     })
-    const missingSeedThreads = currentProject.threads.filter(
+    const missingSeedThreads = currentSeedThreads.filter(
       (thread) => !mergedThreadIds.has(thread.id),
     )
 
@@ -315,6 +338,17 @@ function mergeProjectsWithCurrentSeed(
   )
 
   return [...userCreatedProjects, ...mergedProjects]
+}
+
+function isObsoleteSeedThreadId(
+  projectId: string | null,
+  threadId: string | null,
+): boolean {
+  if (!projectId || !threadId) {
+    return false
+  }
+
+  return obsoleteSeedThreadIdsByProjectId[projectId]?.has(threadId) ?? false
 }
 
 function mergeSeedThread(

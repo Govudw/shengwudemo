@@ -129,6 +129,47 @@ function ConversationBlockView({ block }: { block: ConversationBlock }) {
         </section>
       )
 
+    case 'candidateEvidenceTable':
+      return (
+        <section className="candidate-evidence-table-block" aria-label={block.title}>
+          <h3>{block.title}</h3>
+          <div className="candidate-evidence-table-block__scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Group</th>
+                  {block.columns.map((column) => (
+                    <th key={column.key}>{column.label}</th>
+                  ))}
+                  <th>Risk</th>
+                  <th>Rationale</th>
+                </tr>
+              </thead>
+              <tbody>
+                {block.rows.map((row) => (
+                  <tr key={row.id}>
+                    <td className="candidate-evidence-table-block__id">{row.id}</td>
+                    <td>{row.group}</td>
+                    {block.columns.map((column) => (
+                      <td key={column.key}>{row.evidence[column.key] ?? ''}</td>
+                    ))}
+                    <td>
+                      <span
+                        className={`candidate-evidence-table-block__risk candidate-evidence-table-block__risk--${row.risk}`}
+                      >
+                        {riskLabels[row.risk]}
+                      </span>
+                    </td>
+                    <td>{row.rationale}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )
+
     case 'experimentOrderDraft':
       return (
         <section className="experiment-order-block" aria-label={block.title}>

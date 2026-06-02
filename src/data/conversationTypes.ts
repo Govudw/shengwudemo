@@ -67,6 +67,7 @@ export type ConversationBlock =
   | CommandPreviewBlock
   | VisualEvidenceBlock
   | CandidateMoleculeTableBlock
+  | CandidateEvidenceTableBlock
   | ExperimentOrderDraftBlock
   | ApprovalGatePreviewBlock
   | CapabilityRunReplayBlock
@@ -109,6 +110,19 @@ export type CandidateMoleculeTableBlock = {
     id: string
     mutation: string
     predictedKd: string
+    risk: 'low' | 'medium' | 'high'
+    rationale: string
+  }>
+}
+
+export type CandidateEvidenceTableBlock = {
+  type: 'candidateEvidenceTable'
+  title: string
+  columns: Array<{ key: string; label: string }>
+  rows: Array<{
+    id: string
+    group: string
+    evidence: Record<string, string>
     risk: 'low' | 'medium' | 'high'
     rationale: string
   }>
