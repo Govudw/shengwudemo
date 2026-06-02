@@ -31,6 +31,9 @@ function App() {
   const assetsActiveSection = useDemoStore((state) => state.assetsActiveSection)
   const assetsActiveItem = useDemoStore((state) => state.assetsActiveItem)
   const assetsFileViewMode = useDemoStore((state) => state.assetsFileViewMode)
+  const assetsExperimentViewMode = useDemoStore(
+    (state) => state.assetsExperimentViewMode,
+  )
   const assetsOpenFolderId = useDemoStore((state) => state.assetsOpenFolderId)
   const statusMessage = useDemoStore((state) => state.statusMessage)
   const startNewThread = useDemoStore((state) => state.startNewThread)
@@ -51,6 +54,9 @@ function App() {
   const selectTopNav = useDemoStore((state) => state.selectTopNav)
   const setAssetsSelection = useDemoStore((state) => state.setAssetsSelection)
   const setAssetsFileViewMode = useDemoStore((state) => state.setAssetsFileViewMode)
+  const setAssetsExperimentViewMode = useDemoStore(
+    (state) => state.setAssetsExperimentViewMode,
+  )
   const setAssetsOpenFolder = useDemoStore((state) => state.setAssetsOpenFolder)
   const showStatus = useDemoStore((state) => state.showStatus)
   const clearStatus = useDemoStore((state) => state.clearStatus)
@@ -131,9 +137,11 @@ function App() {
           activeSection={assetsActiveSection}
           activeItem={assetsActiveItem}
           fileViewMode={assetsFileViewMode}
+          experimentViewMode={assetsExperimentViewMode}
           openFolderId={assetsOpenFolderId}
           onSelectionChange={setAssetsSelection}
           onFileViewModeChange={setAssetsFileViewMode}
+          onExperimentViewModeChange={setAssetsExperimentViewMode}
           onOpenFolderChange={setAssetsOpenFolder}
           onNotify={showStatus}
         />

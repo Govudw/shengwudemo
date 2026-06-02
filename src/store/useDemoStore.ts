@@ -9,6 +9,7 @@ import {
   sanitizeDemoState,
   selectTopNavSnapshot,
   selectThreadSnapshot,
+  setAssetsExperimentViewModeSnapshot,
   setAssetsFileViewModeSnapshot,
   setAssetsOpenFolderSnapshot,
   setAssetsSelectionSnapshot,
@@ -23,6 +24,7 @@ import {
 import type {
   ActiveTopNav,
   AssetMenuItemId,
+  AssetsExperimentViewMode,
   AssetsFileViewMode,
   AssetsSection,
   DemoProject,
@@ -49,6 +51,7 @@ type DemoStoreState = DemoStateSnapshot & {
   selectTopNav: (activeTopNav: ActiveTopNav) => void
   setAssetsSelection: (section: AssetsSection, item: AssetMenuItemId) => void
   setAssetsFileViewMode: (mode: AssetsFileViewMode) => void
+  setAssetsExperimentViewMode: (mode: AssetsExperimentViewMode) => void
   setAssetsOpenFolder: (folderId: string | null) => void
   showStatus: (message: string) => void
   clearStatus: () => void
@@ -91,6 +94,8 @@ export const useDemoStore = create<DemoStoreState>()(
         set((state) => setAssetsSelectionSnapshot(state, section, item)),
       setAssetsFileViewMode: (mode) =>
         set((state) => setAssetsFileViewModeSnapshot(state, mode)),
+      setAssetsExperimentViewMode: (mode) =>
+        set((state) => setAssetsExperimentViewModeSnapshot(state, mode)),
       setAssetsOpenFolder: (folderId) =>
         set((state) => setAssetsOpenFolderSnapshot(state, folderId)),
       showStatus: (message) => set({ statusMessage: message }),
@@ -115,6 +120,7 @@ export const useDemoStore = create<DemoStoreState>()(
         assetsActiveSection: state.assetsActiveSection,
         assetsActiveItem: state.assetsActiveItem,
         assetsFileViewMode: state.assetsFileViewMode,
+        assetsExperimentViewMode: state.assetsExperimentViewMode,
         assetsOpenFolderId: state.assetsOpenFolderId,
       }),
       merge: (persistedState, currentState) => {
@@ -155,6 +161,9 @@ export const useDemoStore = create<DemoStoreState>()(
             restoredState.assetsActiveItem ?? currentState.assetsActiveItem,
           assetsFileViewMode:
             restoredState.assetsFileViewMode ?? currentState.assetsFileViewMode,
+          assetsExperimentViewMode:
+            restoredState.assetsExperimentViewMode ??
+            currentState.assetsExperimentViewMode,
           assetsOpenFolderId:
             restoredState.assetsOpenFolderId ?? currentState.assetsOpenFolderId,
           statusMessage: '',

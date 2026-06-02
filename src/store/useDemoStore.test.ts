@@ -203,6 +203,7 @@ describe('demo store persistence', () => {
         assetsActiveSection: 'model',
         assetsActiveItem: 'oracles',
         assetsFileViewMode: 'grid',
+        assetsExperimentViewMode: 'table',
         assetsOpenFolderId: 'project-antibody-optimization',
       },
       version: demoStorePersistVersion,
@@ -212,10 +213,12 @@ describe('demo store persistence', () => {
     expect(useDemoStore.getState().assetsActiveSection).toBe('model')
     expect(useDemoStore.getState().assetsActiveItem).toBe('oracles')
     expect(useDemoStore.getState().assetsFileViewMode).toBe('grid')
+    expect(useDemoStore.getState().assetsExperimentViewMode).toBe('table')
     expect(useDemoStore.getState().assetsOpenFolderId).toBeNull()
 
     useDemoStore.getState().setAssetsSelection('experiment', 'execution')
     useDemoStore.getState().setAssetsFileViewMode('list')
+    useDemoStore.getState().setAssetsExperimentViewMode('grid')
     useDemoStore.getState().setAssetsOpenFolder(null)
 
     const { demoStorePersistKey } = await import('./useDemoStore')
@@ -224,12 +227,14 @@ describe('demo store persistence', () => {
     expect(persistedPayload.state.assetsActiveSection).toBe('experiment')
     expect(persistedPayload.state.assetsActiveItem).toBe('execution')
     expect(persistedPayload.state.assetsFileViewMode).toBe('list')
+    expect(persistedPayload.state.assetsExperimentViewMode).toBe('grid')
     expect(persistedPayload.state.assetsOpenFolderId).toBeNull()
 
     useDemoStore.getState().resetDemoState()
     expect(useDemoStore.getState().activeTopNav).toBe('Workspace')
     expect(useDemoStore.getState().assetsActiveSection).toBe('file')
     expect(useDemoStore.getState().assetsActiveItem).toBe('project-files')
+    expect(useDemoStore.getState().assetsExperimentViewMode).toBe('grid')
   })
 
   it('sanitizes invalid persisted Assets state', async () => {
@@ -241,6 +246,7 @@ describe('demo store persistence', () => {
         assetsActiveSection: 'private',
         assetsActiveItem: 'templates',
         assetsFileViewMode: 'kanban',
+        assetsExperimentViewMode: 'board',
         assetsOpenFolderId: 123,
       },
       version: demoStorePersistVersion,
@@ -250,7 +256,41 @@ describe('demo store persistence', () => {
     expect(useDemoStore.getState().assetsActiveSection).toBe('file')
     expect(useDemoStore.getState().assetsActiveItem).toBe('project-files')
     expect(useDemoStore.getState().assetsFileViewMode).toBe('list')
+    expect(useDemoStore.getState().assetsExperimentViewMode).toBe('grid')
     expect(useDemoStore.getState().assetsOpenFolderId).toBeNull()
+  })
+
+  it('migrates legacy Experiment asset menu ids during hydrate', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const requestState = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        activeTopNav: 'Assets',
+        assetsActiveSection: 'experiment',
+        assetsActiveItem: 'request',
+      },
+      version: demoStorePersistVersion,
+    })
+
+    expect(requestState.useDemoStore.getState().assetsActiveItem).toBe(
+      'experiment-list',
+    )
+
+    vi.resetModules()
+    localStorage.clear()
+    const configurationState = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        activeTopNav: 'Assets',
+        assetsActiveSection: 'experiment',
+        assetsActiveItem: 'configuration',
+      },
+      version: demoStorePersistVersion,
+    })
+
+    expect(configurationState.useDemoStore.getState().assetsActiveItem).toBe(
+      'recipe',
+    )
   })
 
   it('clears a persisted project folder when the active Assets menu is not project files', async () => {

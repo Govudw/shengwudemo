@@ -12,6 +12,7 @@ import {
   renameThreadSnapshot,
   selectTopNavSnapshot,
   selectThreadSnapshot,
+  setAssetsExperimentViewModeSnapshot,
   setAssetsFileViewModeSnapshot,
   setAssetsSelectionSnapshot,
   setSelectedProjectSnapshot,
@@ -36,6 +37,7 @@ describe('demo store logic', () => {
     expect(state.assetsActiveSection).toBe('file')
     expect(state.assetsActiveItem).toBe('project-files')
     expect(state.assetsFileViewMode).toBe('list')
+    expect(state.assetsExperimentViewMode).toBe('grid')
     expect(state.assetsOpenFolderId).toBeNull()
     expect(state.expandedProjectIds).toEqual(seedProjects.map((project) => project.id))
     expect(firstThread).toMatchObject({
@@ -69,7 +71,7 @@ describe('demo store logic', () => {
     expect(workspace.selectedThreadId).toBe('egfr-affinity')
   })
 
-  it('persists the current Assets menu item and file view mode as plain state', () => {
+  it('persists the current Assets menu item and view modes as plain state', () => {
     const state = createInitialDemoState(seedProjects, now)
     const selectedExperiment = setAssetsSelectionSnapshot(
       state,
@@ -77,10 +79,12 @@ describe('demo store logic', () => {
       'execution',
     )
     const gridMode = setAssetsFileViewModeSnapshot(selectedExperiment, 'grid')
+    const experimentTableMode = setAssetsExperimentViewModeSnapshot(gridMode, 'table')
 
     expect(selectedExperiment.assetsActiveSection).toBe('experiment')
     expect(selectedExperiment.assetsActiveItem).toBe('execution')
     expect(gridMode.assetsFileViewMode).toBe('grid')
+    expect(experimentTableMode.assetsExperimentViewMode).toBe('table')
   })
 
   it('toggles the persisted sidebar collapsed state without changing Thread selection', () => {

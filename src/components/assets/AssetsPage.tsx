@@ -14,6 +14,7 @@ import {
 import type {
   DataAssetRecord,
   ExperimentAssetRecord,
+  ExperimentAssetKind,
   FileAssetRecord,
   ModelAssetRecord,
   XtrimoCapability,
@@ -23,6 +24,7 @@ import type {
 } from '../../data/assetsMockData'
 import type {
   AssetMenuItemId,
+  AssetsExperimentViewMode,
   AssetsFileViewMode,
   AssetsSection,
 } from '../../store/demoStoreLogic'
@@ -43,9 +45,11 @@ type AssetsPageProps = {
   activeSection: AssetsSection
   activeItem: AssetMenuItemId
   fileViewMode: AssetsFileViewMode
+  experimentViewMode: AssetsExperimentViewMode
   openFolderId: string | null
   onSelectionChange: (section: AssetsSection, item: AssetMenuItemId) => void
   onFileViewModeChange: (mode: AssetsFileViewMode) => void
+  onExperimentViewModeChange: (mode: AssetsExperimentViewMode) => void
   onOpenFolderChange: (folderId: string | null) => void
   onNotify: (message: string) => void
 }
@@ -59,9 +63,11 @@ function AssetsPage({
   activeSection,
   activeItem,
   fileViewMode,
+  experimentViewMode,
   openFolderId,
   onSelectionChange,
   onFileViewModeChange,
+  onExperimentViewModeChange,
   onOpenFolderChange,
   onNotify,
 }: AssetsPageProps) {
@@ -72,6 +78,8 @@ function AssetsPage({
   const activeSectionMeta = getAssetSection(activeSection)
   const activeItemMeta = getAssetMenuItem(activeSection, activeItem)
   const isXtrimoView = activeSection === 'model' && activeItem === 'xtrimo'
+  const isExperimentView = activeSection === 'experiment'
+  const newAssetActions = getNewAssetMenuActions(activeSection, activeItem)
   const headerDescription = isXtrimoView
     ? 'BioMap 自研 xTrimo 模型家族，覆盖蛋白、抗体、酶、细胞与 AAV 等研发任务'
     : activeSectionMeta?.description
@@ -166,30 +174,15 @@ function AssetsPage({
                   </button>
                   {newMenuOpen ? (
                     <div className="assets-popover assets-popover--compact">
-                      <button
-                        type="button"
-                        onClick={() => handleMockAction('新建文件夹将在后续 Demo 中展开')}
-                      >
-                        新建文件夹
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleMockAction('新建数据集将在后续 Demo 中展开')}
-                      >
-                        新建数据集
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleMockAction('新建实验需求将在后续 Demo 中展开')}
-                      >
-                        新建实验需求
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleMockAction('注册模型将在后续 Demo 中展开')}
-                      >
-                        注册模型
-                      </button>
+                      {newAssetActions.map((action) => (
+                        <button
+                          type="button"
+                          key={action.label}
+                          onClick={() => handleMockAction(action.message)}
+                        >
+                          {action.label}
+                        </button>
+                      ))}
                     </div>
                   ) : null}
                 </div>
@@ -247,13 +240,32 @@ function AssetsPage({
             <label className="assets-search">
               <SearchIcon className="assets-search__icon" />
               <input
-                aria-label="搜索当前资产"
+                aria-label={isExperimentView ? '搜索实验资产' : '搜索当前资产'}
                 value={query}
-                placeholder="搜索当前资产"
+                placeholder={isExperimentView ? '搜索实验资产' : '搜索当前资产'}
                 onChange={(event) => setQuery(event.target.value)}
               />
             </label>
-            {isFileAssetItem(activeItem) ? (
+            {isExperimentView ? (
+              <div className="assets-view-toggle" aria-label="实验资产显示方式">
+                <button
+                  type="button"
+                  className={experimentViewMode === 'grid' ? 'active' : ''}
+                  aria-pressed={experimentViewMode === 'grid'}
+                  onClick={() => onExperimentViewModeChange('grid')}
+                >
+                  卡片
+                </button>
+                <button
+                  type="button"
+                  className={experimentViewMode === 'table' ? 'active' : ''}
+                  aria-pressed={experimentViewMode === 'table'}
+                  onClick={() => onExperimentViewModeChange('table')}
+                >
+                  表格
+                </button>
+              </div>
+            ) : isFileAssetItem(activeItem) ? (
               <div className="assets-view-toggle" aria-label="文件显示方式">
                 <button
                   type="button"
@@ -277,6 +289,7 @@ function AssetsPage({
         <AssetContent
           activeItem={activeItem}
           fileViewMode={fileViewMode}
+          experimentViewMode={experimentViewMode}
           openFolderId={openFolderId}
           query={query}
           onQueryChange={setQuery}
@@ -339,6 +352,7 @@ function AssetsPage({
 function AssetContent({
   activeItem,
   fileViewMode,
+  experimentViewMode,
   openFolderId,
   query,
   onQueryChange,
@@ -347,6 +361,7 @@ function AssetContent({
 }: {
   activeItem: AssetMenuItemId
   fileViewMode: AssetsFileViewMode
+  experimentViewMode: AssetsExperimentViewMode
   openFolderId: string | null
   query: string
   onQueryChange: (query: string) => void
@@ -370,11 +385,13 @@ function AssetContent({
     return <DataAssetsView item={activeItem as DataAssetRecord['category']} query={query} />
   }
 
-  if (['request', 'execution', 'inventory', 'configuration'].includes(activeItem)) {
+  if (isExperimentAssetItem(activeItem)) {
     return (
       <ExperimentAssetsView
-        item={activeItem as ExperimentAssetRecord['category']}
+        item={activeItem}
+        viewMode={experimentViewMode}
         query={query}
+        onNotify={onNotify}
       />
     )
   }
@@ -531,32 +548,132 @@ function DataAssetsView({
   )
 }
 
+const experimentKindLabels: Record<ExperimentAssetKind, string> = {
+  experimentDesignPackage: '设计包',
+  experimentOrderDraft: '订单草稿',
+  experimentOrder: '订单',
+  experimentTask: '实验任务',
+  schedule: '调度',
+  croOrder: 'CRO订单',
+  experimentRecord: '实验记录',
+  sample: '样本',
+  material: '物料',
+  plate: '孔板',
+  plateLink: '板位映射',
+  deviceType: '设备类型',
+  device: '设备',
+  location: '点位',
+  availabilityWindow: '预约窗口',
+  assayRecipe: '实验配方',
+  parameterTemplate: '参数模板',
+  workflowRecipe: '工作流配方',
+  qcRule: '质控规则',
+  consumptionRule: '消耗规则',
+}
+
 function ExperimentAssetsView({
   item,
+  viewMode,
   query,
+  onNotify,
 }: {
   item: ExperimentAssetRecord['category']
+  viewMode: AssetsExperimentViewMode
   query: string
+  onNotify: (message: string) => void
 }) {
-  const records = experimentAssetRecords.filter(
-    (record) => record.category === item && experimentMatches(record, query),
+  const [filterState, setFilterState] = useState<{
+    item: ExperimentAssetRecord['category']
+    kind: ExperimentAssetKind | 'all'
+    status: string
+  }>({ item, kind: 'all', status: 'all' })
+  const selectedKind = filterState.item === item ? filterState.kind : 'all'
+  const selectedStatus = filterState.item === item ? filterState.status : 'all'
+  const baseRecords = useMemo(
+    () => experimentAssetRecords.filter((record) => record.category === item),
+    [item],
+  )
+  const kindOptions = useMemo(
+    () => Array.from(new Set(baseRecords.map((record) => record.kind))),
+    [baseRecords],
+  )
+  const statusOptions = useMemo(
+    () => Array.from(new Set(baseRecords.map((record) => record.status))),
+    [baseRecords],
+  )
+  const records = baseRecords.filter(
+    (record) =>
+      (selectedKind === 'all' || record.kind === selectedKind) &&
+      (selectedStatus === 'all' || record.status === selectedStatus) &&
+      experimentMatches(record, query),
   )
 
   return (
     <section className="assets-content">
-      <AssetListHeader title="实验对象" count={records.length} />
-      <div className="assets-record-grid assets-record-grid--dense">
-        {records.map((record) => (
-          <GenericRecordCard
-            key={record.id}
-            title={record.name}
-            badge={record.status}
-            meta={`${assetScopeLabel[record.scope]} · ${record.updatedAt}`}
-            description={record.description}
-          />
-        ))}
+      <div className="assets-experiment-filter-bar" aria-label="实验资产筛选">
+        <div className="assets-experiment-filter-row">
+          <span>类型</span>
+          <button
+            type="button"
+            className={selectedKind === 'all' ? 'active' : ''}
+            aria-pressed={selectedKind === 'all'}
+            onClick={() => setFilterState({ item, kind: 'all', status: selectedStatus })}
+          >
+            全部类型
+          </button>
+          {kindOptions.map((kind) => (
+            <button
+              type="button"
+              key={kind}
+              className={selectedKind === kind ? 'active' : ''}
+              aria-pressed={selectedKind === kind}
+              onClick={() => setFilterState({ item, kind, status: selectedStatus })}
+            >
+              {experimentKindLabels[kind]}
+            </button>
+          ))}
+        </div>
+        <div className="assets-experiment-filter-row">
+          <span>状态</span>
+          <button
+            type="button"
+            className={selectedStatus === 'all' ? 'active' : ''}
+            aria-pressed={selectedStatus === 'all'}
+            onClick={() => setFilterState({ item, kind: selectedKind, status: 'all' })}
+          >
+            全部状态
+          </button>
+          {statusOptions.map((status) => (
+            <button
+              type="button"
+              key={status}
+              className={selectedStatus === status ? 'active' : ''}
+              aria-pressed={selectedStatus === status}
+              onClick={() => setFilterState({ item, kind: selectedKind, status })}
+            >
+              {status}
+            </button>
+          ))}
+        </div>
       </div>
-      {records.length === 0 ? <EmptyState /> : null}
+
+      <AssetListHeader title={getExperimentListTitle(item)} count={records.length} />
+      {viewMode === 'grid' ? (
+        <div className="assets-record-grid assets-record-grid--dense assets-record-grid--experiment">
+          {records.map((record) => (
+            <ExperimentRecordCard
+              key={record.id}
+              record={record}
+              onNotify={onNotify}
+            />
+          ))}
+        </div>
+      ) : (
+        <ExperimentAssetsTable item={item} records={records} onNotify={onNotify} />
+      )}
+      {records.length === 0 ? (
+        <div className="assets-empty">当前筛选下暂无实验资产</div>
+      ) : null}
     </section>
   )
 }
@@ -807,6 +924,104 @@ function FileRecordCard({
   )
 }
 
+function ExperimentRecordCard({
+  record,
+  onNotify,
+}: {
+  record: ExperimentAssetRecord
+  onNotify: (message: string) => void
+}) {
+  return (
+    <article className="assets-record-card assets-record-card--experiment">
+      <div className="assets-record-card__top">
+        <PackageIcon className="assets-record-card__icon" />
+        <span className="assets-record-card__badge assets-record-card__badge--muted">
+          {experimentKindLabels[record.kind]}
+        </span>
+        <span className="assets-record-card__badge">{record.status}</span>
+      </div>
+      <h3>{record.name}</h3>
+      <p>{record.description}</p>
+      <div className="assets-record-card__meta assets-record-card__meta--stacked">
+        <span>{record.primaryMeta}</span>
+        <span>{record.secondaryMeta}</span>
+        {record.tertiaryMeta ? <span>{record.tertiaryMeta}</span> : null}
+      </div>
+      <div className="assets-record-card__meta">
+        <span>{assetScopeLabel[record.scope]}</span>
+        <span>{record.projectName ?? '公共资产'}</span>
+        <span>{record.updatedAt}</span>
+      </div>
+      <button
+        type="button"
+        className="assets-record-card__action"
+        onClick={() => onNotify('实验资产详情将在后续 Demo 中展开')}
+      >
+        查看详情
+      </button>
+    </article>
+  )
+}
+
+function ExperimentAssetsTable({
+  item,
+  records,
+  onNotify,
+}: {
+  item: ExperimentAssetRecord['category']
+  records: ExperimentAssetRecord[]
+  onNotify: (message: string) => void
+}) {
+  const columns = getExperimentTableColumns(item)
+  const rowClassName = `assets-table__row assets-table__row--experiment assets-table__row--experiment-${columns.length}`
+
+  return (
+    <div className="assets-table assets-experiment-table" role="table" aria-label="实验资产表格">
+      <div
+        className={`assets-table__row--head ${rowClassName}`}
+        role="row"
+      >
+        <span role="columnheader">名称</span>
+        {columns.map((column) => (
+          <span role="columnheader" key={column.header}>
+            {column.header}
+          </span>
+        ))}
+        <span role="columnheader">操作</span>
+      </div>
+      {records.map((record) => (
+        <div
+          className={rowClassName}
+          role="row"
+          key={record.id}
+        >
+          <span className="assets-table__name" role="cell">
+            <PackageIcon className="assets-record-card__icon" />
+            <span>
+              <strong>{record.name}</strong>
+              <small>{record.description}</small>
+            </span>
+          </span>
+          {columns.map((column) => (
+            <span role="cell" key={column.header}>
+              {column.value(record)}
+            </span>
+          ))}
+          <span role="cell">
+            <button
+              type="button"
+              className="assets-row-action"
+              onClick={() => onNotify('实验资产详情将在后续 Demo 中展开')}
+            >
+              <MoreHorizontalIcon className="assets-row-action__icon" />
+            </button>
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function GenericRecordCard({
   title,
   badge,
@@ -965,6 +1180,188 @@ function getFileListTitle(item: FileRecordMenuItem) {
   return '项目文件'
 }
 
+function getExperimentListTitle(item: ExperimentAssetRecord['category']) {
+  if (item === 'experiment-list') {
+    return '实验列表'
+  }
+
+  if (item === 'execution') {
+    return '执行记录'
+  }
+
+  if (item === 'inventory') {
+    return '库存资产'
+  }
+
+  if (item === 'equipment') {
+    return '设备资产'
+  }
+
+  return '实验配方'
+}
+
+type ExperimentTableColumn = {
+  header: string
+  value: (record: ExperimentAssetRecord) => string
+}
+
+function getExperimentTableColumns(
+  item: ExperimentAssetRecord['category'],
+): ExperimentTableColumn[] {
+  if (item === 'experiment-list') {
+    return [
+      { header: '类型', value: (record) => experimentKindLabels[record.kind] },
+      { header: '状态', value: (record) => record.status },
+      { header: '项目', value: (record) => record.projectName ?? '公共资产' },
+      { header: '分子数', value: (record) => getMetaPart(record.primaryMeta, 0) },
+      { header: '实验类型', value: (record) => getMetaPart(record.primaryMeta, 1) },
+      { header: '负责人', value: (record) => record.owner },
+      { header: '更新时间', value: (record) => record.updatedAt },
+    ]
+  }
+
+  if (item === 'execution') {
+    return [
+      { header: '类型', value: (record) => experimentKindLabels[record.kind] },
+      { header: '状态', value: (record) => record.status },
+      { header: '项目', value: (record) => record.projectName ?? '公共资产' },
+      { header: 'CRO或设备', value: (record) => getMetaPart(record.primaryMeta, 0) },
+      { header: '关联任务', value: (record) => record.secondaryMeta },
+      { header: '时间', value: (record) => record.updatedAt },
+      { header: '负责人', value: (record) => record.owner },
+    ]
+  }
+
+  if (item === 'inventory') {
+    return [
+      { header: '类型', value: (record) => experimentKindLabels[record.kind] },
+      { header: '状态', value: (record) => record.status },
+      { header: '范围', value: (record) => assetScopeLabel[record.scope] },
+      { header: '位置', value: (record) => record.secondaryMeta },
+      { header: '批次', value: (record) => record.tertiaryMeta ?? record.projectName ?? '公共资产' },
+      { header: '数量', value: (record) => record.primaryMeta },
+      { header: '更新时间', value: (record) => record.updatedAt },
+    ]
+  }
+
+  if (item === 'equipment') {
+    return [
+      { header: '类型', value: (record) => experimentKindLabels[record.kind] },
+      { header: '状态', value: (record) => record.status },
+      { header: '位置', value: (record) => record.primaryMeta },
+      { header: '支持实验', value: (record) => record.secondaryMeta },
+      { header: '自动化', value: (record) => record.tertiaryMeta ?? '未接入' },
+      { header: '下个可用窗口', value: (record) => getEquipmentWindow(record) },
+      { header: '更新时间', value: (record) => record.updatedAt },
+    ]
+  }
+
+  return [
+    { header: '类型', value: (record) => experimentKindLabels[record.kind] },
+    { header: '状态', value: (record) => record.status },
+    { header: '范围', value: (record) => assetScopeLabel[record.scope] },
+    { header: '适用实验', value: (record) => record.primaryMeta },
+    { header: '版本', value: (record) => getMetaPart(record.secondaryMeta, 0) },
+    { header: '关键参数', value: (record) => record.tertiaryMeta ?? getMetaPart(record.secondaryMeta, 1) },
+    { header: '维护人', value: (record) => record.owner },
+    { header: '更新时间', value: (record) => record.updatedAt },
+  ]
+}
+
+function getMetaPart(value: string, index: number) {
+  return value.split(' · ')[index]?.trim() || value
+}
+
+function getEquipmentWindow(record: ExperimentAssetRecord) {
+  if (record.kind === 'availabilityWindow') {
+    return record.primaryMeta
+  }
+
+  if (record.secondaryMeta.startsWith('Next window:')) {
+    return record.secondaryMeta.replace('Next window:', '').trim()
+  }
+
+  return record.status === '可用' || record.status === 'CRO 可用' ? '当前可用' : record.status
+}
+
+function getNewAssetMenuActions(
+  section: AssetsSection,
+  item: AssetMenuItemId,
+): { label: string; message: string }[] {
+  if (section === 'experiment' && isExperimentAssetItem(item)) {
+    if (item === 'experiment-list') {
+      return [
+        {
+          label: '新建实验订单草稿',
+          message: '新建实验订单草稿将在后续 Demo 中展开',
+        },
+        {
+          label: '新建设计包',
+          message: '新建设计包将在后续 Demo 中展开',
+        },
+      ]
+    }
+
+    if (item === 'execution') {
+      return [
+        {
+          label: '登记实验记录',
+          message: '登记实验记录将在后续 Demo 中展开',
+        },
+        {
+          label: '创建调度占位',
+          message: '创建调度占位将在后续 Demo 中展开',
+        },
+      ]
+    }
+
+    if (item === 'inventory') {
+      return [
+        { label: '登记样本', message: '登记样本将在后续 Demo 中展开' },
+        { label: '登记物料', message: '登记物料将在后续 Demo 中展开' },
+        { label: '新增孔板', message: '新增孔板将在后续 Demo 中展开' },
+      ]
+    }
+
+    if (item === 'equipment') {
+      return [
+        { label: '登记设备', message: '登记设备将在后续 Demo 中展开' },
+        {
+          label: '新增可用窗口',
+          message: '新增可用窗口将在后续 Demo 中展开',
+        },
+      ]
+    }
+
+    return [
+      { label: '新建配方', message: '新建配方将在后续 Demo 中展开' },
+      {
+        label: '复制公开配方到项目',
+        message: '复制公开配方到项目将在后续 Demo 中展开',
+      },
+    ]
+  }
+
+  if (section === 'file') {
+    return [
+      { label: '新建文件夹', message: '新建文件夹将在后续 Demo 中展开' },
+      { label: '新建文档', message: '新建文档将在后续 Demo 中展开' },
+    ]
+  }
+
+  if (section === 'data') {
+    return [
+      { label: '新建数据集', message: '新建数据集将在后续 Demo 中展开' },
+      { label: '登记数据表', message: '登记数据表将在后续 Demo 中展开' },
+    ]
+  }
+
+  return [
+    { label: '注册模型', message: '注册模型将在后续 Demo 中展开' },
+    { label: '新建 Oracle', message: '新建 Oracle 将在后续 Demo 中展开' },
+  ]
+}
+
 function fileMatches(record: FileAssetRecord, query: string) {
   return matchesQuery(
     [record.name, record.description, record.owner, record.kind, record.scope],
@@ -981,7 +1378,18 @@ function dataMatches(record: DataAssetRecord, query: string) {
 
 function experimentMatches(record: ExperimentAssetRecord, query: string) {
   return matchesQuery(
-    [record.name, record.description, record.owner, record.status, record.scope],
+    [
+      record.name,
+      record.description,
+      record.owner,
+      record.status,
+      record.scope,
+      experimentKindLabels[record.kind],
+      record.projectName ?? '',
+      record.primaryMeta,
+      record.secondaryMeta,
+      record.tertiaryMeta ?? '',
+    ],
     query,
   )
 }
@@ -1022,5 +1430,13 @@ type FileAssetRecordMenuItem = Extract<
   'public-files' | 'project-files' | 'recent-uploads' | 'archived-files'
 >
 type FileRecordMenuItem = FileAssetRecordMenuItem
+
+function isExperimentAssetItem(
+  item: AssetMenuItemId,
+): item is ExperimentAssetRecord['category'] {
+  return ['experiment-list', 'execution', 'inventory', 'equipment', 'recipe'].includes(
+    item,
+  )
+}
 
 export default AssetsPage

@@ -1567,6 +1567,11 @@
   white-space: nowrap;
 }
 
+.assets-record-card__badge--muted {
+  color: var(--muted);
+  background: var(--surface-soft);
+}
+
 .assets-record-card h3 {
   margin: 0 0 10px;
   color: var(--text);
@@ -1594,6 +1599,20 @@
   font-weight: 750;
 }
 
+.assets-record-card__meta--stacked {
+  display: block;
+  margin-top: 10px;
+  padding-top: 0;
+}
+
+.assets-record-card__meta--stacked span {
+  display: block;
+  overflow: hidden;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .assets-record-card__action {
   align-self: flex-start;
   height: 30px;
@@ -1613,6 +1632,135 @@
 
 .assets-content--xtrimo {
   max-width: 1180px;
+}
+
+.assets-experiment-filter-bar {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.assets-experiment-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.assets-experiment-filter-row > span {
+  flex: 0 0 34px;
+  color: var(--faint);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.assets-experiment-filter-row button {
+  min-height: 24px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface-soft);
+  font-size: 12px;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.assets-experiment-filter-row button:hover {
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.assets-experiment-filter-row button.active {
+  color: var(--accent-strong);
+  border-color: rgba(8, 151, 191, 0.24);
+  background: var(--accent-soft);
+}
+
+.assets-record-grid--experiment {
+  gap: 12px;
+}
+
+.assets-record-card--experiment {
+  min-height: 184px;
+  padding: 14px;
+  box-shadow: 0 6px 16px rgba(16, 35, 63, 0.035);
+}
+
+.assets-record-card--experiment .assets-record-card__top {
+  justify-content: flex-start;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.assets-record-card--experiment .assets-record-card__top .assets-record-card__badge:last-child {
+  margin-left: auto;
+}
+
+.assets-record-card--experiment h3 {
+  margin-bottom: 7px;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assets-record-card--experiment p {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.assets-record-card--experiment .assets-record-card__meta {
+  padding-top: 10px;
+  font-size: 11px;
+}
+
+.assets-record-card--experiment .assets-record-card__action {
+  height: 26px;
+  margin-top: 10px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.assets-table__row--experiment {
+  min-width: 1180px;
+}
+
+.assets-table__row--experiment-7 {
+  grid-template-columns:
+    minmax(270px, 1.75fr)
+    86px
+    92px
+    98px
+    minmax(140px, 0.9fr)
+    minmax(180px, 1.1fr)
+    96px
+    106px
+    56px;
+}
+
+.assets-table__row--experiment-8 {
+  grid-template-columns:
+    minmax(270px, 1.75fr)
+    84px
+    84px
+    90px
+    minmax(138px, 0.9fr)
+    minmax(120px, 0.75fr)
+    minmax(150px, 1fr)
+    88px
+    100px
+    56px;
+  min-width: 1280px;
 }
 
 .assets-main--xtrimo {

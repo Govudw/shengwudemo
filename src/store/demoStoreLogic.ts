@@ -32,6 +32,7 @@ export type DemoStateSnapshot = {
   assetsActiveSection: AssetsSection
   assetsActiveItem: AssetMenuItemId
   assetsFileViewMode: AssetsFileViewMode
+  assetsExperimentViewMode: AssetsExperimentViewMode
   assetsOpenFolderId: string | null
   statusMessage: string
 }
@@ -53,10 +54,11 @@ export type DataAssetItemId =
   | 'catalog'
 
 export type ExperimentAssetItemId =
-  | 'request'
+  | 'experiment-list'
   | 'execution'
   | 'inventory'
-  | 'configuration'
+  | 'equipment'
+  | 'recipe'
 
 export type ModelAssetItemId =
   | 'xtrimo'
@@ -71,6 +73,7 @@ export type AssetMenuItemId =
   | ModelAssetItemId
 
 export type AssetsFileViewMode = 'list' | 'grid'
+export type AssetsExperimentViewMode = 'grid' | 'table'
 
 export type ThreadEntry = {
   projectId: string
@@ -89,10 +92,11 @@ const day = 24 * hour
 const activeTopNavItems = ['Workspace', 'Assets', 'Capabilities'] as const
 const assetsSections = ['file', 'data', 'experiment', 'model'] as const
 const assetsFileViewModes = ['list', 'grid'] as const
+const assetsExperimentViewModes = ['grid', 'table'] as const
 const assetMenuItemsBySection = {
   file: ['public-files', 'project-files', 'recent-uploads', 'archived-files'],
   data: ['datasets', 'tables', 'analysis-results', 'catalog'],
-  experiment: ['request', 'execution', 'inventory', 'configuration'],
+  experiment: ['experiment-list', 'execution', 'inventory', 'equipment', 'recipe'],
   model: ['xtrimo', 'public-models', 'project-models', 'oracles'],
 } as const satisfies Record<AssetsSection, readonly AssetMenuItemId[]>
 const selectedThreadAcknowledgement =
@@ -115,6 +119,7 @@ export function createInitialDemoState(
     assetsActiveSection: 'file',
     assetsActiveItem: 'project-files',
     assetsFileViewMode: 'list',
+    assetsExperimentViewMode: 'grid',
     assetsOpenFolderId: null,
     statusMessage: '',
   }
@@ -463,6 +468,20 @@ export function setAssetsFileViewModeSnapshot(
   }
 }
 
+export function setAssetsExperimentViewModeSnapshot(
+  state: DemoStateSnapshot,
+  assetsExperimentViewMode: AssetsExperimentViewMode,
+): DemoStateSnapshot {
+  if (!isAssetsExperimentViewMode(assetsExperimentViewMode)) {
+    return state
+  }
+
+  return {
+    ...state,
+    assetsExperimentViewMode,
+  }
+}
+
 export function setAssetsOpenFolderSnapshot(
   state: DemoStateSnapshot,
   assetsOpenFolderId: string | null,
@@ -799,6 +818,7 @@ function sanitizeAssetsStateFields(
   | 'assetsActiveSection'
   | 'assetsActiveItem'
   | 'assetsFileViewMode'
+  | 'assetsExperimentViewMode'
   | 'assetsOpenFolderId'
 > {
   const activeTopNav = isActiveTopNav(state.activeTopNav)
@@ -807,15 +827,24 @@ function sanitizeAssetsStateFields(
   const assetsActiveSection = isAssetsSection(state.assetsActiveSection)
     ? state.assetsActiveSection
     : 'file'
-  const assetsActiveItem = isAssetMenuItemForSection(
+  const normalizedAssetMenuItem = normalizeLegacyAssetMenuItem(
     assetsActiveSection,
     state.assetsActiveItem,
   )
-    ? state.assetsActiveItem
+  const assetsActiveItem = isAssetMenuItemForSection(
+    assetsActiveSection,
+    normalizedAssetMenuItem,
+  )
+    ? normalizedAssetMenuItem
     : getDefaultAssetMenuItem(assetsActiveSection)
   const assetsFileViewMode = isAssetsFileViewMode(state.assetsFileViewMode)
     ? state.assetsFileViewMode
     : 'list'
+  const assetsExperimentViewMode = isAssetsExperimentViewMode(
+    state.assetsExperimentViewMode,
+  )
+    ? state.assetsExperimentViewMode
+    : 'grid'
   const assetsOpenFolderId =
     assetsActiveSection === 'file' &&
     assetsActiveItem === 'project-files' &&
@@ -828,6 +857,7 @@ function sanitizeAssetsStateFields(
     assetsActiveSection,
     assetsActiveItem,
     assetsFileViewMode,
+    assetsExperimentViewMode,
     assetsOpenFolderId,
   }
 }
@@ -844,11 +874,36 @@ function isAssetsFileViewMode(value: unknown): value is AssetsFileViewMode {
   return assetsFileViewModes.includes(value as AssetsFileViewMode)
 }
 
+function isAssetsExperimentViewMode(
+  value: unknown,
+): value is AssetsExperimentViewMode {
+  return assetsExperimentViewModes.includes(value as AssetsExperimentViewMode)
+}
+
 function isAssetMenuItemForSection(
   section: AssetsSection,
   item: unknown,
 ): item is AssetMenuItemId {
   return (assetMenuItemsBySection[section] as readonly unknown[]).includes(item)
+}
+
+function normalizeLegacyAssetMenuItem(
+  section: AssetsSection,
+  item: unknown,
+): unknown {
+  if (section !== 'experiment') {
+    return item
+  }
+
+  if (item === 'request') {
+    return 'experiment-list'
+  }
+
+  if (item === 'configuration') {
+    return 'recipe'
+  }
+
+  return item
 }
 
 function getDefaultAssetMenuItem(section: AssetsSection): AssetMenuItemId {

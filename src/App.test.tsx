@@ -103,11 +103,70 @@ describe('App Assets navigation', () => {
       getButton(container, '实验').click()
     })
 
-    expect(getButton(container, '需求')).toBeTruthy()
+    expect(getButton(container, '实验列表')).toBeTruthy()
     expect(getButton(container, '执行')).toBeTruthy()
     expect(getButton(container, '库存')).toBeTruthy()
-    expect(getButton(container, '配置')).toBeTruthy()
+    expect(getButton(container, '设备')).toBeTruthy()
+    expect(getButton(container, '配方')).toBeTruthy()
+    expect(findButton(container, '需求')).toBeUndefined()
+    expect(findButton(container, '配置')).toBeUndefined()
     expect(findButton(container, '模板')).toBeUndefined()
+
+    root.unmount()
+  })
+
+  it('renders experiment equipment and recipe assets from the new taxonomy', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '实验').click()
+    })
+    act(() => {
+      getButton(container, '设备').click()
+    })
+
+    expect(container.textContent).toContain('Octet R8 - BLI')
+    expect(container.textContent).not.toContain('BLI_KD_v2')
+
+    act(() => {
+      getButton(container, '配方').click()
+    })
+
+    expect(container.textContent).toContain('BLI_KD_v2')
+    expect(container.textContent).toContain('实验配方')
+
+    root.unmount()
+  })
+
+  it('switches experiment assets between card and table views and filters records', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '实验').click()
+    })
+
+    expect(getButton(container, '卡片').getAttribute('aria-pressed')).toBe('true')
+    expect(container.querySelector('.assets-experiment-table')).toBeNull()
+    expect(container.textContent).toContain('EGFR Affinity Validation Design Package')
+
+    act(() => {
+      getButton(container, '表格').click()
+    })
+
+    expect(getButton(container, '表格').getAttribute('aria-pressed')).toBe('true')
+    expect(container.querySelector('.assets-experiment-table')).not.toBeNull()
+    expect(container.textContent).toContain('订单草稿')
+
+    setSearchInput(container, '搜索实验资产', 'HER2')
+
+    expect(container.textContent).toContain('HER2 Wet-lab Validation Order')
+    expect(container.textContent).not.toContain('EGFR Affinity Validation Design Package')
 
     root.unmount()
   })
