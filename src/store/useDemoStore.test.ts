@@ -380,6 +380,40 @@ describe('demo store persistence', () => {
 
     expect(egfrThread?.title).toBe('用户重命名 EGFR 对话')
   })
+
+  it('keeps user-created Projects when hydrating with the current seed data', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const oldState = createOldEgfrPersistedState()
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...oldState,
+        projects: [
+          ...oldState.projects,
+          {
+            id: 'project-assay-automation',
+            name: 'Assay Automation',
+            threads: [],
+          },
+        ],
+        selectedProjectId: 'project-assay-automation',
+        selectedThreadId: null,
+        isDraftingNewThread: true,
+        expandedProjectIds: [
+          ...oldState.expandedProjectIds,
+          'project-assay-automation',
+        ],
+      },
+      version: demoStorePersistVersion,
+    })
+
+    const state = useDemoStore.getState()
+
+    expect(state.projects.map((project) => project.name)).toContain(
+      'Assay Automation',
+    )
+    expect(state.selectedProjectId).toBe('project-assay-automation')
+    expect(state.expandedProjectIds).toContain('project-assay-automation')
+  })
 })
 
 async function loadStoreWithPersistedState(persistedValue: unknown) {

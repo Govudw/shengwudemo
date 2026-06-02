@@ -180,9 +180,38 @@ describe('ThreadWorkspace', () => {
 
     root.unmount()
   })
+
+  it('opens attachment actions from the thread composer plus button', () => {
+    const notifications: string[] = []
+    const { container, root } = renderInteractiveThreadWorkspace({
+      onNotify: (message) => notifications.push(message),
+    })
+
+    act(() => {
+      getButton(container, 'Add context').click()
+    })
+
+    expect(container.querySelector('.attachment-menu')).not.toBeNull()
+    expect(getButton(container, '从资产添加')).toBeTruthy()
+    expect(getButton(container, '上传文件或图片')).toBeTruthy()
+    expect(container.textContent).not.toContain('附件上传会进入当前项目文件区')
+
+    act(() => {
+      getButton(container, '上传文件或图片').click()
+    })
+
+    expect(container.querySelector('.attachment-menu')).toBeNull()
+    expect(notifications).toContain('上传文件或图片将在后续 Demo 中展开')
+
+    root.unmount()
+  })
 })
 
-function renderInteractiveThreadWorkspace() {
+function renderInteractiveThreadWorkspace({
+  onNotify = noop,
+}: {
+  onNotify?: (message: string) => void
+} = {}) {
   const container = document.createElement('div')
   document.body.append(container)
   const root = createRoot(container)
@@ -200,7 +229,7 @@ function renderInteractiveThreadWorkspace() {
         onRenameThread={noop}
         onArchiveThread={noop}
         onDeleteThread={noop}
-        onNotify={noop}
+        onNotify={onNotify}
         runInspectorOpen={open}
         onRunInspectorOpenChange={setOpen}
       />
@@ -220,4 +249,22 @@ function waitForTimers() {
       window.setTimeout(resolve, 0)
     })
   })
+}
+
+function findButton(container: HTMLElement, name: string) {
+  return Array.from(container.querySelectorAll('button')).find(
+    (element) =>
+      element.getAttribute('aria-label') === name ||
+      element.textContent?.trim() === name,
+  )
+}
+
+function getButton(container: HTMLElement, name: string) {
+  const button = findButton(container, name)
+
+  if (!button) {
+    throw new Error(`Button not found: ${name}`)
+  }
+
+  return button
 }
