@@ -3,6 +3,7 @@ import './App.css'
 import AssetsPage from './components/assets/AssetsPage'
 import Composer from './components/Composer'
 import CapabilitiesPage from './components/CapabilitiesPage'
+import ProjectsPage from './components/projects/ProjectsPage'
 import Sidebar from './components/Sidebar'
 import ThreadWorkspace from './components/ThreadWorkspace'
 import TopNav from './components/TopNav'
@@ -13,7 +14,11 @@ import {
   resetPersistedDemoStore,
   useDemoStore,
 } from './store/useDemoStore'
-import type { DemoProject } from './store/demoStoreLogic'
+import type {
+  AssetMenuItemId,
+  AssetsSection,
+  DemoProject,
+} from './store/demoStoreLogic'
 
 function App() {
   const [searchOpen, setSearchOpen] = useState(false)
@@ -105,8 +110,34 @@ function App() {
     submitDraft()
   }
 
+  function handleStartProjectThread(projectId: string) {
+    setSelectedProject(projectId)
+    startNewThread()
+    selectTopNav('Workspace')
+  }
+
+  function handleOpenProjectThread(projectId: string, threadId: string) {
+    selectThread(projectId, threadId)
+    selectTopNav('Workspace')
+  }
+
+  function handleOpenProjectAssets(
+    section: AssetsSection,
+    item: AssetMenuItemId,
+    folderId: string | null,
+  ) {
+    setAssetsSelection(section, item)
+    setAssetsOpenFolder(folderId)
+    selectTopNav('Assets')
+  }
+
   function handlePrimaryNav(item: TopNavItem) {
-    if (item === 'Workspace' || item === 'Assets' || item === 'Capabilities') {
+    if (
+      item === 'Workspace' ||
+      item === 'Projects' ||
+      item === 'Assets' ||
+      item === 'Capabilities'
+    ) {
       selectTopNav(item)
       return
     }
@@ -136,6 +167,14 @@ function App() {
           onFileViewModeChange={setAssetsFileViewMode}
           onOpenFolderChange={setAssetsOpenFolder}
           onNotify={showStatus}
+        />
+      ) : activeTopNav === 'Projects' ? (
+        <ProjectsPage
+          projects={projects}
+          onNotify={showStatus}
+          onStartThread={handleStartProjectThread}
+          onOpenThread={handleOpenProjectThread}
+          onOpenAssets={handleOpenProjectAssets}
         />
       ) : activeTopNav === 'Capabilities' ? (
         <CapabilitiesPage onNotify={showStatus} />

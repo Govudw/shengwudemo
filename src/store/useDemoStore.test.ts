@@ -232,6 +232,22 @@ describe('demo store persistence', () => {
     expect(useDemoStore.getState().assetsActiveItem).toBe('project-files')
   })
 
+  it('hydrates Projects as a valid top navigation destination', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        activeTopNav: 'Projects',
+      },
+      version: demoStorePersistVersion,
+    })
+
+    expect(useDemoStore.getState().activeTopNav).toBe('Projects')
+
+    useDemoStore.getState().resetDemoState()
+    expect(useDemoStore.getState().activeTopNav).toBe('Workspace')
+  })
+
   it('sanitizes invalid persisted Assets state', async () => {
     const { demoStorePersistVersion } = await import('./useDemoStore')
     const { useDemoStore } = await loadStoreWithPersistedState({

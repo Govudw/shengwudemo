@@ -36,7 +36,7 @@ export type DemoStateSnapshot = {
   statusMessage: string
 }
 
-export type ActiveTopNav = 'Workspace' | 'Assets' | 'Capabilities'
+export type ActiveTopNav = 'Workspace' | 'Projects' | 'Assets' | 'Capabilities'
 
 export type AssetsSection = 'file' | 'data' | 'experiment' | 'model'
 
@@ -86,7 +86,7 @@ export type SearchView = {
 const minute = 60 * 1000
 const hour = 60 * minute
 const day = 24 * hour
-const activeTopNavItems = ['Workspace', 'Assets', 'Capabilities'] as const
+const activeTopNavItems = ['Workspace', 'Projects', 'Assets', 'Capabilities'] as const
 const assetsSections = ['file', 'data', 'experiment', 'model'] as const
 const assetsFileViewModes = ['list', 'grid'] as const
 const assetMenuItemsBySection = {

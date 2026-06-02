@@ -50,6 +50,26 @@ describe('TopNav', () => {
 
     root.unmount()
   })
+
+  it('can mark Projects as the active top navigation item', () => {
+    const onNavigate = vi.fn()
+    const { container, root } = renderTopNav({
+      activeItem: 'Projects',
+      onNavigate,
+    })
+
+    expect(getButton(container, 'Projects').getAttribute('aria-current')).toBe(
+      'page',
+    )
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+
+    expect(onNavigate).toHaveBeenCalledWith('Assets')
+
+    root.unmount()
+  })
 })
 
 function renderTopNav(
