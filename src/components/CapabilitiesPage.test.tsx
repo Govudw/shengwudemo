@@ -280,16 +280,26 @@ describe('CapabilitiesPage', () => {
     root.unmount()
   })
 
-  it('keeps the linear steps fallback for Pipelines without a DAG', () => {
+  it('shows the DAG template for every Pipeline entry', () => {
     const { container, root } = renderCapabilitiesPage()
+    const pipelineNames = [
+      'EGFR 抗体亲和力优化 Pipeline',
+      '蛋白稳定性改造 Pipeline',
+      '湿实验验证订单 Pipeline',
+      'AI-ready 数据集整理 Pipeline',
+      '分子候选筛选 Pipeline',
+    ]
 
-    act(() => {
-      getButtonContaining(container, '蛋白稳定性改造 Pipeline').click()
+    pipelineNames.forEach((name) => {
+      act(() => {
+        getButtonContaining(container, name).click()
+      })
+
+      expect(getDetailSectionTitles(container)).toContain('执行 DAG')
+      expect(getDetailSectionTitles(container)).not.toContain('步骤')
+      expect(container.textContent).toContain('Human Gate')
+      expect(container.textContent).toContain('QC Decision')
     })
-
-    expect(getDetailSectionTitles(container)).toContain('步骤')
-    expect(getDetailSectionTitles(container)).not.toContain('执行 DAG')
-    expect(container.textContent).toContain('读取序列')
 
     root.unmount()
   })
