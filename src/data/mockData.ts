@@ -22,6 +22,7 @@ import her2ResultPackageQcOverview from '../assets/mock-science/her2-post-analys
 import her2StructuralHypothesisMap from '../assets/mock-science/her2-post-analysis/her2-structural-hypothesis-map.png'
 import her2UncertaintySensitivityAnalysis from '../assets/mock-science/her2-post-analysis/her2-uncertainty-sensitivity-analysis.png'
 import type { ConversationTurn, RunInspectorData } from './conversationTypes'
+import { industrialEnzymeThreads } from './enzymeMockData'
 
 export type Thread = {
   id: string
@@ -3603,12 +3604,8 @@ export const projects: Project[] = [
   },
   {
     id: 'enzyme-discovery',
-    name: 'Enzyme Discovery',
-    threads: [
-      { id: 'enzyme-family', title: '新型噬酸酶家族调研', lastActivity: '3 小时' },
-      { id: 'screening-plan', title: '酶活性筛选方案讨论', lastActivity: '昨天' },
-      { id: 'enzymekcat', title: 'EnzymeKcat 模型探索', lastActivity: '2 天前' },
-    ],
+    name: 'Industrial Enzyme Design',
+    threads: industrialEnzymeThreads,
   },
   {
     id: 'data-assetization',

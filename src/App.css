@@ -3558,6 +3558,7 @@ textarea:focus-visible {
 .agent-progress-block,
 .command-preview-block,
 .candidate-table-block,
+.candidate-evidence-table-block,
 .experiment-order-block,
 .approval-gate-block,
 .capability-run-block,
@@ -3620,6 +3621,7 @@ textarea:focus-visible {
 .agent-progress-block,
 .command-preview-block,
 .candidate-table-block,
+.candidate-evidence-table-block,
 .experiment-order-block,
 .approval-gate-block {
   padding: 14px;
@@ -3628,6 +3630,7 @@ textarea:focus-visible {
 .agent-progress-block h3,
 .command-preview-block h3,
 .candidate-table-block h3,
+.candidate-evidence-table-block h3,
 .experiment-order-block h3,
 .approval-gate-block h3 {
   margin: 0;
@@ -3875,13 +3878,15 @@ textarea:focus-visible {
   font-weight: 850;
 }
 
-.candidate-table-block__scroll {
+.candidate-table-block__scroll,
+.candidate-evidence-table-block__scroll {
   max-width: 100%;
   margin-top: 10px;
   overflow-x: auto;
 }
 
-.candidate-table-block table {
+.candidate-table-block table,
+.candidate-evidence-table-block table {
   width: 100%;
   min-width: 720px;
   border-collapse: collapse;
@@ -3889,28 +3894,37 @@ textarea:focus-visible {
   line-height: 1.38;
 }
 
+.candidate-evidence-table-block table {
+  min-width: 820px;
+}
+
 .candidate-table-block th,
-.candidate-table-block td {
+.candidate-table-block td,
+.candidate-evidence-table-block th,
+.candidate-evidence-table-block td {
   padding: 8px 9px;
   border-top: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
 }
 
-.candidate-table-block th {
+.candidate-table-block th,
+.candidate-evidence-table-block th {
   color: var(--faint);
   font-size: 11px;
   font-weight: 900;
   text-transform: uppercase;
 }
 
-.candidate-table-block__id {
+.candidate-table-block__id,
+.candidate-evidence-table-block__id {
   color: var(--text);
   font-weight: 850;
   white-space: nowrap;
 }
 
 .candidate-table-block__risk,
+.candidate-evidence-table-block__risk,
 .experiment-order-block__status {
   display: inline-flex;
   align-items: center;
@@ -3924,17 +3938,20 @@ textarea:focus-visible {
   white-space: nowrap;
 }
 
-.candidate-table-block__risk--low {
+.candidate-table-block__risk--low,
+.candidate-evidence-table-block__risk--low {
   color: #146c4a;
   background: #e9f7f1;
 }
 
-.candidate-table-block__risk--medium {
+.candidate-table-block__risk--medium,
+.candidate-evidence-table-block__risk--medium {
   color: #8a5b00;
   background: #fff5dc;
 }
 
-.candidate-table-block__risk--high {
+.candidate-table-block__risk--high,
+.candidate-evidence-table-block__risk--high {
   color: #b4233f;
   background: #fff1f3;
 }
