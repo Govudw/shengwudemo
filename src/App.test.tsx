@@ -424,7 +424,15 @@ describe('App Assets navigation', () => {
     })
 
     expect(container.querySelector('.assets-workbench')).not.toBeNull()
+    expect(
+      container.querySelector('.assets-main__header--workspace-bar'),
+    ).not.toBeNull()
     expect(getButton(container, 'Assets').getAttribute('aria-current')).toBe('page')
+    expect(container.querySelector('.assets-main__title h1')?.textContent).toBe(
+      '项目文件',
+    )
+    expect(container.querySelector('.assets-main__eyebrow')).toBeNull()
+    expect(container.querySelector('.assets-main__title p')).toBeNull()
     expect(container.textContent).toContain('项目文件')
     expect(container.textContent).toContain('公共文件')
     expect(container.textContent).not.toContain('个人')
@@ -590,6 +598,14 @@ describe('xTrimo model assets', () => {
         '.xtrimo-recommendations .xtrimo-model-card--compact',
       ),
     ).toHaveLength(6)
+    expect(
+      container.querySelectorAll('.xtrimo-model-card__thumbnail-image'),
+    ).toHaveLength(39)
+    expect(
+      getModelCard(container, 'xTrimoGene')
+        .querySelector('img')
+        ?.getAttribute('alt'),
+    ).toBe('xTrimoGene ModelHub preview')
 
     act(() => {
       getButton(container, '公开模型').click()
@@ -615,7 +631,9 @@ describe('xTrimo model assets', () => {
     })
 
     expect(container.textContent).toContain('xTrimo')
-    expect(container.textContent).toContain('BioMap 自研 xTrimo 模型家族')
+    expect(container.textContent).not.toContain('BioMap 自研 xTrimo 模型家族')
+    expect(container.querySelector('.assets-main__eyebrow')).toBeNull()
+    expect(container.querySelector('.assets-main__title p')).toBeNull()
     expect(container.textContent).not.toContain('xTrimo 平台模型目录')
     expect(container.textContent).not.toContain('33 模型')
     expect(container.textContent).not.toContain('24 已上线')
@@ -792,6 +810,15 @@ describe('xTrimo model assets', () => {
     expect(
       xtrimoModelRecords.some((record) => record.name === 'xTrimoAAVViability'),
     ).toBe(true)
+    expect(
+      xtrimoModelRecords.every((record) =>
+        record.thumbnailSrc.includes('/mock-biomap-os/modelhub/'),
+      ),
+    ).toBe(true)
+    expect(
+      xtrimoModelRecords.find((record) => record.name === 'xTrimoGene')
+        ?.thumbnailSrc,
+    ).toContain('xtrimo-gene.png')
   })
 
   it('keeps non-xTrimo model sections populated', () => {

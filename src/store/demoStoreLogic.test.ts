@@ -546,10 +546,10 @@ describe('demo store logic', () => {
       industrialEnzymeThreadIds,
     )
     expect(enzymeProject?.threads.map((thread) => thread.title)).toEqual([
-      '工业酶设计全流程闭环',
-      '设计拆解：目标定义与候选生成',
-      '实验拆解：酶库订单与执行回收',
-      '分析拆解：结果解释与迭代结论',
+      'ENZ-P0 工业酶优化闭环',
+      '目标定义与候选设计',
+      '酶库订单与实验执行',
+      '结果分析与迭代决策',
     ])
     expect(enzymeProject?.threads.map((thread) => thread.id)).not.toEqual(
       expect.arrayContaining(['enzyme-family', 'screening-plan', 'enzymekcat']),

@@ -67,7 +67,7 @@ function scientificFigure(
     figureId,
     title,
     description,
-    imagegenPrompt: `Static scientific report figure for Industrial Enzyme Design demo: ${title}.`,
+    imagegenPrompt: `Static scientific report figure for Industrial Enzyme Design project: ${title}.`,
     placeholder: `图片：${description}`,
     src,
     width: 960,
@@ -1041,7 +1041,7 @@ const fullLoopTranscript: ConversationTurn[] = [
     id: 'enzyme-full-loop-turn-001',
     role: 'user',
     markdown:
-      '请把 ENZ-P0 做成一个工业酶设计闭环 demo：设计库 ENZ-LIB-20260602-048，实验订单 BM-LAB-ENZ-20260602-001，结果包 Enzyme_Experiment_Result_Package.xlsx。需要明确哪些地方必须人工确认。',
+      '请基于 ENZ-P0 启动工业酶优化闭环：设计库 ENZ-LIB-20260602-048，实验订单 BM-LAB-ENZ-20260602-001，结果包 Enzyme_Experiment_Result_Package.xlsx。需要明确哪些地方必须人工确认。',
     contentBlocks: [
       {
         type: 'projectFile',
@@ -1056,7 +1056,7 @@ const fullLoopTranscript: ConversationTurn[] = [
     id: 'enzyme-full-loop-turn-002',
     role: 'mainAgent',
     markdown:
-      '我先把闭环拆成目标定义、候选生成、订单执行、结果分析和迭代决策五段。ENZ-MUT-001 到 ENZ-MUT-048 只作为候选库，不表示已经找到最佳酶。',
+      '我先把本轮工作流分成目标定义、候选生成、订单执行、结果分析和迭代决策五段。ENZ-MUT-001 到 ENZ-MUT-048 只作为候选库，不表示已经找到最佳酶。',
     contentBlocks: [
       fullLoopRuns[0],
       scientificFigure(
@@ -1257,7 +1257,7 @@ const fullLoopTranscript: ConversationTurn[] = [
       scientificFigure(
         'enzyme-human-gates-map',
         'Human-in-the-loop gates',
-        '工业酶设计 demo 中必须由人确认的边界和审批点。',
+        '工业酶优化项目中必须由人确认的边界和审批点。',
         enzymeHumanGatesMap,
       ),
     ],
@@ -1296,7 +1296,7 @@ const designTranscript: ConversationTurn[] = [
     id: 'enzyme-design-breakdown-turn-001',
     role: 'user',
     markdown:
-      '请只拆解设计阶段：从 ENZ-P0 定义 ENZ-LIB-20260602-048，后续关联 BM-LAB-ENZ-20260602-001 和 Enzyme_Experiment_Result_Package.xlsx，但本线程不要提交实验。',
+      '请先推进设计阶段：从 ENZ-P0 定义 ENZ-LIB-20260602-048，后续关联 BM-LAB-ENZ-20260602-001 和 Enzyme_Experiment_Result_Package.xlsx，但这一步不要提交实验。',
   },
   {
     id: 'enzyme-design-breakdown-turn-002',
@@ -1442,13 +1442,13 @@ const designTranscript: ConversationTurn[] = [
     id: 'enzyme-design-breakdown-turn-013',
     role: 'mainAgent',
     markdown:
-      '请确认是否按这个设计包交给实验线程。确认后仍只生成交接文件，不会提交 BM-LAB-ENZ-20260602-001。',
+      '请确认是否按这个设计包交给实验执行阶段。确认后仍只生成交接文件，不会提交 BM-LAB-ENZ-20260602-001。',
   },
   {
     id: 'enzyme-design-breakdown-turn-014',
     role: 'user',
     markdown:
-      '确认设计包。把 ENZ-LIB-20260602-048 标成 ready for review，但订单提交留给实验线程。',
+      '确认设计包。把 ENZ-LIB-20260602-048 标成 ready for review，但订单提交留给实验执行阶段。',
   },
   {
     id: 'enzyme-design-breakdown-turn-015',
@@ -1461,7 +1461,7 @@ const designTranscript: ConversationTurn[] = [
         title: '确认候选设计包',
         confirmedBy: 'Project Lead',
         confirmedAt: '2026-06-02 10:18',
-        decision: 'ENZ-LIB-20260602-048 可交给实验线程复核，不在本线程提交订单。',
+        decision: 'ENZ-LIB-20260602-048 可交给实验执行阶段复核，不在设计阶段提交订单。',
       },
       {
         type: 'projectFile',
@@ -1488,7 +1488,7 @@ const designTranscript: ConversationTurn[] = [
     id: 'enzyme-design-breakdown-turn-018',
     role: 'user',
     markdown:
-      '请把假设、限制和人工确认点写入设计交接，方便实验线程接手。',
+      '请把假设、限制和人工确认点写入设计交接，方便实验执行阶段接手。',
   },
   {
     id: 'enzyme-design-breakdown-turn-019',
@@ -1501,7 +1501,7 @@ const designTranscript: ConversationTurn[] = [
         title: '确认设计交接边界',
         confirmedBy: 'Enzyme SME',
         confirmedAt: '2026-06-02 10:31',
-        decision: '设计线程只交付候选包和证据表，不提交实验订单。',
+        decision: '设计阶段只交付候选包和证据表，不提交实验订单。',
       },
     ],
   },
@@ -1512,7 +1512,7 @@ const experimentTranscript: ConversationTurn[] = [
     id: 'enzyme-experiment-execution-turn-001',
     role: 'user',
     markdown:
-      '基于 ENZ-LIB-20260602-048 执行实验拆解：订单 BM-LAB-ENZ-20260602-001，候选 ENZ-MUT-001 through ENZ-MUT-048，结果包 Enzyme_Experiment_Result_Package.xlsx。',
+      '基于 ENZ-LIB-20260602-048 推进实验执行：订单 BM-LAB-ENZ-20260602-001，候选 ENZ-MUT-001 through ENZ-MUT-048，结果包 Enzyme_Experiment_Result_Package.xlsx。',
   },
   {
     id: 'enzyme-experiment-execution-turn-002',
@@ -1653,7 +1653,7 @@ const experimentTranscript: ConversationTurn[] = [
     id: 'enzyme-experiment-execution-turn-011',
     role: 'mainAgent',
     markdown:
-      'CRO-ENZ-20260602-001 已接受任务。这里是静态回放，不代表 Agent 能直接控制实验设备。',
+      'CRO-ENZ-20260602-001 已接受任务。我只同步执行状态，不直接控制实验设备。',
     contentBlocks: [experimentRuns[4]],
   },
   {
@@ -1687,7 +1687,7 @@ const experimentTranscript: ConversationTurn[] = [
     id: 'enzyme-experiment-execution-turn-014',
     role: 'mainAgent',
     markdown:
-      '异常记录已保留，未自动丢弃任何孔；分析线程会把异常策略作为敏感性条件。',
+      '异常记录已保留，未自动丢弃任何孔；分析阶段会把异常策略作为敏感性条件。',
     contentBlocks: [
       experimentRuns[5],
       {
@@ -1695,7 +1695,7 @@ const experimentTranscript: ConversationTurn[] = [
         title: '确认异常处理边界',
         confirmedBy: 'Lab Owner',
         confirmedAt: '2026-06-02 15:10',
-        decision: '异常孔只标记，不自动排除；由分析线程复核。',
+        decision: '异常孔只标记，不自动排除；由分析阶段复核。',
       },
       scientificFigure(
         'enzyme-experiment-anomaly-log',
@@ -1738,27 +1738,27 @@ const experimentTranscript: ConversationTurn[] = [
     id: 'enzyme-experiment-execution-turn-017',
     role: 'mainAgent',
     markdown:
-      '执行线程交付完成：BM-LAB-ENZ-20260602-001、ENZ-EXPTASK-20260602-001、CRO-ENZ-20260602-001、Enzyme_Operational_Record_Index.csv 均已归档。',
+      '实验执行阶段交付完成：BM-LAB-ENZ-20260602-001、ENZ-EXPTASK-20260602-001、CRO-ENZ-20260602-001、Enzyme_Operational_Record_Index.csv 均已归档。',
     contentBlocks: [experimentRuns[8]],
   },
   {
     id: 'enzyme-experiment-execution-turn-018',
     role: 'user',
     markdown:
-      '确认执行归档。把后续解释限制交给分析线程，不要在这里给候选结论。',
+      '确认执行归档。把后续解释限制交给分析阶段，不要在这里给候选结论。',
   },
   {
     id: 'enzyme-experiment-execution-turn-019',
     role: 'mainAgent',
     markdown:
-      '已归档执行结果。本线程只说明订单、执行、回收和 QC，不输出候选优先级，也不自动设计下一轮实验。',
+      '已归档执行结果。这一步只说明订单、执行、回收和 QC，不输出候选优先级，也不自动设计下一轮实验。',
     contentBlocks: [
       {
         type: 'humanConfirmation',
-        title: '确认执行线程归档',
+        title: '确认实验执行归档',
         confirmedBy: 'Project Lead',
         confirmedAt: '2026-06-02 16:00',
-        decision: '执行线程只交付结果包和操作索引，分析结论留给下一线程。',
+        decision: '实验执行阶段只交付结果包和操作索引，分析结论留给下一阶段。',
       },
     ],
   },
@@ -1992,7 +1992,7 @@ const analysisTranscript: ConversationTurn[] = [
 export const industrialEnzymeThreads: EnzymeThread[] = [
   {
     id: 'enzyme-full-loop',
-    title: '工业酶设计全流程闭环',
+    title: 'ENZ-P0 工业酶优化闭环',
     lastActivity: '刚刚',
     transcript: fullLoopTranscript,
     runInspector: runInspector(
@@ -2083,11 +2083,11 @@ export const industrialEnzymeThreads: EnzymeThread[] = [
   },
   {
     id: 'enzyme-design-breakdown',
-    title: '设计拆解：目标定义与候选生成',
+    title: '目标定义与候选设计',
     lastActivity: '15 分钟',
     transcript: designTranscript,
     runInspector: runInspector(
-      '实验前设计拆解完成',
+      '实验前候选设计完成',
       progress('enzyme-design-breakdown', [
         '读取设计目标',
         '构建家族证据',
@@ -2167,7 +2167,7 @@ export const industrialEnzymeThreads: EnzymeThread[] = [
   },
   {
     id: 'enzyme-experiment-execution',
-    title: '实验拆解：酶库订单与执行回收',
+    title: '酶库订单与实验执行',
     lastActivity: '38 分钟',
     transcript: experimentTranscript,
     runInspector: runInspector(
@@ -2254,7 +2254,7 @@ export const industrialEnzymeThreads: EnzymeThread[] = [
         {
           id: 'enzyme-experiment-approval-04',
           kind: 'humanConfirmation',
-          title: '确认执行线程归档',
+          title: '确认实验执行归档',
           status: 'confirmed',
           actor: 'Project Lead',
           decidedAt: '2026-06-02 16:00',
@@ -2266,7 +2266,7 @@ export const industrialEnzymeThreads: EnzymeThread[] = [
   },
   {
     id: 'enzyme-analysis-iteration',
-    title: '分析拆解：结果解释与迭代结论',
+    title: '结果分析与迭代决策',
     lastActivity: '1 小时',
     transcript: analysisTranscript,
     runInspector: runInspector(

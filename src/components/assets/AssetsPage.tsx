@@ -5,7 +5,6 @@ import {
   experimentAssetRecords,
   fileAssetRecords,
   getAssetMenuItem,
-  getAssetSection,
   isFileAssetItem,
   modelAssetRecords,
   projectFileFolders,
@@ -75,14 +74,10 @@ function AssetsPage({
   const [newMenuOpen, setNewMenuOpen] = useState(false)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
-  const activeSectionMeta = getAssetSection(activeSection)
   const activeItemMeta = getAssetMenuItem(activeSection, activeItem)
   const isXtrimoView = activeSection === 'model' && activeItem === 'xtrimo'
   const isExperimentView = activeSection === 'experiment'
   const newAssetActions = getNewAssetMenuActions(activeSection, activeItem)
-  const headerDescription = isXtrimoView
-    ? 'BioMap 自研 xTrimo 模型家族，覆盖蛋白、抗体、酶、细胞与 AAV 等研发任务'
-    : activeSectionMeta?.description
 
   function handleSelection(section: AssetsSection, item: AssetMenuItemId) {
     setQuery('')
@@ -147,13 +142,9 @@ function AssetsPage({
         className={`assets-main${isXtrimoView ? ' assets-main--xtrimo' : ''}`}
         aria-label="Assets workbench"
       >
-        <header className="assets-main__header">
+        <header className="assets-main__header assets-main__header--workspace-bar">
           <div className="assets-main__title">
-            <span className="assets-main__eyebrow">
-              {activeSectionMeta?.label} / {activeItemMeta?.label}
-            </span>
             <h1>{activeItemMeta?.label}</h1>
-            <p>{headerDescription}</p>
           </div>
           <div className="assets-main__actions">
             {!isXtrimoView ? (
@@ -1090,6 +1081,14 @@ function XtrimoModelCard({
       <div className="assets-record-card__meta">
         <span>输入：{record.input}</span>
         <span>输出：{record.output}</span>
+      </div>
+      <div className="xtrimo-model-card__thumbnail">
+        <img
+          className="xtrimo-model-card__thumbnail-image"
+          src={record.thumbnailSrc}
+          alt={`${record.name} ModelHub preview`}
+          loading="lazy"
+        />
       </div>
       <button
         type="button"

@@ -135,6 +135,7 @@ export type XtrimoEntity =
 export type XtrimoModelRecord = {
   id: string
   name: string
+  thumbnailSrc: string
   version: string
   status: XtrimoModelStatus
   callability: XtrimoModelCallability
@@ -146,6 +147,141 @@ export type XtrimoModelRecord = {
   output: string
   updatedAt: string
   projectFit: XtrimoProjectFit
+}
+
+const xtrimoModelThumbnailById: Record<string, string> = {
+  'xtrimo-gene': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-gene.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-single-cell-perturb': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-single-cell-perturb.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-monomer-fast': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-monomer-fast.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-monomer': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-monomer.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-ab-affinity-dg': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-ab-affinity-dg.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-ab-affinity-ddg': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-ab-affinity-ddg.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-ab-aggregation': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-ab-aggregation.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-enzyme-tm': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-enzyme-tm.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-enzyme-kcat': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-enzyme-kcat.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-hydro': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-hydro.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-naturalness': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-naturalness.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-ab-naturalness': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-ab-naturalness.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-ab-patentability': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-ab-patentability.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-ab-specificity': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-ab-specificity.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-enzyme-ph': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-enzyme-ph.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-stability': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-stability.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-ab-stability': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-ab-stability.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-ab-ag-dock': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-ab-ag-dock.jpg',
+    import.meta.url,
+  ).href,
+  'xtrimo-ab-fold': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-ab-fold.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-vhh-fold': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-vhh-fold.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-vhh-ag-dock': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-vhh-ag-dock.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-ab-gen': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-ab-gen.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-fold': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-fold.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-ab-yield': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-ab-yield.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-tcr-peptide-binding': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-tcr-peptide-binding.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-peptide-hla-binding': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-peptide-hla-binding.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-neoantigen': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-neoantigen.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-tm': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-tm.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-protease-stability': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-protease-stability.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-amyloid-agg': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-amyloid-agg.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-collagen-tm': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-collagen-tm.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-fold-classification': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-fold-classification.png',
+    import.meta.url,
+  ).href,
+  'xtrimo-aav-viability': new URL(
+    '../assets/mock-biomap-os/modelhub/xtrimo-aav-viability.png',
+    import.meta.url,
+  ).href,
 }
 
 export const assetMenuSections: AssetMenuSection[] = [
@@ -738,7 +874,7 @@ export const experimentAssetRecords: ExperimentAssetRecord[] = [
   },
 ]
 
-export const xtrimoModelRecords: XtrimoModelRecord[] = [
+const xtrimoModelSeedRecords: Omit<XtrimoModelRecord, 'thumbnailSrc'>[] = [
   {
     id: 'xtrimo-gene',
     name: 'xTrimoGene',
@@ -1235,6 +1371,21 @@ export const xtrimoModelRecords: XtrimoModelRecord[] = [
     projectFit: 'general',
   },
 ]
+
+export const xtrimoModelRecords: XtrimoModelRecord[] = xtrimoModelSeedRecords.map(
+  (record) => {
+    const thumbnailSrc = xtrimoModelThumbnailById[record.id]
+
+    if (!thumbnailSrc) {
+      throw new Error(`Missing xTrimo ModelHub thumbnail: ${record.id}`)
+    }
+
+    return {
+      ...record,
+      thumbnailSrc,
+    }
+  },
+)
 
 export const modelAssetRecords: ModelAssetRecord[] = [
   {
