@@ -294,6 +294,7 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
           draft={draft}
           onDraftChange={onDraftChange}
           onSubmit={onSubmit}
+          onNotify={onNotify}
         />
       </div>
 

@@ -43,10 +43,13 @@ function UseCaseGrid({
             className={`use-case-grid__card use-case-card use-case-grid__card--${card.tone}`}
             onClick={() => onPromptSelect(card.prompt)}
           >
-            <span className="use-case-grid__card-icon">
-              <CardIcon icon={card.icon} className="use-case-grid__icon" />
+            <span className="use-case-grid__card-header">
+              <span className="use-case-grid__card-icon">
+                <CardIcon icon={card.icon} className="use-case-grid__icon" />
+              </span>
+              <span className="use-case-grid__card-title">{card.title}</span>
             </span>
-            <span className="use-case-grid__card-title">{card.title}</span>
+            <span className="use-case-grid__card-summary">{card.summary}</span>
             <span className="use-case-grid__card-detail">
               <span className="use-case-grid__card-label">输入</span>
               <span>{card.input}</span>

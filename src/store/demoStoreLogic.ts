@@ -356,6 +356,47 @@ export function startNewThreadSnapshot(state: DemoStateSnapshot): DemoStateSnaps
   }
 }
 
+export function createProjectSnapshot(
+  state: DemoStateSnapshot,
+  name: string,
+  projectId: string,
+): DemoStateSnapshot {
+  const normalizedName = normalizeWhitespace(name)
+
+  if (!normalizedName) {
+    return {
+      ...state,
+      statusMessage: '项目名称不能为空',
+    }
+  }
+
+  if (state.projects.some((project) => project.id === projectId)) {
+    return {
+      ...state,
+      statusMessage: '项目 ID 已存在',
+    }
+  }
+
+  const project: DemoProject = {
+    id: projectId,
+    name: normalizedName,
+    threads: [],
+  }
+
+  return {
+    ...state,
+    projects: [project, ...state.projects],
+    selectedProjectId: projectId,
+    selectedThreadId: null,
+    isDraftingNewThread: true,
+    expandedProjectIds: ensureProjectExpanded(
+      state.expandedProjectIds,
+      projectId,
+    ),
+    statusMessage: '',
+  }
+}
+
 export function sanitizeDemoState(state: DemoStateSnapshot): DemoStateSnapshot {
   const projects = normalizeDemoProjects(state.projects)
   const existingProjectIds = projects.map((project) => project.id)

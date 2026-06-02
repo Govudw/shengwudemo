@@ -22,6 +22,209 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+describe('App Workspace project creation', () => {
+  it('adds a named Project from the composer project menu and shows it in the sidebar', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getComposerProjectButton(container).click()
+    })
+    act(() => {
+      getButton(container, '新项目').click()
+    })
+
+    expect(container.textContent).toContain('为项目命名')
+
+    setTextInput(container, '项目名称', 'Assay Automation')
+
+    act(() => {
+      getButton(container, '保存').click()
+    })
+
+    expect(container.textContent).not.toContain('为项目命名')
+    expect(getComposerProjectButton(container).textContent).toContain(
+      'Assay Automation',
+    )
+    expect(getSidebarProjectNames(container)).toContain('Assay Automation')
+
+    root.unmount()
+  })
+
+  it('filters many Projects from a fixed search field inside the project menu', () => {
+    act(() => {
+      useDemoStore.getState().createProject('Assay Automation')
+      useDemoStore.getState().createProject('Protein Analytics')
+      useDemoStore.getState().createProject('Cell Therapy')
+    })
+    const { container, root } = renderApp()
+
+    act(() => {
+      getComposerProjectButton(container).click()
+    })
+
+    const menu = getComposerProjectMenu(container)
+
+    expect(menu.querySelector('input[aria-label="搜索项目"]')).not.toBeNull()
+    expect(menu.textContent).toContain('Protein Analytics')
+    expect(menu.textContent).toContain('Cell Therapy')
+
+    setTextInput(menu, '搜索项目', 'protein')
+
+    expect(menu.textContent).toContain('Protein Analytics')
+    expect(menu.textContent).toContain('Protein Delivery')
+    expect(menu.textContent).not.toContain('Cell Therapy')
+    expect(menu.textContent).not.toContain('Assay Automation')
+
+    root.unmount()
+  })
+
+  it('keeps the project menu search and create actions fixed while only the project list scrolls', async () => {
+    const appCss = await readAppCss()
+
+    expect(getCssRule(appCss, '.composer__project-menu')).toContain(
+      'top: calc(100% + 2px);',
+    )
+    expect(getCssRule(appCss, '.composer__project-search')).toContain(
+      'min-height: 36px;',
+    )
+    expect(getCssRule(appCss, '.composer__project-option')).toContain(
+      'min-height: 36px;',
+    )
+    expect(getCssRule(appCss, '.composer__project-search')).toContain(
+      'position: sticky;',
+    )
+    expect(getCssRule(appCss, '.composer__project-option-list')).toContain(
+      'max-height: calc(36px * 5);',
+    )
+    expect(getCssRule(appCss, '.composer__project-option-list')).toContain(
+      'overflow-y: auto;',
+    )
+    expect(getCssRule(appCss, '.composer__project-create-button')).toContain(
+      'position: sticky;',
+    )
+    expect(getCssRule(appCss, '.composer__project-create-button')).toContain(
+      'min-height: 36px;',
+    )
+  })
+
+  it('uses compact text sizing in the project menu to match the sidebar thread rows', async () => {
+    const appCss = await readAppCss()
+
+    expect(getCssRule(appCss, '.composer__project-search input')).toContain(
+      'font-size: 13px;',
+    )
+    expect(getCssRule(appCss, '.composer__project-option')).toContain(
+      'font-size: 13px;',
+    )
+    expect(getCssRule(appCss, '.composer__project-option')).toContain(
+      'font-weight: 600;',
+    )
+    expect(getCssRule(appCss, '.composer__project-create-button')).toContain(
+      'font-size: 13px;',
+    )
+  })
+})
+
+describe('App composer attachment menu', () => {
+  it('opens attachment actions from the composer plus button', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Add context').click()
+    })
+
+    expect(container.querySelector('.attachment-menu')).not.toBeNull()
+    expect(getButton(container, '从资产添加')).toBeTruthy()
+    expect(getButton(container, '上传文件或图片')).toBeTruthy()
+
+    act(() => {
+      getButton(container, '从资产添加').click()
+    })
+
+    expect(container.querySelector('.attachment-menu')).toBeNull()
+    expect(getStatus(container).textContent).toContain(
+      '从资产添加将在后续 Demo 中展开',
+    )
+
+    root.unmount()
+  })
+
+  it('positions the composer attachment menu below the plus button with compact rows', async () => {
+    const appCss = await readAppCss()
+
+    expect(getCssRule(appCss, '.composer__context-button')).toContain(
+      'width: 34px;',
+    )
+    expect(getCssRule(appCss, '.composer__context-button')).toContain(
+      'height: 34px;',
+    )
+    expect(getCssRule(appCss, '.composer__send-button')).toContain(
+      'width: 40px;',
+    )
+    expect(
+      getCssRule(appCss, '.composer__attachment-control .attachment-menu'),
+    ).toContain('top: calc(100% + 6px);')
+    expect(
+      getCssRule(appCss, '.composer__attachment-control .attachment-menu'),
+    ).toContain('bottom: auto;')
+    expect(
+      getCssRule(appCss, '.thread-composer__attachment-control .attachment-menu'),
+    ).toContain('bottom: calc(100% + 6px);')
+    expect(getCssRule(appCss, '.attachment-menu')).toContain(
+      'padding: 5px;',
+    )
+    expect(getCssRule(appCss, '.attachment-menu__item')).toContain(
+      'min-height: 36px;',
+    )
+    expect(getCssRule(appCss, '.attachment-menu__item')).toContain(
+      'font-size: 13px;',
+    )
+  })
+})
+
+describe('App use case cards', () => {
+  it('shows a task summary and fills a user-authored template when clicked', () => {
+    const { container, root } = renderApp()
+
+    const card = getUseCaseCard(container, '调研靶点机制与竞品')
+
+    expect(card.querySelector('.use-case-grid__card-header')).not.toBeNull()
+    expect(card.querySelector('.use-case-grid__card-summary')).not.toBeNull()
+    expect(card.textContent).toContain('梳理靶点作用机制')
+
+    act(() => {
+      card.click()
+    })
+
+    const textarea = getTextarea(container, '研发目标或对话内容')
+
+    expect(textarea.value).toContain('请帮我调研靶点机制与竞品。')
+    expect(textarea.value).toContain('我的靶点名称如下：【】')
+    expect(textarea.value).toContain('我的疾病背景 / 适应症如下：【】')
+    expect(textarea.value).not.toContain('需要你提供')
+
+    root.unmount()
+  })
+
+  it('uses a denser card layout with title and icon in one header row', async () => {
+    const appCss = await readAppCss()
+
+    expect(getCssRule(appCss, '.use-case-card')).toContain('padding: 16px;')
+    expect(getCssRule(appCss, '.use-case-card')).toContain(
+      'min-height: 188px;',
+    )
+    expect(getCssRule(appCss, '.use-case-grid__card-header')).toContain(
+      'display: flex;',
+    )
+    expect(getCssRule(appCss, '.use-case-grid__card-icon')).toContain(
+      'width: 34px;',
+    )
+    expect(getCssRule(appCss, '.use-case-grid__card-summary')).toContain(
+      '-webkit-line-clamp: 3;',
+    )
+  })
+})
+
 describe('App Assets navigation', () => {
   it('opens the Assets workbench from the top navigation', () => {
     const { container, root } = renderApp()
@@ -387,6 +590,76 @@ function getButton(container: HTMLElement, name: string) {
   return button
 }
 
+function getComposerProjectButton(container: HTMLElement) {
+  const button = container.querySelector<HTMLButtonElement>(
+    '.composer__project-button',
+  )
+
+  if (!button) {
+    throw new Error('Composer project button not found')
+  }
+
+  return button
+}
+
+function getComposerProjectMenu(container: HTMLElement) {
+  const menu = container.querySelector<HTMLElement>('.composer__project-menu')
+
+  if (!menu) {
+    throw new Error('Composer project menu not found')
+  }
+
+  return menu
+}
+
+function getUseCaseCard(container: HTMLElement, title: string) {
+  const card = Array.from(
+    container.querySelectorAll<HTMLButtonElement>('.use-case-grid__card'),
+  ).find((element) => element.textContent?.includes(title))
+
+  if (!card) {
+    throw new Error(`Use case card not found: ${title}`)
+  }
+
+  return card
+}
+
+function getTextarea(container: HTMLElement, label: string) {
+  const textarea = container.querySelector<HTMLTextAreaElement>(
+    `textarea[aria-label="${label}"]`,
+  )
+
+  if (!textarea) {
+    throw new Error(`Textarea not found: ${label}`)
+  }
+
+  return textarea
+}
+
+function getSidebarProjectNames(container: HTMLElement) {
+  return Array.from(container.querySelectorAll('.sidebar__project-name')).map(
+    (element) => element.textContent?.trim(),
+  )
+}
+
+async function readAppCss() {
+  // @ts-expect-error Vitest runs this test in Node, while app tsconfig omits Node built-in types.
+  const { readFileSync } = await import('node:fs')
+
+  return readFileSync('src/App.css', 'utf8') as string
+}
+
+function getCssRule(appCss: string, selector: string) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = appCss.match(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`))
+
+  if (!match) {
+    throw new Error(`CSS rule not found: ${selector}`)
+  }
+
+  return match[1]
+}
+
 function getStatus(container: HTMLElement) {
   const status = container.querySelector('[role="status"]')
 
@@ -402,19 +675,23 @@ function setXtrimoSearch(container: HTMLElement, value: string) {
 }
 
 function setSearchInput(container: HTMLElement, label: string, value: string) {
+  setTextInput(container, label, value)
+}
+
+function setTextInput(container: HTMLElement, label: string, value: string) {
   act(() => {
-    const searchInput = container.querySelector<HTMLInputElement>(
+    const input = container.querySelector<HTMLInputElement>(
       `input[aria-label="${label}"]`,
     )
-    if (!searchInput) {
-      throw new Error(`Search input not found: ${label}`)
+    if (!input) {
+      throw new Error(`Input not found: ${label}`)
     }
     const valueSetter = Object.getOwnPropertyDescriptor(
       HTMLInputElement.prototype,
       'value',
     )?.set
-    valueSetter?.call(searchInput, value)
-    searchInput.dispatchEvent(
+    valueSetter?.call(input, value)
+    input.dispatchEvent(
       new InputEvent('input', {
         bubbles: true,
         data: value,

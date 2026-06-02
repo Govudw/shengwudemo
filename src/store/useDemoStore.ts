@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import { projects as seedProjects } from '../data/mockData'
 import {
   archiveThreadSnapshot,
+  createProjectSnapshot,
   createInitialDemoState,
   deleteThreadSnapshot,
   renameThreadSnapshot,
@@ -39,6 +40,7 @@ type DemoStoreState = DemoStateSnapshot & {
   setSelectedProject: (projectId: string) => void
   setDraft: (draft: string) => void
   submitDraft: () => void
+  createProject: (name: string) => void
   toggleProject: (projectId: string) => void
   togglePinned: (threadId: string) => void
   renameThread: (threadId: string, title: string) => void
@@ -70,6 +72,10 @@ export const useDemoStore = create<DemoStoreState>()(
       submitDraft: () =>
         set((state) =>
           submitDraftSnapshot(state, Date.now(), createThreadId),
+        ),
+      createProject: (name) =>
+        set((state) =>
+          createProjectSnapshot(state, name, createProjectId(name)),
         ),
       toggleProject: (projectId) =>
         set((state) => toggleProjectSnapshot(state, projectId)),
@@ -200,6 +206,24 @@ function createThreadId() {
     .slice(2, 8)}`
 }
 
+function createProjectId(name: string) {
+  const normalizedName = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 36)
+  const prefix = normalizedName || 'project'
+
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return `project-${prefix}-${crypto.randomUUID().slice(0, 8)}`
+  }
+
+  return `project-${prefix}-${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`
+}
+
 function isDemoProjectArray(value: unknown): value is DemoProject[] {
   return (
     Array.isArray(value) &&
@@ -242,7 +266,7 @@ function mergeProjectsWithCurrentSeed(
     restoredProjects.map((project) => [project.id, project]),
   )
 
-  return currentProjects.map((currentProject) => {
+  const mergedProjects = currentProjects.map((currentProject) => {
     const restoredProject = restoredProjectsById.get(currentProject.id)
 
     if (!restoredProject) {
@@ -273,6 +297,15 @@ function mergeProjectsWithCurrentSeed(
       threads: [...restoredOrSeededThreads, ...missingSeedThreads],
     }
   })
+
+  const currentProjectIds = new Set(
+    currentProjects.map((currentProject) => currentProject.id),
+  )
+  const userCreatedProjects = restoredProjects.filter(
+    (restoredProject) => !currentProjectIds.has(restoredProject.id),
+  )
+
+  return [...userCreatedProjects, ...mergedProjects]
 }
 
 function mergeSeedThread(

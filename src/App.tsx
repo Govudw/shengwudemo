@@ -38,6 +38,7 @@ function App() {
   const setSelectedProject = useDemoStore((state) => state.setSelectedProject)
   const setDraft = useDemoStore((state) => state.setDraft)
   const submitDraft = useDemoStore((state) => state.submitDraft)
+  const createProject = useDemoStore((state) => state.createProject)
   const toggleProject = useDemoStore((state) => state.toggleProject)
   const togglePinned = useDemoStore((state) => state.togglePinned)
   const renameThread = useDemoStore((state) => state.renameThread)
@@ -203,6 +204,7 @@ function App() {
                   onDraftChange={setDraft}
                   onProjectMenuOpenChange={setProjectMenuOpen}
                   onProjectChange={setSelectedProject}
+                  onCreateProject={createProject}
                   onSubmit={handleSubmit}
                   onNotify={showStatus}
                 />
