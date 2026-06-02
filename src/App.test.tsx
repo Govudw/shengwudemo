@@ -22,6 +22,196 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+describe('App Projects management', () => {
+  it('opens the Projects management full page from the top navigation', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Projects').click()
+    })
+
+    expect(container.querySelector('.projects-page')).not.toBeNull()
+    expect(container.querySelector('.agent-shell')).toBeNull()
+    expect(getButton(container, 'Projects').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(container.querySelector('.projects-main__eyebrow')).toBeNull()
+    expect(container.querySelector('.projects-main__title p')).toBeNull()
+    expect(container.textContent).toContain('项目管理')
+    expect(container.textContent).toContain('我的收藏')
+    expect(container.textContent).toContain('回收站')
+    expect(container.textContent).not.toContain('草稿')
+    expect(container.textContent).toContain('负责人')
+    expect(container.textContent).toContain('读取权限')
+    expect(container.textContent).toContain('编辑权限')
+    expect(container.textContent).toContain('最近活动')
+
+    root.unmount()
+  })
+
+  it('opens a project detail page inside Projects without changing routes', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Projects').click()
+    })
+    act(() => {
+      getButton(container, '打开项目 Antibody Optimization').click()
+    })
+
+    expect(container.querySelector('.projects-detail-page')).not.toBeNull()
+    expect(getButton(container, 'Projects').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(container.querySelector('.projects-detail-header__eyebrow')).toBeNull()
+    expect(container.querySelector('.projects-detail-header__copy p')).toBeNull()
+    expect(container.querySelector('.projects-detail-back-button')?.textContent).toBe(
+      '<',
+    )
+    expect(container.textContent).toContain('Antibody Optimization')
+    expect(container.textContent).toContain('成员与权限')
+    expect(container.textContent).toContain('项目上下文')
+    expect(container.textContent).toContain('相关对话')
+    expect(container.textContent).toContain('资产摘要')
+
+    root.unmount()
+  })
+
+  it('does not start a Workspace draft for a trashed project record outside Workspace', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Projects').click()
+    })
+    act(() => {
+      getButton(container, '回收站').click()
+    })
+    act(() => {
+      getButton(container, '打开项目 Legacy Target Cleanup').click()
+    })
+
+    const newThreadButton = getButton(container, '新建对话') as HTMLButtonElement
+    expect(newThreadButton.disabled).toBe(true)
+
+    act(() => {
+      newThreadButton.click()
+    })
+
+    expect(getButton(container, 'Projects').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(container.querySelector('.projects-detail-page')).not.toBeNull()
+
+    root.unmount()
+  })
+
+  it('starts a Workspace New Thread Draft from project detail', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Projects').click()
+    })
+    act(() => {
+      getButton(container, '打开项目 Antibody Optimization').click()
+    })
+    act(() => {
+      getButton(container, '新建对话').click()
+    })
+
+    expect(getButton(container, 'Workspace').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(container.querySelector('.workspace-main')?.getAttribute(
+      'data-drafting-new-thread',
+    )).toBe('true')
+    expect(container.querySelector('.composer__project-button')?.textContent).toContain(
+      'Antibody Optimization',
+    )
+
+    root.unmount()
+  })
+
+  it('opens a related project Thread in Workspace from project detail', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Projects').click()
+    })
+    act(() => {
+      getButton(container, '打开项目 Antibody Optimization').click()
+    })
+    act(() => {
+      getButton(container, '相关对话').click()
+    })
+    act(() => {
+      getButton(container, '打开对话 EGFR 抗体亲和力优化').click()
+    })
+
+    expect(getButton(container, 'Workspace').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(container.querySelector('.workspace-main--thread')).not.toBeNull()
+    expect(container.textContent).toContain('EGFR 抗体亲和力优化')
+
+    root.unmount()
+  })
+
+  it('opens Project Files in Assets from the project asset summary', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Projects').click()
+    })
+    act(() => {
+      getButton(container, '打开项目 Antibody Optimization').click()
+    })
+    act(() => {
+      getButton(container, '资产摘要').click()
+    })
+    act(() => {
+      getButton(container, '打开项目文件').click()
+    })
+
+    expect(getButton(container, 'Assets').getAttribute('aria-current')).toBe('page')
+    expect(container.querySelector('.assets-workbench')).not.toBeNull()
+    expect(container.querySelector('.assets-folder-path')?.textContent).toContain(
+      'Antibody Optimization',
+    )
+
+    root.unmount()
+  })
+
+  it('does not open Project Files when the project has no mapped folder', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Projects').click()
+    })
+    act(() => {
+      getButton(container, '打开项目 Protein Delivery').click()
+    })
+    act(() => {
+      getButton(container, '资产摘要').click()
+    })
+
+    const projectFilesButton = getButton(
+      container,
+      '打开项目文件',
+    ) as HTMLButtonElement
+    expect(projectFilesButton.disabled).toBe(true)
+
+    act(() => {
+      projectFilesButton.click()
+    })
+
+    expect(getButton(container, 'Projects').getAttribute('aria-current')).toBe(
+      'page',
+    )
+
+    root.unmount()
+  })
+})
+
 describe('App Assets navigation', () => {
   it('opens the Assets workbench from the top navigation', () => {
     const { container, root } = renderApp()

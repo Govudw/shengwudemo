@@ -54,16 +54,20 @@ describe('demo store logic', () => {
     expect(firstThread.transcript).not.toBe(seedProjects[0].threads[0].transcript)
   })
 
-  it('switches between Workspace and Assets without changing conversation state', () => {
+  it('switches between Workspace, Projects and Assets without changing conversation state', () => {
     const selected = selectThreadSnapshot(
       createInitialDemoState(seedProjects, now),
       'antibody-optimization',
       'egfr-affinity',
     )
 
-    const assets = selectTopNavSnapshot(selected, 'Assets')
+    const projects = selectTopNavSnapshot(selected, 'Projects')
+    const assets = selectTopNavSnapshot(projects, 'Assets')
     const workspace = selectTopNavSnapshot(assets, 'Workspace')
 
+    expect(projects.activeTopNav).toBe('Projects')
+    expect(projects.selectedThreadId).toBe('egfr-affinity')
+    expect(projects.isDraftingNewThread).toBe(false)
     expect(assets.activeTopNav).toBe('Assets')
     expect(assets.selectedThreadId).toBe('egfr-affinity')
     expect(assets.isDraftingNewThread).toBe(false)
