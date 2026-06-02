@@ -22,6 +22,62 @@ export type CapabilitySection = {
   items: string[]
 }
 
+export type PipelineDagNodeKind =
+  | 'input'
+  | 'operation'
+  | 'human-gate'
+  | 'qc-decision'
+  | 'output'
+
+export type PipelineDagNodeSubtype =
+  | 'sample'
+  | 'lab-operation'
+  | 'transport'
+  | 'cro-handoff'
+  | 'report'
+  | 'data'
+
+export type PipelineDagNodeControl = {
+  kind:
+    | 'human-confirmation'
+    | 'approval-gate'
+    | 'preset-qc-check'
+    | 'sop-threshold'
+  summary: string
+}
+
+export type PipelineDagNodeResource = {
+  kind:
+    | 'device'
+    | 'robot'
+    | 'transport-vehicle'
+    | 'island-bench'
+    | 'sample-storage'
+    | 'cro-order'
+    | 'lab-system'
+    | 'data-system'
+  name: string
+}
+
+export type PipelineDagNode = {
+  id: string
+  kind: PipelineDagNodeKind
+  subtype?: PipelineDagNodeSubtype
+  title: string
+  shortTitle: string
+  resources?: PipelineDagNodeResource[]
+  description: string
+  inputs: string[]
+  outputs: string[]
+  prerequisites: string[]
+  control?: PipelineDagNodeControl
+  layout: { row: number; column: number }
+}
+
+export type PipelineDagEdge = { from: string; to: string; label?: string }
+
+export type PipelineDag = { nodes: PipelineDagNode[]; edges: PipelineDagEdge[] }
+
 export type MockCapabilityEntry = {
   id: string
   kind: CapabilityEntryKind
@@ -46,6 +102,7 @@ export type MockCapabilityEntry = {
   examples?: string[]
   tools?: string[]
   resources?: string[]
+  dag?: PipelineDag
   presetLocked?: boolean
   placeholderState?: string
 }
@@ -97,6 +154,143 @@ export const capabilityEntries: MockCapabilityEntry[] = [
       '人工确认',
       '生成报告',
     ],
+    dag: {
+      nodes: [
+        {
+          id: 'candidate-confirmation',
+          kind: 'input',
+          subtype: 'data',
+          title: '候选确认',
+          shortTitle: '候选确认',
+          description: '汇总 EGFR 候选序列、结构评分和项目约束，确认进入湿实验设计的候选集合。',
+          inputs: ['候选序列', '结构评分', '项目约束'],
+          outputs: ['候选 Top 列表', '风险摘要'],
+          prerequisites: ['候选排序已完成', '项目上下文可读取'],
+          resources: [{ kind: 'data-system', name: 'Candidate Registry' }],
+          layout: { row: 0, column: 0 },
+        },
+        {
+          id: 'order-parameters',
+          kind: 'operation',
+          subtype: 'lab-operation',
+          title: '湿实验订单参数',
+          shortTitle: '订单参数',
+          description: '把候选列表映射到 BLI、SEC-HPLC 和 DSF assay 参数，形成可复核的订单配置。',
+          inputs: ['候选 Top 列表', 'assay 面板', '实验约束'],
+          outputs: ['订单参数表', 'assay 配置'],
+          prerequisites: ['候选确认已完成'],
+          resources: [{ kind: 'lab-system', name: 'Wet Lab Order Console' }],
+          layout: { row: 1, column: 0 },
+        },
+        {
+          id: 'human-gate-top3',
+          kind: 'human-gate',
+          subtype: 'data',
+          title: 'Human Gate: Top 3 候选确认',
+          shortTitle: 'Human Gate',
+          description: '负责人确认 Top 3 候选、排除高风险序列，并允许生成 CRO 订单草稿。',
+          inputs: ['订单参数表', '风险摘要'],
+          outputs: ['确认后的 Top 3 候选', '复核记录'],
+          prerequisites: ['订单参数已生成', '候选风险摘要可查看'],
+          control: {
+            kind: 'human-confirmation',
+            summary: '项目负责人确认 Top 3 候选和 assay 组合后继续执行。',
+          },
+          resources: [{ kind: 'lab-system', name: 'Approval Console' }],
+          layout: { row: 2, column: 0 },
+        },
+        {
+          id: 'cro-draft',
+          kind: 'operation',
+          subtype: 'cro-handoff',
+          title: 'CRO 订单草稿',
+          shortTitle: 'CRO 草稿',
+          description: '根据已确认候选生成 CRO 订单草稿，保留提交前审批状态。',
+          inputs: ['确认后的 Top 3 候选', 'assay 配置'],
+          outputs: ['CRO 订单草稿', '提交包清单'],
+          prerequisites: ['Human Gate 已通过'],
+          resources: [{ kind: 'cro-order', name: 'CRO Connector' }],
+          layout: { row: 3, column: 0 },
+        },
+        {
+          id: 'sample-transport',
+          kind: 'operation',
+          subtype: 'transport',
+          title: '样本准备 / 转运',
+          shortTitle: '样本转运',
+          description: '准备样本、登记保存条件，并安排样本在内部台架和 CRO 间转运。',
+          inputs: ['CRO 订单草稿', '样本库存'],
+          outputs: ['样本批次', '转运记录'],
+          prerequisites: ['订单草稿已复核', '样本库存可用'],
+          resources: [
+            { kind: 'sample-storage', name: 'Sample Storage' },
+            { kind: 'transport-vehicle', name: '冷链转运' },
+          ],
+          layout: { row: 4, column: 0 },
+        },
+        {
+          id: 'device-run',
+          kind: 'operation',
+          subtype: 'lab-operation',
+          title: '设备执行: BLI + SEC-HPLC + DSF',
+          shortTitle: '设备执行',
+          description: '在设备和岛式台架上执行 BLI、SEC-HPLC 与 DSF 测试，采集原始实验数据。',
+          inputs: ['样本批次', 'assay 配置'],
+          outputs: ['BLI 原始数据', 'SEC-HPLC 曲线', 'DSF 熔解曲线'],
+          prerequisites: ['样本转运完成', '设备校准完成'],
+          resources: [
+            { kind: 'device', name: 'BLI Analyzer' },
+            { kind: 'device', name: 'SEC-HPLC' },
+            { kind: 'island-bench', name: 'DSF Bench' },
+          ],
+          layout: { row: 5, column: 0 },
+        },
+        {
+          id: 'qc-decision',
+          kind: 'qc-decision',
+          subtype: 'data',
+          title: 'QC Decision: 数据质量通过',
+          shortTitle: 'QC Decision',
+          description: '根据预设 QC 规则判断数据质量是否可进入结果回传和报告生成。',
+          inputs: ['BLI 原始数据', 'SEC-HPLC 曲线', 'DSF 熔解曲线'],
+          outputs: ['QC 判断', '可用数据包'],
+          prerequisites: ['设备执行完成', '原始数据完整'],
+          control: {
+            kind: 'preset-qc-check',
+            summary: '自动检查重复孔一致性、曲线拟合质量和 SOP 阈值。',
+          },
+          resources: [{ kind: 'data-system', name: 'QC Rule Engine' }],
+          layout: { row: 6, column: 0 },
+        },
+        {
+          id: 'report-assets',
+          kind: 'output',
+          subtype: 'report',
+          title: '结果回传、报告与数据资产登记',
+          shortTitle: '报告登记',
+          description: '回传实验结果，生成优化报告，并把数据包登记为可追溯资产。',
+          inputs: ['QC 判断', '可用数据包'],
+          outputs: ['优化报告', '实验数据资产', '下一轮建议'],
+          prerequisites: ['QC Decision 通过'],
+          resources: [
+            { kind: 'data-system', name: 'Asset Registry' },
+            { kind: 'lab-system', name: 'Report Builder' },
+          ],
+          layout: { row: 7, column: 0 },
+        },
+      ],
+      edges: [
+        { from: 'candidate-confirmation', to: 'order-parameters', label: '候选' },
+        { from: 'order-parameters', to: 'human-gate-top3', label: '待确认' },
+        { from: 'human-gate-top3', to: 'cro-draft', label: '通过' },
+        { from: 'cro-draft', to: 'sample-transport', label: '订单' },
+        { from: 'sample-transport', to: 'device-run', label: '样本' },
+        { from: 'device-run', to: 'qc-decision', label: '原始数据' },
+        { from: 'qc-decision', to: 'report-assets', label: 'QC 通过' },
+        { from: 'order-parameters', to: 'device-run', label: 'assay 配置' },
+        { from: 'cro-draft', to: 'report-assets', label: '订单追踪' },
+      ],
+    },
   },
   {
     id: 'pipeline-protein-stability',

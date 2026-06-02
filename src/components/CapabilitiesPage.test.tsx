@@ -71,6 +71,20 @@ describe('CapabilitiesPage', () => {
     ).toContain('min-height: 34px;')
   })
 
+  it('keeps the default Pipeline DAG preview compact inside the detail panel', async () => {
+    const appCss = await readAppCss()
+
+    expect(getCssRule(appCss, '.capabilities-dag-canvas--preview')).toContain(
+      'height: 260px;',
+    )
+    expect(
+      getCssRule(appCss, '.capabilities-dag-canvas--preview .capabilities-dag-node'),
+    ).toContain('min-height: 24px;')
+    expect(
+      getCssRule(appCss, '.capabilities-dag-canvas--preview .capabilities-dag-node__subtype'),
+    ).toContain('display: none;')
+  })
+
   it('supports Codex-style Skill browsing, details, toggles, and build action', () => {
     const onNotify = vi.fn()
     const { container, root } = renderCapabilitiesPage({ onNotify })
@@ -174,6 +188,111 @@ describe('CapabilitiesPage', () => {
 
     root.unmount()
   })
+
+  it('shows a DAG preview for the default Pipeline without duplicating the linear steps section', () => {
+    const { container, root } = renderCapabilitiesPage()
+
+    expect(getDetailSectionTitles(container)).toContain('执行 DAG')
+    expect(getDetailSectionTitles(container)).not.toContain('步骤')
+    expect(container.textContent).toContain('Human Gate')
+    expect(container.textContent).toContain('人工确认')
+    expect(container.textContent).toContain('QC')
+    expect(container.textContent).toContain('QC 判断')
+
+    root.unmount()
+  })
+
+  it('opens the read-only Pipeline DAG Viewer and shows selected node execution details', () => {
+    const { container, root } = renderCapabilitiesPage()
+
+    act(() => {
+      getButtonContaining(container, '最大化查看').click()
+    })
+
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(container.querySelector('[aria-modal="true"]')).not.toBeNull()
+    expect(document.activeElement).toBe(
+      getButtonByLabel(container, '关闭 Pipeline DAG Viewer'),
+    )
+    expect(container.textContent).toContain('选择一个节点查看执行条件。')
+    expect(container.textContent).toContain('Human Gate')
+    expect(container.textContent).toContain('QC Decision')
+    expect(container.textContent).toContain('Lab Resources')
+
+    act(() => {
+      getButtonContaining(container, 'Human Gate').click()
+    })
+
+    expect(container.textContent).toContain('名称')
+    expect(container.textContent).toContain('输入')
+    expect(container.textContent).toContain('输出')
+    expect(container.textContent).toContain('前置条件')
+    expect(container.textContent).toContain('控制条件')
+    expect(container.textContent).toContain('human-confirmation')
+
+    act(() => {
+      getButtonByLabel(container, '关闭 Pipeline DAG Viewer').click()
+    })
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+    expect(container.textContent).toContain('EGFR 抗体亲和力优化 Pipeline')
+
+    root.unmount()
+  })
+
+  it('closes the Pipeline DAG Viewer with Escape and supports Fit and Reset controls', () => {
+    const { container, root } = renderCapabilitiesPage()
+
+    act(() => {
+      getButtonContaining(container, '最大化查看').click()
+    })
+
+    act(() => {
+      getButtonContaining(container, 'QC Decision').click()
+    })
+
+    expect(container.textContent).toContain('preset-qc-check')
+    expect(getDagViewport(container).dataset.viewport).toBe('default')
+    expect(getDagViewport(container).style.transform).toBe('')
+
+    act(() => {
+      getButtonContaining(container, 'Fit').click()
+    })
+
+    expect(getDagViewport(container).dataset.viewport).toBe('fit')
+    expect(getDagViewport(container).style.transform).not.toBe('')
+    expect(container.textContent).toContain('preset-qc-check')
+
+    act(() => {
+      getButtonContaining(container, 'Reset').click()
+    })
+
+    expect(getDagViewport(container).dataset.viewport).toBe('default')
+    expect(getDagViewport(container).style.transform).toBe('')
+    expect(container.textContent).toContain('选择一个节点查看执行条件。')
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    })
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+
+    root.unmount()
+  })
+
+  it('keeps the linear steps fallback for Pipelines without a DAG', () => {
+    const { container, root } = renderCapabilitiesPage()
+
+    act(() => {
+      getButtonContaining(container, '蛋白稳定性改造 Pipeline').click()
+    })
+
+    expect(getDetailSectionTitles(container)).toContain('步骤')
+    expect(getDetailSectionTitles(container)).not.toContain('执行 DAG')
+    expect(container.textContent).toContain('读取序列')
+
+    root.unmount()
+  })
 })
 
 function renderCapabilitiesPage(
@@ -268,6 +387,18 @@ function getSwitch(container: HTMLElement, name: string) {
   return switchControl
 }
 
+function getDagViewport(container: HTMLElement) {
+  const viewport = container.querySelector<HTMLElement>(
+    '.capabilities-dag-canvas--modal .capabilities-dag-canvas__viewport',
+  )
+
+  if (!viewport) {
+    throw new Error('DAG viewport not found')
+  }
+
+  return viewport
+}
+
 function getButtonByLabel(container: HTMLElement, label: string) {
   const button = Array.from(container.querySelectorAll('button')).find(
     (element) => element.getAttribute('aria-label') === label,
@@ -278,4 +409,10 @@ function getButtonByLabel(container: HTMLElement, label: string) {
   }
 
   return button
+}
+
+function getDetailSectionTitles(container: HTMLElement) {
+  return Array.from(
+    container.querySelectorAll<HTMLElement>('.capabilities-detail-section h3'),
+  ).map((heading) => heading.textContent)
 }
