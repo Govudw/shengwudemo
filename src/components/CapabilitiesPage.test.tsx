@@ -322,6 +322,24 @@ describe('CapabilitiesPage', () => {
       source: 'created',
       version: 'v1.0',
     })
+    expect(savedPipeline?.interface.inputs).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('候选酶集合'),
+        expect.stringContaining('样本与板位映射'),
+        expect.stringContaining('酶活测定配置'),
+      ]),
+    )
+    expect(savedPipeline?.interface.inputs.join('\n')).not.toContain(
+      'ENZ-P0_candidate_variants.xlsx',
+    )
+    expect(savedPipeline?.interface.outputs).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('酶活结果'),
+        expect.stringContaining('稳定性结果'),
+        expect.stringContaining('异常与复测决策'),
+        expect.stringContaining('输出文件'),
+      ]),
+    )
     expect(savedPipeline?.dag?.nodes.length).toBeGreaterThan(0)
     expect(substrateGate).toMatchObject({
       kind: 'human-gate',

@@ -654,6 +654,34 @@ describe('demo store logic', () => {
     const visibleText = collectStringValues(pipelineThread?.transcript ?? []).join('\n')
     const inputFileBlocks = blocks.filter((block) => block.type === 'projectFile')
     const runInspector = pipelineThread?.runInspector
+    const finalTurn = pipelineThread?.transcript.at(-1)
+    const uploadTurnIndex = pipelineThread?.transcript.findIndex((turn) =>
+      turn.contentBlocks?.some(
+        (block) =>
+          block.type === 'projectFile' &&
+          block.fileName === 'ENZ-P0_candidate_variants.xlsx',
+      ),
+    )
+    const inputExtractionTurnIndex = pipelineThread?.transcript.findIndex((turn) =>
+      turn.contentBlocks?.some(
+        (block) =>
+          block.type === 'capabilityRunReplay' &&
+          block.commandName === 'PipelineBuilder.extractInputs',
+      ),
+    )
+    const inputConfirmationTurns =
+      uploadTurnIndex === undefined ||
+      inputExtractionTurnIndex === undefined ||
+      uploadTurnIndex < 0 ||
+      inputExtractionTurnIndex < 0
+        ? []
+        : pipelineThread?.transcript.slice(uploadTurnIndex + 1, inputExtractionTurnIndex) ?? []
+    const inputConfirmationText = inputConfirmationTurns
+      .map((turn) => turn.markdown)
+      .join('\n')
+    const finalDagBlock = finalTurn?.contentBlocks?.find(
+      (block) => block.type === 'pipelineDag',
+    )
     const v01Turn = pipelineThread?.transcript.find((turn) =>
       turn.contentBlocks?.some(
         (block) => block.type === 'pipelineDag' && block.version === 'v0.1',
@@ -666,10 +694,31 @@ describe('demo store logic', () => {
     expect(pipelineProject?.name).toBe('Pipeline Build')
     expect(pipelineProject?.threads).toHaveLength(1)
     expect(pipelineThread?.title).toBe('ENZ-P0 实验流程编排')
-    expect(pipelineThread?.transcript).toHaveLength(15)
-    expect(pipelineThread?.transcript.filter((turn) => turn.role === 'user')).toHaveLength(6)
-    expect(pipelineThread?.transcript.filter((turn) => turn.role === 'mainAgent')).toHaveLength(9)
-    expect(pipelineDagBlocks).toHaveLength(2)
+    expect(pipelineThread?.transcript).toHaveLength(25)
+    expect(pipelineThread?.transcript.filter((turn) => turn.role === 'user')).toHaveLength(11)
+    expect(pipelineThread?.transcript.filter((turn) => turn.role === 'mainAgent')).toHaveLength(
+      14,
+    )
+    expect(uploadTurnIndex).toBeGreaterThanOrEqual(0)
+    expect(inputExtractionTurnIndex).toBeGreaterThan(uploadTurnIndex ?? -1)
+    expect(inputConfirmationTurns).toHaveLength(10)
+    expect(inputConfirmationTurns.filter((turn) => turn.role === 'mainAgent')).toHaveLength(5)
+    expect(inputConfirmationTurns.filter((turn) => turn.role === 'user')).toHaveLength(5)
+    expect(
+      inputConfirmationTurns
+        .filter((turn) => turn.role === 'mainAgent')
+        .every(
+          (turn) =>
+            (turn.markdown ?? '').includes('**推荐 A：**') &&
+            (turn.markdown ?? '').includes('B：') &&
+            (turn.markdown ?? '').includes('C：'),
+        ),
+    ).toBe(true)
+    expect(inputConfirmationText).toContain('我担心')
+    expect(inputConfirmationText).toContain('候选酶集合')
+    expect(inputConfirmationText).toContain('反应体系')
+    expect(inputConfirmationText).toContain('输出字段契约')
+    expect(pipelineDagBlocks).toHaveLength(3)
     expect(v01DagBlock).toBeDefined()
     expect(v02DagBlock).toBeDefined()
     expect(v02DagBlock?.dag.nodes).toHaveLength((v01DagBlock?.dag.nodes.length ?? 0) + 1)
@@ -686,6 +735,26 @@ describe('demo store logic', () => {
     expect(v01Turn?.markdown).toContain('推荐 A')
     expect(v01Turn?.markdown).toContain('B：')
     expect(v01Turn?.markdown).toContain('C：')
+    expect(finalTurn?.markdown).not.toContain('本次流程总结')
+    expect(finalTurn?.markdown).toContain('Pipeline Input')
+    expect(finalTurn?.markdown).toContain('Pipeline Output')
+    expect(finalTurn?.markdown).toContain('Pipeline 流程')
+    expect(finalTurn?.markdown).toContain('候选酶集合')
+    expect(finalTurn?.markdown).toContain('样本与板位映射')
+    expect(finalTurn?.markdown).toContain('酶活测定配置')
+    expect(finalTurn?.markdown).toContain('输出字段契约')
+    expect(finalTurn?.markdown).toContain('酶活结果')
+    expect(finalTurn?.markdown).toContain('稳定性结果')
+    expect(finalTurn?.markdown).toContain('异常与复测决策')
+    expect(finalTurn?.markdown).toContain('标准化结果包')
+    expect(finalTurn?.markdown).toContain('输出文件')
+    expect(finalTurn?.markdown).toContain('ENZ-P0_Assay_Result_Package.xlsx')
+    expect(finalTurn?.markdown).toContain('Pipeline_DAG_v0.2.json')
+    expect(finalDagBlock).toMatchObject({
+      version: 'v0.2',
+      status: 'saved',
+      dag: v02DagBlock?.dag,
+    })
     expect(visibleText).toContain('已保存到 Pipelines，来源为自建，版本 v1.0')
     expect(visibleText).not.toMatch(/demo/i)
     expect(visibleText).not.toMatch(/mock/i)

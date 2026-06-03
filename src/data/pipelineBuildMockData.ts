@@ -69,7 +69,8 @@ const inputExtractionRun = capabilityRun(
     candidateCount: 48,
     sopVersion: 'v3',
     substrateLot: 'SUB-202606',
-    requiredConfirmations: 4,
+    parsedInputConfirmations: 5,
+    requiredRuntimeConfirmations: 4,
   },
   [
     {
@@ -374,10 +375,70 @@ const pipelineBuildTranscript: ConversationTurn[] = [
     ],
   },
   {
+    id: 'pipeline-build-turn-005a',
+    role: 'mainAgent',
+    markdown:
+      '我先不直接生成输入契约。我担心把候选酶表里的 ID 粒度理解错，后面板位映射和复测记录都会错。先只确认候选酶集合怎么定义。\n\n**推荐 A：** 把 `variant_id + sample_id + plate_id + well_position + replicate` 作为一个可执行候选单元；variant_id 表示设计变体，sample_id 表示本次实验样本。\n\nB：只把 variant_id 作为输入主键，sample_id 和板位在执行时再补。\n\nC：把 sample_id 作为唯一主键，variant_id 只作为备注字段。\n\n我建议选 A，因为它能同时追踪设计变体和实验样本，后续复测也不会混在一起。',
+  },
+  {
+    id: 'pipeline-build-turn-005b',
+    role: 'user',
+    markdown:
+      '选 A。variant_id 是设计变体，sample_id 是本次实验样本，plate 和 well 也要进入输入契约。',
+  },
+  {
+    id: 'pipeline-build-turn-005c',
+    role: 'mainAgent',
+    markdown:
+      '第二个容易误解的点是 SOP 里的表达与纯化阈值。我担心如果只把它们当作报告字段，Pipeline 会把不该进入 assay 的样本继续往下送。\n\n**推荐 A：** 把表达量下限、纯化收率和基础纯度阈值解析为前置 QC 规则；未通过样本只进入异常复核，不进入酶活测定。\n\nB：把这些阈值只作为结果标注，所有样本仍进入酶活测定。\n\nC：不在 Pipeline 中固化阈值，每次由负责人手动判断。\n\n我建议选 A。你刚才强调底物批次不要自动通过，同样的逻辑也适用于表达与纯化 QC。',
+  },
+  {
+    id: 'pipeline-build-turn-005d',
+    role: 'user',
+    markdown:
+      '选 A。表达、纯化、基础纯度都作为前置 QC。未通过不要进入酶活测定，但要保留异常复核入口。',
+  },
+  {
+    id: 'pipeline-build-turn-005e',
+    role: 'mainAgent',
+    markdown:
+      '第三个点是反应体系。SOP v3 里有默认条件，底物批次 QC 表里也有本批次信息。我担心如果只引用 SOP，实际执行时会漏掉本批次底物和对照配置。\n\n**推荐 A：** 把底物批次、底物浓度、酶浓度、buffer、pH、温度、反应时间、读数方式和对照孔设置都解析成固定输入字段，进入酶活测定前再确认一次。\n\nB：只解析 SOP 默认条件，底物批次和对照孔在实验执行时人工补录。\n\nC：只确认底物批次，其他反应条件按 SOP 默认值静默继承。\n\n我建议选 A，因为这条 Pipeline 的核心风险就在反应体系一致性，不能只把文件名当输入。',
+  },
+  {
+    id: 'pipeline-build-turn-005f',
+    role: 'user',
+    markdown:
+      '选 A。反应体系要拆成具体字段，不要只写 SOP 文件。底物批次、浓度、buffer、pH、温度、时间、读数方式和对照孔都要有。',
+  },
+  {
+    id: 'pipeline-build-turn-005g',
+    role: 'mainAgent',
+    markdown:
+      '第四个点是对照失败怎么处理。我担心如果只把对照读数放进输出，Pipeline 会在阳性或阴性对照失败时仍然生成可用结论。\n\n**推荐 A：** 把阳性对照、阴性对照、blank wells、对照阈值和失败路由写入输入契约；任一关键对照失败时，结果包标记为需复核，不输出可用活性结论。\n\nB：对照失败只在报告里标注，活性结果仍照常输出。\n\nC：只保留阳性和阴性对照，不把 blank wells 写入输入契约。\n\n我建议选 A。这样后面结果包会清楚区分“实验执行完成”和“结论可用”。',
+  },
+  {
+    id: 'pipeline-build-turn-005h',
+    role: 'user',
+    markdown:
+      '选 A。对照失败必须阻断可用结论，blank wells 也要在输入契约里。',
+  },
+  {
+    id: 'pipeline-build-turn-005i',
+    role: 'mainAgent',
+    markdown:
+      '最后确认稳定性面板和输出字段契约。我担心如果这里不先锁定，后面 DAG 能跑完，但结果包会缺少进入下一轮判断需要的字段。\n\n**推荐 A：** 把 pH 梯度、温度梯度、半衰期时间点、重复数、曲线质量要求，以及结果包中的 activity、QC status、control status、retest flag、exclusion reason、version record 都作为 Pipeline Input 的一部分。\n\nB：稳定性面板先不进入本 Pipeline，只输出酶活结果。\n\nC：输出字段不提前固定，等实验完成后根据实际数据生成。\n\n我建议选 A。Pipeline 不是只把实验步骤串起来，还要保证输出字段契约可复用。',
+  },
+  {
+    id: 'pipeline-build-turn-005j',
+    role: 'user',
+    markdown:
+      '选 A。稳定性面板和输出字段契约都固定下来。结果包必须包含 QC、control、retest、exclusion 和 version record。',
+  },
+  {
     id: 'pipeline-build-turn-006',
     role: 'mainAgent',
     markdown:
-      '我已读取这三个入口文件。第三件事只确认 QC 处理方式。\n\n**推荐 A：** 表达与纯化 QC 用固定阈值自动分流；未通过样本进入异常复核，不进入活性测定。\n\nB：所有样本都进入活性测定，QC 只在报告里标注。\n\nC：表达与纯化 QC 每次由负责人手动判断。\n\n我建议选 A，因为它能减少无效测定，同时把异常样本交给人工复核。',
+      '我把刚才确认的 5 个输入解析点合成了 `pipeline_input_contract.json`：候选酶集合、样本与板位映射、前置 QC 规则、反应体系与对照设置、稳定性面板和输出字段契约都已拆成字段，不再把文件本身当作唯一输入。\n\n接下来只确认 QC 分流执行方式。\n\n**推荐 A：** 表达与纯化 QC 用固定阈值自动分流；未通过样本进入异常复核，不进入活性测定。\n\nB：所有样本都进入活性测定，QC 只在报告里标注。\n\nC：表达与纯化 QC 每次由负责人手动判断。\n\n我建议选 A，因为它能减少无效测定，同时把异常样本交给人工复核。',
     contentBlocks: [inputExtractionRun],
   },
   {
@@ -463,9 +524,61 @@ const pipelineBuildTranscript: ConversationTurn[] = [
   {
     id: 'pipeline-build-turn-015',
     role: 'mainAgent',
-    markdown:
-      '已保存到 Pipelines，来源为自建，版本 v1.0。\n\n保存条目：`ENZ-P0 Assay Characterization Pipeline v1.0`\n\n后续在 ENZ-P0 或同类候选酶实验 Thread 中，可以直接调用这条 Pipeline，并在执行前重新确认输入文件、底物批次和反应体系。',
-    contentBlocks: [saveRun],
+    markdown: `
+已保存到 Pipelines，来源为自建，版本 v1.0。
+
+保存条目：\`ENZ-P0 Assay Characterization Pipeline v1.0\`
+
+**Pipeline Input**
+
+- 候选酶集合：48 个 ENZ-P0 变体；每个候选包含 variant_id、sample_id、突变标签、样本批次、进入实验状态和候选来源。
+- 样本与板位映射：plate_id、well_position、replicate 规则、样本条码，以及候选与实验孔位的绑定关系。
+- 表达与纯化 QC 规则：表达量下限、纯化收率、基础纯度阈值，以及未通过样本进入异常复核的分流规则。
+- 酶活测定配置：底物批次、底物浓度、酶浓度、缓冲体系、pH、温度、反应时间和读数方式。
+- 对照设置：阳性对照、阴性对照、blank wells、对照失败阈值和失败后的处理规则。
+- 稳定性面板定义：pH 梯度、温度梯度、半衰期时间点、重复数和曲线质量要求。
+- 人工确认点：实验范围确认、底物与反应体系确认、异常复核与复测判断。
+- 输出字段契约：结果包必须包含 activity、QC status、control status、retest flag、exclusion reason 和 version record。
+
+这些输入由候选酶变体表、SOP v3 和底物批次 QC 表解析得到，原始文件保留为 Project Files 追溯来源。
+
+**Pipeline Output**
+
+- 样本执行结果：每个候选酶对应的 sample_id、plate_id、well_position、replicate、执行状态和原始读数索引。
+- 酶活结果：activity value、单位、归一化结果、对照校正结果、重复孔 CV，以及是否通过活性读数质量要求。
+- QC 状态表：表达纯化 QC、对照 QC、曲线质量 QC、稳定性面板 QC 的通过/失败状态和失败原因。
+- 对照结果：阳性对照、阴性对照、blank wells 的读数、阈值判断和异常标记。
+- 稳定性结果：pH profile、temperature profile、half-life readout、曲线拟合状态和置信标记。
+- 异常与复测决策：异常样本列表、异常类型、是否复测、复测原因、是否排除和排除理由。
+- 候选酶结果摘要：每个候选的 activity、stability、QC status、retest flag、exclusion reason 和进入下一轮判断所需字段。
+- 标准化结果包：汇总样本执行结果、酶活结果、对照结果、稳定性结果、QC 状态表、复测清单和排除记录。
+- Pipeline 版本记录：Pipeline name、version、DAG version、确认点、确认人、确认时间和执行输入摘要。
+
+**输出文件**
+
+- \`Pipeline_DAG_v0.2.json\`
+- \`ENZ-P0_Assay_Result_Package.xlsx\`
+- \`ENZ-P0_QC_Status_Table.csv\`
+- \`ENZ-P0_Retest_and_Exclusion_Log.md\`
+- \`ENZ-P0_Assay_Characterization_Pipeline_v1.0.md\`
+
+**Pipeline 流程**
+
+Pipeline 先读取候选酶集合和样本板位映射，生成可追溯的样本执行表；随后按表达与纯化 QC 规则判断哪些样本可以进入 assay，未通过样本进入异常复核。通过 QC 的样本在酶活测定前必须完成底物批次、反应体系和对照设置确认。确认后执行酶活测定，并把原始读数、对照状态和样本映射写入结果包。随后进入 pH、温度和半衰期稳定性面板，最后根据异常复核规则生成复测清单、排除记录、QC 状态表和 Pipeline 版本记录。
+
+后续在 ENZ-P0 或同类候选酶实验 Thread 中，可以直接调用这条 Pipeline，并在执行前重新确认输入文件、底物批次和反应体系。
+`.trim(),
+    contentBlocks: [
+      saveRun,
+      {
+        type: 'pipelineDag',
+        title: 'ENZ-P0 Assay Characterization Pipeline DAG',
+        version: 'v0.2',
+        status: 'saved',
+        summary: '最终保存版本 DAG，包含输入确认、QC 分流、人工确认点、实验执行和结果归档。',
+        dag: pipelineBuildDagV02,
+      },
+    ],
   },
 ]
 
@@ -499,8 +612,17 @@ export const enzP0AssayCharacterizationPipeline: MockCapabilityEntry = {
     { label: '版本', value: 'v1.0' },
   ],
   interface: {
-    inputs: ['候选酶变体表', '实验 SOP', '底物批次 QC 表'],
-    outputs: ['标准化结果包', 'QC 状态表', 'Pipeline 版本记录'],
+    inputs: [
+      '候选酶集合与样本批次元数据',
+      '样本与板位映射、replicate 规则和样本条码',
+      '表达纯化 QC 规则、酶活测定配置和对照设置',
+      '稳定性面板定义、人工确认点和输出字段契约',
+    ],
+    outputs: [
+      '样本执行结果、酶活结果和对照结果',
+      'QC 状态表、稳定性结果和异常与复测决策',
+      '候选酶结果摘要、Pipeline 版本记录和输出文件清单',
+    ],
     permissions: ['实验范围、底物与反应体系、异常复核均需人工确认'],
   },
   sections: [
