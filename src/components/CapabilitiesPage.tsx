@@ -10,11 +10,12 @@ import {
   PlusIcon,
   SearchIcon,
 } from './icons'
-import PipelineDagCanvas, {
+import PipelineDagCanvas from './PipelineDagCanvas'
+import {
   dagNodeKindLabels,
   dagNodeSubtypeLabels,
   dagResourceLabels,
-} from './PipelineDagCanvas'
+} from './pipelineDagCanvasUtils'
 import {
   capabilityEntries,
   capabilityTypeLabels,
