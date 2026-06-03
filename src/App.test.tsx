@@ -389,6 +389,80 @@ describe('App composer attachment menu', () => {
 })
 
 describe('App use case cards', () => {
+  it('shows functional capability chips and adds a removable capability tag to the composer', () => {
+    const { container, root } = renderApp()
+
+    expect(getButton(container, '知识调研')).toBeTruthy()
+    expect(getButton(container, '蛋白设计')).toBeTruthy()
+    expect(getButton(container, '实验设计')).toBeTruthy()
+    expect(getButton(container, '数据分析')).toBeTruthy()
+    expect(getButton(container, '流程编排')).toBeTruthy()
+    expect(getButton(container, '更多')).toBeTruthy()
+    expect(findButton(container, '靶点调研')).toBeUndefined()
+    expect(findButton(container, '项目交付')).toBeUndefined()
+
+    act(() => {
+      getButton(container, '蛋白设计').click()
+    })
+
+    expect(container.querySelector('.composer__capability-tag')?.textContent).toContain(
+      '蛋白设计',
+    )
+    const removeButton = getButton(container, '移除蛋白设计能力标签')
+    expect(removeButton.querySelector('.composer__capability-remove-icon')).not.toBeNull()
+    expect(getTextarea(container, '研发目标或对话内容').value).toContain(
+      '蛋白设计',
+    )
+
+    act(() => {
+      removeButton.click()
+    })
+
+    expect(container.querySelector('.composer__capability-tag')).toBeNull()
+
+    act(() => {
+      getButton(container, '更多').click()
+    })
+
+    expect(getStatus(container).textContent).toContain(
+      '模型与资产将在后续 Demo 中展开',
+    )
+
+    root.unmount()
+  })
+
+  it('centers the capability tag remove icon inside a fixed hit target', async () => {
+    const appCss = await readAppCss()
+
+    expect(getCssRule(appCss, '.composer__capability-marker')).toContain(
+      'width: 22px;',
+    )
+    expect(getCssRule(appCss, '.composer__capability-marker')).toContain(
+      'height: 22px;',
+    )
+    expect(getCssRule(appCss, '.composer__capability-symbol')).toContain(
+      'pointer-events: none;',
+    )
+    expect(getCssRule(appCss, '.composer__capability-remove')).toContain(
+      'padding: 0;',
+    )
+    expect(getCssRule(appCss, '.composer__capability-remove')).toContain(
+      'z-index: 1;',
+    )
+    expect(getCssRule(appCss, '.composer__capability-remove')).not.toContain(
+      'font-size: 18px;',
+    )
+    expect(getCssRule(appCss, '.composer__capability-remove-icon')).toContain(
+      'width: 14px;',
+    )
+    expect(getCssRule(appCss, '.composer__capability-remove-icon')).toContain(
+      'height: 14px;',
+    )
+    expect(getCssRule(appCss, '.composer__capability-remove-icon')).toContain(
+      'pointer-events: none;',
+    )
+  })
+
   it('shows a task summary and fills a user-authored template when clicked', () => {
     const { container, root } = renderApp()
 

@@ -10,6 +10,7 @@ import TopNav from './components/TopNav'
 import type { TopNavItem } from './components/TopNav'
 import UseCaseGrid from './components/UseCaseGrid'
 import { capabilityChips, useCases } from './data/mockData'
+import type { CapabilityChip } from './data/mockData'
 import {
   resetPersistedDemoStore,
   useDemoStore,
@@ -24,6 +25,8 @@ function App() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [projectMenuOpen, setProjectMenuOpen] = useState(false)
+  const [activeCapabilityTag, setActiveCapabilityTag] =
+    useState<CapabilityChip | null>(null)
   const composerTextAreaRef = useRef<HTMLTextAreaElement>(null)
   const projects = useDemoStore((state) => state.projects)
   const selectedProjectId = useDemoStore((state) => state.selectedProjectId)
@@ -106,7 +109,21 @@ function App() {
   }
 
   function handlePromptSelect(prompt: string) {
+    setActiveCapabilityTag(null)
     setDraft(prompt)
+
+    window.requestAnimationFrame(() => {
+      composerTextAreaRef.current?.focus()
+    })
+  }
+
+  function handleCapabilitySelect(chip: CapabilityChip) {
+    if (!chip.prompt) {
+      return
+    }
+
+    setActiveCapabilityTag(chip)
+    setDraft(chip.prompt)
 
     window.requestAnimationFrame(() => {
       composerTextAreaRef.current?.focus()
@@ -248,16 +265,19 @@ function App() {
                   draft={draft}
                   textareaRef={composerTextAreaRef}
                   projectMenuOpen={projectMenuOpen}
+                  activeCapabilityLabel={activeCapabilityTag?.label ?? null}
                   onDraftChange={setDraft}
                   onProjectMenuOpenChange={setProjectMenuOpen}
                   onProjectChange={setSelectedProject}
                   onCreateProject={createProject}
+                  onRemoveCapability={() => setActiveCapabilityTag(null)}
                   onSubmit={handleSubmit}
                   onNotify={showStatus}
                 />
                 <UseCaseGrid
                   chips={capabilityChips}
                   useCases={useCases}
+                  onCapabilitySelect={handleCapabilitySelect}
                   onPromptSelect={handlePromptSelect}
                   onNotify={showStatus}
                 />

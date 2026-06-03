@@ -4,6 +4,7 @@ import { CardIcon } from './icons'
 type UseCaseGridProps = {
   chips: CapabilityChip[]
   useCases: UseCaseCard[]
+  onCapabilitySelect: (chip: CapabilityChip) => void
   onPromptSelect: (prompt: string) => void
   onNotify: (message: string) => void
 }
@@ -11,6 +12,7 @@ type UseCaseGridProps = {
 function UseCaseGrid({
   chips,
   useCases,
+  onCapabilitySelect,
   onPromptSelect,
   onNotify,
 }: UseCaseGridProps) {
@@ -24,9 +26,9 @@ function UseCaseGrid({
             className="use-case-grid__chip"
             onClick={() => {
               if (chip.prompt) {
-                onPromptSelect(chip.prompt)
+                onCapabilitySelect(chip)
               } else {
-                onNotify('更多 Capability 将在后续 Demo 中展开')
+                onNotify('模型与资产将在后续 Demo 中展开')
               }
             }}
           >

@@ -819,7 +819,17 @@
   pointer-events: auto;
 }
 
+.composer__left-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: calc(100% - 52px);
+  pointer-events: auto;
+}
+
 .composer__attachment-control {
+  flex: 0 0 auto;
   position: relative;
   pointer-events: auto;
 }
@@ -835,6 +845,94 @@
 .composer__context-button:hover {
   color: var(--text);
   background: var(--line);
+}
+
+.composer__capability-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  height: 34px;
+  max-width: min(240px, 48vw);
+  padding: 0 12px 0 34px;
+  border: 1px solid #a8cdf8;
+  border-radius: 999px;
+  color: #0874e8;
+  background: #eef6ff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.composer__capability-marker {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  transform: translateY(-50%);
+}
+
+.composer__capability-symbol {
+  grid-area: 1 / 1;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: #0874e8;
+  font-size: 12px;
+  line-height: 1;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.composer__capability-remove {
+  grid-area: 1 / 1;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  color: #0874e8;
+  background: transparent;
+  opacity: 0;
+  transition:
+    background 120ms ease,
+    opacity 120ms ease;
+}
+
+.composer__capability-tag:hover .composer__capability-symbol,
+.composer__capability-tag:focus-within .composer__capability-symbol {
+  opacity: 0;
+}
+
+.composer__capability-tag:hover .composer__capability-remove,
+.composer__capability-tag:focus-within .composer__capability-remove {
+  opacity: 1;
+}
+
+.composer__capability-remove:hover,
+.composer__capability-remove:focus-visible {
+  background: #d9ebff;
+}
+
+.composer__capability-remove-icon {
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+
+.composer__capability-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .composer__project-selector {

@@ -31,6 +31,15 @@ function PlusIcon({ className }: IconProps) {
   )
 }
 
+function XIcon({ className }: IconProps) {
+  return (
+    <IconSvg className={className}>
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </IconSvg>
+  )
+}
+
 function SearchIcon({ className }: IconProps) {
   return (
     <IconSvg className={className}>
@@ -301,4 +310,5 @@ export {
   TargetIcon,
   TrashIcon,
   WarningIcon,
+  XIcon,
 }

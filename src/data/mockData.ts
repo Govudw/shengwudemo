@@ -3639,29 +3639,34 @@ export const projects: Project[] = [
 
 export const capabilityChips: CapabilityChip[] = [
   {
-    id: 'target-research',
-    label: '靶点调研',
-    prompt: '帮我围绕当前项目梳理靶点机制、疾病背景、竞品管线和关键证据缺口。',
+    id: 'knowledge-research',
+    label: '知识调研',
+    prompt:
+      '帮我围绕当前项目做知识调研，梳理靶点机制、疾病背景、文献证据、竞品管线和关键证据缺口。',
   },
   {
-    id: 'wet-lab',
-    label: '设计到湿实验',
-    prompt: '基于当前候选分子，帮我设计一份可提交评审的湿实验验证方案草稿。',
+    id: 'protein-design',
+    label: '蛋白设计',
+    prompt:
+      '帮我进行蛋白设计，围绕当前目标优化序列、结构、突变空间、候选分子排序和下一轮验证策略。',
   },
   {
-    id: 'data-asset',
-    label: '数据资产化',
-    prompt: '帮我把当前实验结果整理成可复用的 AI-Ready Dataset，并列出缺失元数据。',
+    id: 'experiment-design',
+    label: '实验设计',
+    prompt:
+      '基于当前候选分子和项目约束，帮我设计一份可提交评审的实验方案、assay panel、对照组和订单草稿。',
   },
   {
-    id: 'model-reuse',
-    label: '模型复用',
-    prompt: '帮我评估当前项目里哪些已有模型或 Oracle 可以复用，并给出验证计划。',
+    id: 'data-analysis',
+    label: '数据分析',
+    prompt:
+      '帮我分析当前实验结果，完成质控检查、曲线拟合、统计比较、可视化和下一步结论摘要。',
   },
   {
-    id: 'delivery',
-    label: '项目交付',
-    prompt: '帮我生成当前项目的周报、风险列表和下一步行动建议。',
+    id: 'workflow-orchestration',
+    label: '流程编排',
+    prompt:
+      '帮我把当前研发目标编排成可执行流程，串联设计、实验、审批、人审、CRO handoff 和结果回传。',
   },
   { id: 'more', label: '更多' },
 ]

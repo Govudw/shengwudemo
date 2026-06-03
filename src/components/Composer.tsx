@@ -10,6 +10,7 @@ import {
   PlusIcon,
   SearchIcon,
   SendIcon,
+  XIcon,
 } from './icons'
 
 type ComposerProps = {
@@ -19,10 +20,12 @@ type ComposerProps = {
   draft: string
   textareaRef: RefObject<HTMLTextAreaElement | null>
   projectMenuOpen: boolean
+  activeCapabilityLabel: string | null
   onDraftChange: (draft: string) => void
   onProjectMenuOpenChange: (open: boolean) => void
   onProjectChange: (projectId: string) => void
   onCreateProject: (name: string) => void
+  onRemoveCapability: () => void
   onSubmit: () => void
   onNotify: (message: string) => void
 }
@@ -34,10 +37,12 @@ function Composer({
   draft,
   textareaRef,
   projectMenuOpen,
+  activeCapabilityLabel,
   onDraftChange,
   onProjectMenuOpenChange,
   onProjectChange,
   onCreateProject,
+  onRemoveCapability,
   onSubmit,
   onNotify,
 }: ComposerProps) {
@@ -199,27 +204,50 @@ function Composer({
           />
 
           <div className="composer__input-actions">
-            <div className="composer__attachment-control" ref={attachmentMenuRef}>
-              <button
-                type="button"
-                className="composer__context-button"
-                aria-label="Add context"
-                aria-haspopup="menu"
-                aria-expanded={attachmentMenuOpen}
-                aria-controls="composer-attachment-menu"
-                onClick={() => {
-                  closeProjectMenu()
-                  setAttachmentMenuOpen((open) => !open)
-                }}
-              >
-                <PlusIcon className="composer__icon" />
-              </button>
+            <div className="composer__left-actions">
+              <div className="composer__attachment-control" ref={attachmentMenuRef}>
+                <button
+                  type="button"
+                  className="composer__context-button"
+                  aria-label="Add context"
+                  aria-haspopup="menu"
+                  aria-expanded={attachmentMenuOpen}
+                  aria-controls="composer-attachment-menu"
+                  onClick={() => {
+                    closeProjectMenu()
+                    setAttachmentMenuOpen((open) => !open)
+                  }}
+                >
+                  <PlusIcon className="composer__icon" />
+                </button>
 
-              {attachmentMenuOpen ? (
-                <AttachmentMenu
-                  id="composer-attachment-menu"
-                  onSelect={selectAttachmentAction}
-                />
+                {attachmentMenuOpen ? (
+                  <AttachmentMenu
+                    id="composer-attachment-menu"
+                    onSelect={selectAttachmentAction}
+                  />
+                ) : null}
+              </div>
+
+              {activeCapabilityLabel ? (
+                <span className="composer__capability-tag">
+                  <span className="composer__capability-marker">
+                    <span className="composer__capability-symbol" aria-hidden="true">
+                      ✦
+                    </span>
+                    <button
+                      type="button"
+                      className="composer__capability-remove"
+                      aria-label={`移除${activeCapabilityLabel}能力标签`}
+                      onClick={onRemoveCapability}
+                    >
+                      <XIcon className="composer__capability-remove-icon" />
+                    </button>
+                  </span>
+                  <span className="composer__capability-label">
+                    {activeCapabilityLabel}
+                  </span>
+                </span>
               ) : null}
             </div>
 
