@@ -16,6 +16,13 @@ tmp/
 worktrees/
 .codex-verification*.png
 
+# Local docs are kept out of GitHub.
+*.md
+*.mdx
+*.doc
+*.docx
+docs/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
