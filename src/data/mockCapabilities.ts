@@ -1,3 +1,5 @@
+import { enzP0AssayCharacterizationPipeline } from './pipelineBuildMockData'
+
 export type CapabilityEntryKind = 'pipeline' | 'skill' | 'mcp-server' | 'plugin'
 
 export type CapabilityStatus = 'active' | 'draft' | 'inactive' | 'needs-review'
@@ -875,6 +877,7 @@ export const capabilityEntries: MockCapabilityEntry[] = [
       },
     }),
   },
+  enzP0AssayCharacterizationPipeline,
   {
     id: 'skill-protein-design',
     kind: 'skill',

@@ -50,6 +50,22 @@ function parseDemoDateTime(value: string) {
   return Date.parse(`${value.replace(' ', 'T')}:00+08:00`)
 }
 
+function collectStringValues(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return [value]
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap(collectStringValues)
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.values(value).flatMap(collectStringValues)
+  }
+
+  return []
+}
+
 describe('demo store logic', () => {
   it('creates demo state from seed projects without mutating seed data', () => {
     const state = createInitialDemoState(seedProjects, now)
@@ -616,6 +632,92 @@ describe('demo store logic', () => {
         ),
       ).toBe(true)
     }
+  })
+
+  it('seeds Pipeline Build as one completed Pipeline Builder replay without changing the draft default', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const pipelineProject = state.projects.find(
+      (project) => project.id === 'pipeline-build',
+    )
+    const pipelineThread = pipelineProject?.threads[0]
+    const blocks = pipelineThread?.transcript.flatMap((turn) => turn.contentBlocks ?? []) ?? []
+    const pipelineDagBlocks = blocks.filter((block) => block.type === 'pipelineDag')
+    const v01DagBlock = pipelineDagBlocks.find((block) => block.version === 'v0.1')
+    const v02DagBlock = pipelineDagBlocks.find((block) => block.version === 'v0.2')
+    const v02Gate = v02DagBlock?.dag.nodes.find(
+      (node) => node.title === '底物与反应体系确认',
+    )
+    const expressionQc = v02DagBlock?.dag.nodes.find(
+      (node) => node.title === '表达与纯化 QC',
+    )
+    const enzymeAssay = v02DagBlock?.dag.nodes.find((node) => node.title === '酶活测定')
+    const visibleText = collectStringValues(pipelineThread?.transcript ?? []).join('\n')
+    const inputFileBlocks = blocks.filter((block) => block.type === 'projectFile')
+    const runInspector = pipelineThread?.runInspector
+    const v01Turn = pipelineThread?.transcript.find((turn) =>
+      turn.contentBlocks?.some(
+        (block) => block.type === 'pipelineDag' && block.version === 'v0.1',
+      ),
+    )
+
+    expect(seedProjects[0]?.id).toBe('antibody-optimization')
+    expect(state.selectedThreadId).toBeNull()
+    expect(state.isDraftingNewThread).toBe(true)
+    expect(pipelineProject?.name).toBe('Pipeline Build')
+    expect(pipelineProject?.threads).toHaveLength(1)
+    expect(pipelineThread?.title).toBe('ENZ-P0 实验流程编排')
+    expect(pipelineThread?.transcript).toHaveLength(15)
+    expect(pipelineThread?.transcript.filter((turn) => turn.role === 'user')).toHaveLength(6)
+    expect(pipelineThread?.transcript.filter((turn) => turn.role === 'mainAgent')).toHaveLength(9)
+    expect(pipelineDagBlocks).toHaveLength(2)
+    expect(v01DagBlock).toBeDefined()
+    expect(v02DagBlock).toBeDefined()
+    expect(v02DagBlock?.dag.nodes).toHaveLength((v01DagBlock?.dag.nodes.length ?? 0) + 1)
+    expect(v02Gate).toMatchObject({
+      kind: 'human-gate',
+      control: { kind: 'human-confirmation' },
+    })
+    expect(v02DagBlock?.dag.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ from: expressionQc?.id, to: v02Gate?.id }),
+        expect.objectContaining({ from: v02Gate?.id, to: enzymeAssay?.id }),
+      ]),
+    )
+    expect(v01Turn?.markdown).toContain('推荐 A')
+    expect(v01Turn?.markdown).toContain('B：')
+    expect(v01Turn?.markdown).toContain('C：')
+    expect(visibleText).toContain('已保存到 Pipelines，来源为自建，版本 v1.0')
+    expect(visibleText).not.toMatch(/demo/i)
+    expect(visibleText).not.toMatch(/mock/i)
+    expect(visibleText).not.toContain('模拟')
+    expect(visibleText).not.toContain('Agent-built')
+    expect(visibleText).not.toContain('AI-generated')
+    expect(inputFileBlocks).not.toHaveLength(0)
+    expect(inputFileBlocks.every((block) => block.location.includes('Project Files / 输入文件'))).toBe(
+      true,
+    )
+    expect(inputFileBlocks.some((block) => block.location.includes('Assets'))).toBe(false)
+    expect(runInspector?.summary).toMatchObject({
+      stage: 'Pipeline Builder',
+      status: 'completed',
+      pendingCount: 0,
+    })
+    expect(runInspector?.progress).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ title: '保存到 Pipelines', status: 'done' }),
+      ]),
+    )
+    expect(runInspector?.outputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'ENZ-P0 Assay Characterization Pipeline v1.0',
+        }),
+      ]),
+    )
+    expect(runInspector?.approvals.length).toBeGreaterThan(0)
+    expect(runInspector?.approvals.every((approval) => approval.kind === 'humanConfirmation')).toBe(
+      true,
+    )
   })
 
   it('seeds enzyme thread-specific human boundaries and candidate evidence blocks', () => {

@@ -206,7 +206,7 @@ export type PipelineDagBlock = {
   type: 'pipelineDag'
   title: string
   version: string
-  status: string
+  status: 'draft' | 'validated' | 'saved'
   summary: string
   dag: PipelineDag
 }

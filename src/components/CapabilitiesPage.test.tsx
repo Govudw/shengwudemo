@@ -3,6 +3,7 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { capabilityEntries } from '../data/mockCapabilities'
 import CapabilitiesPage from './CapabilitiesPage'
 
 beforeEach(() => {
@@ -290,6 +291,7 @@ describe('CapabilitiesPage', () => {
       '湿实验验证订单 Pipeline',
       'AI-ready 数据集整理 Pipeline',
       '分子候选筛选 Pipeline',
+      'ENZ-P0 Assay Characterization Pipeline',
     ]
 
     pipelineNames.forEach((name) => {
@@ -302,6 +304,61 @@ describe('CapabilitiesPage', () => {
       expect(container.textContent).toContain('Human Gate')
       expect(container.textContent).toContain('QC Decision')
     })
+
+    root.unmount()
+  })
+
+  it('renders the saved ENZ-P0 Pipeline capability with its final DAG contract', () => {
+    const savedPipeline = capabilityEntries.find(
+      (entry) => entry.id === 'pipeline-enz-p0-assay-characterization',
+    )
+    const substrateGate = savedPipeline?.dag?.nodes.find(
+      (node) => node.title === '底物与反应体系确认',
+    )
+
+    expect(savedPipeline).toMatchObject({
+      name: 'ENZ-P0 Assay Characterization Pipeline',
+      kind: 'pipeline',
+      source: 'created',
+      version: 'v1.0',
+    })
+    expect(savedPipeline?.dag?.nodes.length).toBeGreaterThan(0)
+    expect(substrateGate).toMatchObject({
+      kind: 'human-gate',
+      control: {
+        kind: 'human-confirmation',
+      },
+    })
+    expect(savedPipeline?.dag?.edges).toContainEqual({
+      from: 'substrate-reaction-system-gate',
+      to: 'enzyme-activity-assay',
+      label: '体系确认',
+    })
+
+    const { container, root } = renderCapabilitiesPage()
+
+    act(() => {
+      getButtonContaining(
+        container,
+        'ENZ-P0 Assay Characterization Pipeline',
+      ).click()
+    })
+
+    expect(getDetailSectionTitles(container)).toContain('执行 DAG')
+    expect(container.textContent).toContain('v1.0')
+    expect(container.textContent).toContain('体系确认')
+    expect(container.textContent).toContain('Human Gate')
+
+    act(() => {
+      getButtonContaining(container, '最大化查看').click()
+    })
+
+    act(() => {
+      getButtonContaining(container, '体系确认').click()
+    })
+
+    expect(container.textContent).toContain('底物与反应体系确认')
+    expect(container.textContent).toContain('human-confirmation')
 
     root.unmount()
   })

@@ -52,6 +52,26 @@ describe('Projects management data', () => {
     expect(trashedRecords[0].threadCount).toBe(0)
   })
 
+  it('builds the Pipeline Build project management record without a Project File folder', () => {
+    const records = getProjectManagementRecords(seedProjects, now)
+    const pipelineBuild = records.find(
+      (record) => record.projectId === 'pipeline-build',
+    )
+
+    expect(pipelineBuild).toMatchObject({
+      name: 'Pipeline Build',
+      status: 'active',
+      threadCount: 1,
+      assetSummary: {
+        files: 3,
+      },
+      recentActivityThreadTitle: 'ENZ-P0 实验流程编排',
+    })
+    expect(pipelineBuild?.threads).toHaveLength(1)
+    expect(pipelineBuild?.threads[0].title).toBe('ENZ-P0 实验流程编排')
+    expect(getProjectFileFolderId('pipeline-build')).toBeNull()
+  })
+
   it('maps project ids to existing Project File folder ids', () => {
     expect(getProjectFileFolderId('antibody-optimization')).toBe(
       'project-antibody-optimization',

@@ -128,6 +128,34 @@ describe('demo store persistence', () => {
     expect(state.isDraftingNewThread).toBe(true)
   })
 
+  it('adds the Pipeline Build seed project during hydrate without selecting it', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: createOldEgfrPersistedState(),
+      version: demoStorePersistVersion,
+    })
+
+    const state = useDemoStore.getState()
+    const pipelineProject = state.projects.find(
+      (project) => project.id === 'pipeline-build',
+    )
+
+    expect(state.projects.map((project) => project.id)).toEqual(
+      seedProjects.map((project) => project.id),
+    )
+    expect(pipelineProject).toMatchObject({
+      name: 'Pipeline Build',
+      threads: [
+        expect.objectContaining({
+          id: 'pipeline-build-enz-p0-flow',
+          title: 'ENZ-P0 实验流程编排',
+        }),
+      ],
+    })
+    expect(pipelineProject?.threads).toHaveLength(1)
+    expect(state.selectedProjectId).not.toBe('pipeline-build')
+  })
+
   it('keeps turns appended after the current seeded EGFR replay during hydrate', async () => {
     const { demoStorePersistVersion } = await import('./useDemoStore')
     const extraTurns = [

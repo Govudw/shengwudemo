@@ -134,6 +134,11 @@ const memberDirectory = {
     name: 'Platform Ops',
     title: '平台运营',
   },
+  processDev: {
+    id: 'process-dev',
+    name: 'Process Development',
+    title: '流程开发负责人',
+  },
 } as const satisfies Record<string, ProjectMember>
 
 const projectProfiles = {
@@ -194,6 +199,37 @@ const projectProfiles = {
     },
     description: '酶家族调研、结构分析和实验筛选策略。',
     tags: ['酶', '结构', '筛选'],
+  },
+  'pipeline-build': {
+    status: 'active',
+    favoritedByCurrentUser: false,
+    trashed: false,
+    responsibleMember: memberDirectory.processDev,
+    readOnlyPermissionMembers: [memberDirectory.zhengjun, memberDirectory.labOps],
+    editPermissionMembers: [memberDirectory.mainAgent, memberDirectory.platformOps],
+    assetSummary: {
+      files: 3,
+      data: 0,
+      experiments: 0,
+      models: 0,
+    },
+    contextSummary: {
+      projectContext:
+        '项目描述：围绕 ENZ-P0 候选酶实验过程，把输入文件、人工确认点、QC 分流和结果包归档固化为可复用 Pipeline。',
+      objective: '让候选酶表征实验从需求澄清到 DAG 保存形成可追溯流程。',
+      constraints: [
+        '活性测定前必须确认底物批次与反应体系',
+        '表达与纯化 QC 未通过样本不进入活性测定',
+        '异常样本复测需由实验负责人确认',
+      ],
+      deliverables: [
+        'ENZ-P0 Assay Characterization Pipeline v1.0',
+        'Pipeline DAG v0.2',
+        '确认点与依赖校验记录',
+      ],
+    },
+    description: '候选酶实验流程编排、DAG 生成和 Pipeline 保存项目。',
+    tags: ['Pipeline', '流程编排', '酶实验'],
   },
   'data-assetization': {
     status: 'active',
