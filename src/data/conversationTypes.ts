@@ -1,3 +1,5 @@
+import type { PipelineDag } from './mockCapabilities'
+
 export type ConversationRole = 'user' | 'mainAgent'
 
 export type RunInspectorData = {
@@ -75,6 +77,7 @@ export type ConversationBlock =
   | ApprovalRequestReplayBlock
   | ElapsedWorkReplayBlock
   | ScientificFigureBlock
+  | PipelineDagBlock
 
 export type ProjectFileBlock = {
   type: 'projectFile'
@@ -197,4 +200,13 @@ export type ScientificFigureBlock = {
   width: number
   height: number
   alt: string
+}
+
+export type PipelineDagBlock = {
+  type: 'pipelineDag'
+  title: string
+  version: string
+  status: string
+  summary: string
+  dag: PipelineDag
 }

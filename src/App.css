@@ -4946,7 +4946,8 @@ textarea:focus-visible {
 .approval-gate-block,
 .capability-run-block,
 .event-replay-block,
-.scientific-figure-block {
+.scientific-figure-block,
+.pipeline-dag-block {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
@@ -4994,7 +4995,8 @@ textarea:focus-visible {
 .project-file-block p,
 .command-preview-block p,
 .experiment-order-block p,
-.approval-gate-block p {
+.approval-gate-block p,
+.pipeline-dag-block p {
   margin: 6px 0 0;
   color: var(--muted);
   font-size: 13px;
@@ -5006,7 +5008,8 @@ textarea:focus-visible {
 .candidate-table-block,
 .candidate-evidence-table-block,
 .experiment-order-block,
-.approval-gate-block {
+.approval-gate-block,
+.pipeline-dag-block {
   padding: 14px;
 }
 
@@ -5015,7 +5018,8 @@ textarea:focus-visible {
 .candidate-table-block h3,
 .candidate-evidence-table-block h3,
 .experiment-order-block h3,
-.approval-gate-block h3 {
+.approval-gate-block h3,
+.pipeline-dag-block h3 {
   margin: 0;
   color: var(--text);
   font-size: 15px;
@@ -5074,6 +5078,63 @@ textarea:focus-visible {
 
 .command-preview-block {
   background: #fbfdfe;
+}
+
+.pipeline-dag-block {
+  background: #fbfdfe;
+}
+
+.pipeline-dag-block__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pipeline-dag-block__eyebrow {
+  margin-bottom: 4px;
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.pipeline-dag-block__meta {
+  margin-top: 4px;
+  color: var(--faint);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pipeline-dag-block__canvas-scroll {
+  max-width: 100%;
+  margin-top: 12px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.capabilities-dag-canvas--conversation {
+  width: max(100%, 720px);
+  height: 440px;
+}
+
+.capabilities-dag-canvas--conversation .capabilities-dag-node {
+  width: 128px;
+  min-height: 38px;
+  gap: 2px;
+  padding: 6px 8px;
+}
+
+.capabilities-dag-canvas--conversation .capabilities-dag-node__title {
+  font-size: 11.5px;
+  line-height: 1.1;
+}
+
+.capabilities-dag-canvas--conversation .capabilities-dag-node__meta,
+.capabilities-dag-canvas--conversation .capabilities-dag-node__subtype {
+  font-size: 9px;
+  line-height: 1.05;
 }
 
 .command-preview-block h3 {

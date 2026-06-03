@@ -194,10 +194,12 @@ describe('CapabilitiesPage', () => {
 
     expect(getDetailSectionTitles(container)).toContain('执行 DAG')
     expect(getDetailSectionTitles(container)).not.toContain('步骤')
+    expect(container.textContent).toContain('候选确认')
     expect(container.textContent).toContain('Human Gate')
     expect(container.textContent).toContain('人工确认')
     expect(container.textContent).toContain('QC')
     expect(container.textContent).toContain('QC 判断')
+    expect(getButtonContaining(container, '最大化查看')).toBeTruthy()
 
     root.unmount()
   })

@@ -4,6 +4,7 @@ import { act, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToString } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { PipelineDag } from '../data/mockCapabilities'
 import type { DemoThread } from '../store/demoStoreLogic'
 import ThreadWorkspace from './ThreadWorkspace'
 
@@ -127,6 +128,104 @@ describe('ThreadWorkspace', () => {
     expect(html).toContain('Tm')
     expect(html).toContain('pH window')
     expect(html).toContain('ENZ-MUT-021')
+  })
+
+  it('renders pipeline DAG blocks as structured transcript content', () => {
+    const substrateDag: PipelineDag = {
+      nodes: [
+        {
+          id: 'substrate-confirmation',
+          kind: 'input',
+          subtype: 'data',
+          title: '底物与反应体系确认',
+          shortTitle: '底物确认',
+          description: '确认底物、缓冲体系和目标反应窗口。',
+          inputs: ['候选底物', '反应条件'],
+          outputs: ['确认后的底物清单'],
+          prerequisites: ['项目目标已确认'],
+          layout: { row: 0, column: 0 },
+        },
+        {
+          id: 'human-gate',
+          kind: 'human-gate',
+          subtype: 'data',
+          title: 'Human Gate: 反应体系确认',
+          shortTitle: 'Human Gate',
+          description: '负责人确认底物与反应体系后继续执行。',
+          inputs: ['确认后的底物清单'],
+          outputs: ['人工确认记录'],
+          prerequisites: ['底物确认完成'],
+          control: {
+            kind: 'human-confirmation',
+            summary: '研发负责人确认底物与反应体系。',
+          },
+          layout: { row: 1, column: 0 },
+        },
+        {
+          id: 'execution',
+          kind: 'operation',
+          subtype: 'lab-operation',
+          title: '反应执行',
+          shortTitle: '反应执行',
+          description: '执行小规模反应并记录原始数据。',
+          inputs: ['人工确认记录'],
+          outputs: ['原始反应数据'],
+          prerequisites: ['Human Gate 已通过'],
+          layout: { row: 2, column: 0 },
+        },
+      ],
+      edges: [
+        {
+          from: 'substrate-confirmation',
+          to: 'human-gate',
+          label: '待确认',
+        },
+        { from: 'human-gate', to: 'execution', label: '通过' },
+      ],
+    }
+    const pipelineThread: DemoThread = {
+      ...thread,
+      id: 'enzyme-pipeline',
+      title: 'Enzyme pipeline build',
+      transcript: [
+        {
+          id: 'pipeline-dag',
+          role: 'mainAgent',
+          contentBlocks: [
+            {
+              type: 'pipelineDag',
+              title: '底物与反应体系确认',
+              version: 'v0.2',
+              status: 'validated',
+              summary: '3 个节点串联输入确认、人工门禁和执行步骤。',
+              dag: substrateDag,
+            },
+          ],
+        },
+      ],
+    }
+
+    const html = renderToString(
+      <ThreadWorkspace
+        thread={pipelineThread}
+        projectName="Enzyme Design"
+        draft=""
+        onDraftChange={noop}
+        onSubmit={noop}
+        onRenameThread={noop}
+        onArchiveThread={noop}
+        onDeleteThread={noop}
+        onNotify={noop}
+        runInspectorOpen={false}
+        onRunInspectorOpenChange={noop}
+      />,
+    )
+
+    expect(html).toContain('DAG v0.2')
+    expect(html).toContain('validated')
+    expect(html).toContain('底物与反应体系确认')
+    expect(html).toContain('Human Gate')
+    expect(html).not.toContain('<img')
   })
 
   it('renders the compact run info action while closed', () => {

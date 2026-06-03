@@ -1,5 +1,6 @@
 import type { ConversationBlock } from '../data/conversationTypes'
 import { memo } from 'react'
+import PipelineDagBlock from './PipelineDagBlock'
 
 type ConversationBlocksProps = {
   blocks: ConversationBlock[]
@@ -308,6 +309,9 @@ function ConversationBlockView({ block }: { block: ConversationBlock }) {
           </figcaption>
         </figure>
       )
+
+    case 'pipelineDag':
+      return <PipelineDagBlock block={block} />
   }
 }
 
