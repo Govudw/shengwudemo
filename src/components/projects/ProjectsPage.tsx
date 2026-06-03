@@ -178,7 +178,7 @@ function ProjectsPage({
   return (
     <div className="projects-page" aria-label="Projects management">
       <main className="projects-main">
-        <header className="projects-main__header">
+        <header className="projects-main__header projects-main__header--compact">
           <div className="projects-main__title">
             <h1>项目管理</h1>
           </div>
@@ -429,7 +429,7 @@ function ProjectDetailPage({
   return (
     <div className="projects-page">
       <main className="projects-detail-page" aria-label={`项目详情 ${record.name}`}>
-        <header className="projects-detail-header">
+        <header className="projects-detail-header projects-detail-header--compact">
           <div className="projects-detail-header__copy">
             <button
               type="button"

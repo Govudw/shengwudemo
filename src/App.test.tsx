@@ -35,6 +35,14 @@ describe('App Projects management', () => {
     expect(getButton(container, 'Projects').getAttribute('aria-current')).toBe(
       'page',
     )
+    expect(
+      container
+        .querySelector('.projects-main__header')
+        ?.classList.contains('projects-main__header--compact'),
+    ).toBe(true)
+    expect(
+      container.querySelector('.projects-main__title')?.nextElementSibling,
+    ).toBe(container.querySelector('.projects-main__actions'))
     expect(container.querySelector('.projects-main__eyebrow')).toBeNull()
     expect(container.querySelector('.projects-main__title p')).toBeNull()
     expect(container.textContent).toContain('项目管理')
@@ -63,6 +71,14 @@ describe('App Projects management', () => {
     expect(getButton(container, 'Projects').getAttribute('aria-current')).toBe(
       'page',
     )
+    expect(
+      container
+        .querySelector('.projects-detail-header')
+        ?.classList.contains('projects-detail-header--compact'),
+    ).toBe(true)
+    expect(
+      container.querySelector('.projects-detail-header__copy')?.nextElementSibling,
+    ).toBe(container.querySelector('.projects-detail-header__actions'))
     expect(container.querySelector('.projects-detail-header__eyebrow')).toBeNull()
     expect(container.querySelector('.projects-detail-header__copy p')).toBeNull()
     expect(container.querySelector('.projects-detail-back-button')?.textContent).toBe(
