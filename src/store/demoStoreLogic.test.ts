@@ -45,6 +45,54 @@ const forbiddenEnzymeOutputClaims = [
   'bestEnzymeClaimed',
   'autoSelectLead',
 ]
+const expectedExperimentExecutionBlockTypes = [
+  'designHandoffBrief',
+  'experimentOrderSummary',
+  'sampleScopePanel',
+  'assayPanelTable',
+  'plateMapMini',
+  'sampleInventoryLink',
+  'materialSopReadiness',
+  'approvalGateCard',
+  'executionTaskStatus',
+  'experimentNotebookSummary',
+  'runLogTable',
+  'anomalyReviewTable',
+  'resultPackageChecklist',
+]
+const expectedExperimentExecutionProgressTitles = [
+  '读取设计交接',
+  '确认订单边界',
+  '固化样本范围',
+  '固化读数面板',
+  '生成板图',
+  '检查样本库存与孔板关联',
+  '检查物料/SOP/设备/线路',
+  '订单提交审批',
+  '创建 Experiment Task',
+  '监控实验记录本',
+  '同步 assay 执行',
+  '回收结果包',
+  '记录异常事件',
+  '校验结果包 schema',
+  '归档操作索引',
+]
+const expectedExperimentExecutionCommands = [
+  'DesignHandoffReader.extractExecutionScope',
+  'ExperimentOrderBuilder.composeBoundary',
+  'SampleInventoryResolver.checkAvailability',
+  'PlateMapGenerator.assignControls',
+  'MaterialSopReadinessChecker.validate',
+  'LabOrderGateway.submitApprovedOrder',
+  'ExperimentTaskTracker.createTask',
+  'ExperimentNotebookMonitor.schedulePolling',
+  'ExperimentNotebookMonitor.checkSubmission',
+  'ExperimentNotebookCallback.ingestRecord',
+  'ExperimentTaskTracker.syncAssayExecution',
+  'AnomalyLogger.captureExecutionEvents',
+  'ResultPackageReceiver.validateSchema',
+  'OperationalRecordIndexer.writeTraceability',
+]
 
 function parseDemoDateTime(value: string) {
   return Date.parse(`${value.replace(' ', 'T')}:00+08:00`)
@@ -574,10 +622,12 @@ describe('demo store logic', () => {
     for (const thread of enzymeProject?.threads ?? []) {
       const blocks = thread.transcript.flatMap((turn) => turn.contentBlocks ?? [])
       const runInspector = thread.runInspector
+      const isExperimentExecution = thread.id === 'enzyme-experiment-execution'
       const scientificFigures = blocks.filter(
         (block) => block.type === 'scientificFigure',
       )
       const elapsedBlocks = blocks.filter((block) => block.type === 'elapsedWorkReplay')
+      const blockTypes = blocks.map((block) => block.type)
       const blockEventTimes = blocks.flatMap((block) => {
         if (block.type === 'humanConfirmation') {
           return [block.confirmedAt]
@@ -590,10 +640,47 @@ describe('demo store logic', () => {
       const inspectorEventTimes =
         runInspector?.approvals.flatMap((approval) => approval.decidedAt ?? []) ?? []
       const markdownText = thread.transcript.map((turn) => turn.markdown ?? '').join('\n')
+      const visibleText = collectStringValues(thread.transcript).join('\n')
 
-      expect(thread.transcript).toHaveLength(19)
-      expect(thread.transcript.filter((turn) => turn.role === 'user')).toHaveLength(5)
-      expect(scientificFigures).toHaveLength(7)
+      if (isExperimentExecution) {
+        expect(thread.transcript.length).toBeGreaterThanOrEqual(55)
+        expect(thread.transcript.filter((turn) => turn.role === 'user')).toHaveLength(9)
+        expect(blockTypes).toEqual(
+          expect.arrayContaining(expectedExperimentExecutionBlockTypes),
+        )
+        expect(scientificFigures.length).toBeGreaterThanOrEqual(3)
+        expect(scientificFigures.map((block) => block.figureId)).toEqual(
+          expect.arrayContaining([
+            'enzyme-experiment-notebook-polling',
+            'enzyme-experiment-record-summary',
+            'enzyme-assay-execution-readout-summary',
+          ]),
+        )
+        expect(
+          scientificFigures.some(
+            (block) => block.figureId === 'enzyme-experiment-order-draft',
+          ),
+        ).toBe(false)
+        expect(blocks.filter((block) => block.type === 'experimentOrderDraft')).toHaveLength(
+          0,
+        )
+        expect(
+          blocks
+            .filter((block) => block.type === 'approvalGateCard')
+            .map((block) => ('status' in block ? block.status : undefined)),
+        ).toEqual(['pending', 'approved'])
+        expect(thread.transcript.at(-1)?.markdown).toContain(
+          '结果包已准备进入分析',
+        )
+        expect(thread.transcript.at(-1)?.markdown).not.toMatch(/推荐|排名|自动进入下一轮/)
+        expect(markdownText).not.toMatch(/demo/i)
+        expect(markdownText).not.toMatch(/mock/i)
+        expect(visibleText).not.toContain('模拟')
+      } else {
+        expect(thread.transcript).toHaveLength(19)
+        expect(thread.transcript.filter((turn) => turn.role === 'user')).toHaveLength(5)
+        expect(scientificFigures).toHaveLength(7)
+      }
       expect(
         scientificFigures.every(
           (block) => block.width > 0 && block.height > 0 && Boolean(block.src),
@@ -612,13 +699,55 @@ describe('demo store logic', () => {
 
       expect(runInspector).toBeDefined()
       expect(runInspector?.summary).toBeDefined()
-      expect(runInspector?.progress.length).toBeGreaterThanOrEqual(7)
-      expect(runInspector?.progress.length).toBeLessThanOrEqual(9)
+      if (isExperimentExecution) {
+        expect(runInspector?.summary).toMatchObject({
+          stage: '实验执行模块',
+          status: 'completed',
+          completedSteps: expectedExperimentExecutionProgressTitles.length,
+          totalSteps: expectedExperimentExecutionProgressTitles.length,
+          pendingCount: 0,
+        })
+        expect(runInspector?.progress.map((item) => item.title)).toEqual(
+          expectedExperimentExecutionProgressTitles,
+        )
+        expect(runInspector?.approvals.filter((approval) => approval.kind === 'approvalRequest')).toHaveLength(
+          1,
+        )
+        expect(runInspector?.approvals).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              kind: 'approvalRequest',
+              title: '订单提交审批',
+              status: 'approved',
+            }),
+          ]),
+        )
+        expect(runInspector?.capabilityRuns.map((run) => run.commandName)).toEqual(
+          expectedExperimentExecutionCommands,
+        )
+        expect(runInspector?.outputs).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              kind: 'experimentOrder',
+              name: 'BM-LAB-ENZ-20260602-001',
+              status: 'submitted',
+            }),
+            expect.objectContaining({
+              kind: 'dataset',
+              name: 'Enzyme_Experiment_Result_Package.xlsx',
+              status: 'completed',
+            }),
+          ]),
+        )
+      } else {
+        expect(runInspector?.progress.length).toBeGreaterThanOrEqual(7)
+        expect(runInspector?.progress.length).toBeLessThanOrEqual(9)
+        expect(runInspector?.capabilityRuns.length).toBeGreaterThanOrEqual(8)
+        expect(runInspector?.capabilityRuns.length).toBeLessThanOrEqual(12)
+      }
       expect(runInspector?.outputs.length).toBe(runInspector?.summary.outputCount)
       expect(runInspector?.outputs.length).toBeGreaterThan(0)
       expect(runInspector?.approvals.length).toBeGreaterThan(0)
-      expect(runInspector?.capabilityRuns.length).toBeGreaterThanOrEqual(8)
-      expect(runInspector?.capabilityRuns.length).toBeLessThanOrEqual(12)
       expect(
         runInspector?.capabilityRuns.every((run) =>
           forbiddenEnzymeCapabilityPrefixes.every(
@@ -802,21 +931,208 @@ describe('demo store logic', () => {
     const analysisBlocks =
       analysisThread?.transcript.flatMap((turn) => turn.contentBlocks ?? []) ?? []
 
-    for (const thread of [fullLoopThread, experimentThread]) {
-      const blocks = thread?.transcript.flatMap((turn) => turn.contentBlocks ?? []) ?? []
+    const fullLoopBlocks =
+      fullLoopThread?.transcript.flatMap((turn) => turn.contentBlocks ?? []) ?? []
+    const experimentBlocks =
+      experimentThread?.transcript.flatMap((turn) => turn.contentBlocks ?? []) ?? []
 
-      expect(blocks.filter((block) => block.type === 'experimentOrderDraft')).toHaveLength(1)
-      expect(blocks.filter((block) => block.type === 'approvalRequestReplay')).toHaveLength(1)
-      expect(blocks.filter((block) => block.type === 'elapsedWorkReplay').length).toBeGreaterThan(
-        0,
-      )
-      expect(blocks.filter((block) => block.type === 'projectFile').length).toBeGreaterThan(0)
-    }
+    expect(fullLoopBlocks.filter((block) => block.type === 'experimentOrderDraft')).toHaveLength(
+      1,
+    )
+    expect(fullLoopBlocks.filter((block) => block.type === 'approvalRequestReplay')).toHaveLength(
+      1,
+    )
+    expect(
+      fullLoopBlocks.filter((block) => block.type === 'elapsedWorkReplay').length,
+    ).toBeGreaterThan(0)
+    expect(fullLoopBlocks.filter((block) => block.type === 'projectFile').length).toBeGreaterThan(
+      0,
+    )
+
+    expect(experimentBlocks.map((block) => block.type)).toEqual(
+      expect.arrayContaining(expectedExperimentExecutionBlockTypes),
+    )
+    expect(experimentBlocks.filter((block) => block.type === 'approvalGateCard')).toHaveLength(2)
+    expect(
+      experimentBlocks.filter((block) => block.type === 'humanConfirmation').length,
+    ).toBe(7)
+    expect(
+      experimentBlocks.filter((block) => block.type === 'experimentNotebookSummary'),
+    ).toHaveLength(1)
+    expect(experimentBlocks.filter((block) => block.type === 'projectFile').length).toBeGreaterThan(
+      0,
+    )
 
     for (const blocks of [designBlocks, analysisBlocks]) {
       expect(blocks.filter((block) => block.type === 'candidateEvidenceTable')).toHaveLength(1)
       expect(blocks.filter((block) => block.type === 'candidateMoleculeTable')).toHaveLength(0)
     }
+  })
+
+  it('structures enzyme experiment confirmation prompts with recommended rationale', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const experimentThread = findThreadById(
+      state.projects,
+      'enzyme-experiment-execution',
+    )?.thread
+    const confirmationPrompts =
+      experimentThread?.transcript.filter(
+        (turn) => turn.role === 'mainAgent' && (turn.markdown ?? '').includes('请确认'),
+      ) ?? []
+    const directApprovalPrompt = confirmationPrompts.find((turn) =>
+      (turn.markdown ?? '').includes('模块 08 订单提交审批'),
+    )
+    const optionPrompts = confirmationPrompts.filter(
+      (turn) => turn.id !== directApprovalPrompt?.id,
+    )
+    const okTurn = experimentThread?.transcript.find(
+      (turn) => turn.id === 'enzyme-experiment-execution-turn-031',
+    )
+    const pendingApprovalTurn = experimentThread?.transcript.find(
+      (turn) => turn.id === 'enzyme-experiment-execution-turn-032',
+    )
+    const approvedApprovalTurn = experimentThread?.transcript.find(
+      (turn) => turn.id === 'enzyme-experiment-execution-turn-033',
+    )
+
+    const postApprovalTurns =
+      experimentThread?.transcript.filter((turn) => {
+        const turnNumber = Number(turn.id.split('-').at(-1))
+
+        return turnNumber >= 34
+      }) ?? []
+    const postApprovalMarkdown = postApprovalTurns.map((turn) => turn.markdown ?? '').join('\n')
+    const postApprovalBlocks = postApprovalTurns.flatMap((turn) => turn.contentBlocks ?? [])
+    const notebookSummaryIndex = postApprovalBlocks.findIndex(
+      (block) => block.type === 'experimentNotebookSummary',
+    )
+    const notebookPollingFigureIndex = postApprovalBlocks.findIndex(
+      (block) =>
+        block.type === 'scientificFigure' &&
+        block.figureId === 'enzyme-experiment-notebook-polling',
+    )
+
+    expect(confirmationPrompts).toHaveLength(8)
+    expect(optionPrompts).toHaveLength(7)
+    expect(
+      optionPrompts.every((turn) => {
+        const markdown = turn.markdown ?? ''
+
+        return (
+          markdown.includes('\n\n- 推荐 A：') &&
+          markdown.includes('\n  原因：') &&
+          markdown.includes('\n- B：') &&
+          markdown.includes('\n- C：') &&
+          !markdown.includes('请确认：') &&
+          !markdown.includes('**推荐理由：**')
+        )
+      }),
+    ).toBe(true)
+    expect(confirmationPrompts[0]?.markdown).toContain(
+      '只抽取执行边界能避免把设计阶段的假设误写成实验结论',
+    )
+    expect(confirmationPrompts[0]?.markdown).toContain('请确认处理方式')
+    expect(directApprovalPrompt?.markdown).toContain('请确认是否可以提交订单')
+    expect(directApprovalPrompt?.markdown).toContain('请重点检查')
+    expect(directApprovalPrompt?.markdown).toContain('BM-LAB-ENZ-20260602-001')
+    expect(directApprovalPrompt?.markdown).not.toContain('推荐 A')
+    expect(directApprovalPrompt?.markdown).not.toContain('- B：')
+    expect(directApprovalPrompt?.markdown).not.toContain('- C：')
+    expect(directApprovalPrompt?.contentBlocks).toBeUndefined()
+    expect(okTurn?.markdown).toBe('OK。')
+    expect(pendingApprovalTurn?.markdown).toContain('我已提交审批')
+    expect(pendingApprovalTurn?.markdown).toContain('我会等待审批结束')
+    expect(pendingApprovalTurn?.markdown).toContain('撤回并修改')
+    expect(pendingApprovalTurn?.contentBlocks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'approvalGateCard',
+          status: 'pending',
+          riskSummary: expect.stringContaining('审批发起资料'),
+          details: expect.arrayContaining([
+            expect.objectContaining({
+              label: '审批对象',
+              value: 'BM-LAB-ENZ-20260602-001',
+            }),
+            expect.objectContaining({
+              label: '发起时间',
+              value: '2026-06-02 11:31',
+            }),
+            expect.objectContaining({
+              label: '当前动作',
+              value: '发起审批，不创建 Experiment Task',
+            }),
+          ]),
+          decision: '审批流程已发起，等待审批人处理',
+        }),
+      ]),
+    )
+    expect(
+      pendingApprovalTurn?.contentBlocks?.some(
+        (block) => block.type === 'approvalGateCard' && 'approvalAdvice' in block,
+      ),
+    ).toBe(false)
+    expect(approvedApprovalTurn?.markdown).toContain('已经通过审批，这是审批建议和结果')
+    expect(approvedApprovalTurn?.contentBlocks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'approvalGateCard',
+          status: 'approved',
+          approvalAdvice: '建议通过；实验范围、样本、板图和物料检查均满足提交条件。',
+          details: expect.arrayContaining([
+            expect.objectContaining({
+              label: '审批通过时间',
+              value: '2026-06-02 11:34',
+            }),
+            expect.objectContaining({
+              label: '生效动作',
+              value: '创建 ENZ-EXPTASK-20260602-001',
+            }),
+            expect.objectContaining({
+              label: '限制条件',
+              value: '只授权本轮执行，不触发后续设计或额外订单',
+            }),
+          ]),
+          decision: '批准提交 BM-LAB-ENZ-20260602-001',
+        }),
+      ]),
+    )
+    expect(postApprovalTurns.filter((turn) => turn.role === 'user')).toHaveLength(0)
+    expect(postApprovalMarkdown).toContain('模块 09 创建 Experiment Task')
+    expect(postApprovalMarkdown).toContain('我直接创建')
+    expect(postApprovalMarkdown).toContain('模块 10 实验记录本')
+    expect(postApprovalMarkdown).toContain('预计提交时间')
+    expect(postApprovalMarkdown).toContain('轮询任务')
+    expect(postApprovalMarkdown).toContain('尚未提交实验记录')
+    expect(postApprovalMarkdown).toContain('回调任务')
+    expect(postApprovalMarkdown).toContain('实验记录数据摘要')
+    expect(postApprovalMarkdown).not.toMatch(/推荐 A|请确认|- B：|- C：/)
+    expect(postApprovalBlocks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'experimentNotebookSummary',
+          notebookId: 'ELN-ENZ-20260602-117',
+          estimatedSubmitBy: '2026-06-02 14:40',
+          callbackId: 'CALLBACK-ELN-ENZ-20260602-117',
+          recordSections: expect.arrayContaining([
+            expect.objectContaining({
+              label: '样本处理',
+              value: expect.stringContaining('48 个候选'),
+            }),
+            expect.objectContaining({
+              label: '读数记录',
+              value: expect.stringContaining('Activity'),
+            }),
+          ]),
+        }),
+        expect.objectContaining({
+          type: 'scientificFigure',
+          figureId: 'enzyme-experiment-record-summary',
+        }),
+      ]),
+    )
+    expect(notebookSummaryIndex).toBeGreaterThanOrEqual(0)
+    expect(notebookPollingFigureIndex).toBeGreaterThan(notebookSummaryIndex)
   })
 
   it('toggles Run Inspector open state and clears it when a Thread is deleted', () => {

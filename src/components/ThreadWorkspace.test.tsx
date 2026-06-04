@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { renderToString } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PipelineDag } from '../data/mockCapabilities'
+import type { ConversationBlock } from '../data/conversationTypes'
 import type { DemoThread } from '../store/demoStoreLogic'
 import ThreadWorkspace from './ThreadWorkspace'
 
@@ -71,6 +72,230 @@ afterEach(() => {
 })
 
 describe('ThreadWorkspace', () => {
+  it('renders enzyme experiment execution module blocks as atomic transcript cards', () => {
+    const experimentThread: DemoThread = {
+      ...thread,
+      id: 'enzyme-experiment-execution',
+      title: '酶库订单与实验执行',
+      transcript: [
+        {
+          id: 'execution-modules',
+          role: 'mainAgent',
+          contentBlocks: [
+            {
+              type: 'designHandoffBrief',
+              designPackage: 'ENZ-P0 设计交接包',
+              libraryId: 'ENZ-LIB-20260602-048',
+              parentEnzyme: 'ENZ-P0',
+              variantRange: '48 个候选酶变体',
+              executionConstraints: ['只执行小规模验证', '不自动进入下一轮设计'],
+              forbiddenActions: ['不自动提交后续实验'],
+              sourceFiles: ['ENZ-LIB-20260602-048_design_brief.md'],
+            },
+            {
+              type: 'experimentOrderSummary',
+              title: 'Experiment Order Draft',
+              orderId: 'BM-LAB-ENZ-20260602-001',
+              status: 'draft',
+              reviewStatus: 'pending',
+              projectId: 'industrial-enzyme-design',
+              libraryId: 'ENZ-LIB-20260602-048',
+              parentEnzyme: 'ENZ-P0',
+              purpose: '验证 48 个候选酶在工业底物下的活性与稳定性',
+              scopeLock: '仅执行确认后的读数面板',
+              owner: '实验运营',
+              createdAt: '2026-06-02 10:15',
+              dueAt: '2026-06-10 18:00',
+              rows: [
+                { label: 'Assay panel', value: 'Activity, kinetics, pH, temperature' },
+              ],
+            },
+            {
+              type: 'sampleScopePanel',
+              libraryId: 'ENZ-LIB-20260602-048',
+              variantCount: 48,
+              variantRange: 'ENZ-V001 至 ENZ-V048',
+              controls: ['ENZ-P0 parent', 'heat-inactivated ENZ-P0'],
+              replicatePlan: '2 biological replicates, duplicate readouts',
+              sampleSource: 'Design Package and Project Files',
+              exclusions: ['底物批次 QC 未通过样本不得进入活性测定'],
+              lockedBy: '研发负责人',
+            },
+            {
+              type: 'assayPanelTable',
+              panelStatus: 'locked',
+              sopReference: 'Enzyme_Assay_SOP_v3',
+              assays: [
+                {
+                  name: 'Activity Assay',
+                  purpose: '总体催化活性',
+                  readout: 'Relative Activity (%)',
+                  method: '96-well fluorogenic assay',
+                  replicateCount: 2,
+                  qcRule: 'Z-factor >= 0.6',
+                },
+              ],
+            },
+            {
+              type: 'plateMapMini',
+              plateMapId: 'PM-ENZ-20260602-001',
+              plateCount: 2,
+              dimensions: '96-well',
+              wells: [
+                { position: 'A1', label: 'ENZ-P0', group: 'Control' },
+                { position: 'B1', label: 'ENZ-V001', group: 'Active-site tuning' },
+              ],
+              legend: [
+                { label: 'Control', color: 'teal' },
+                { label: 'Active-site tuning', color: 'orange' },
+              ],
+              locked: true,
+            },
+            {
+              type: 'sampleInventoryLink',
+              sampleBatchId: 'SB-ENZ-20260602-004',
+              inventoryStatus: 'ready',
+              storageCondition: '4 C short hold; -80 C backup aliquot',
+              aliquotPlan: '每个变体 2 管工作液 + 1 管备份',
+              plateLinkRecord: 'PLATE-LINK-ENZ-048',
+              missingItems: [],
+            },
+            {
+              type: 'materialSopReadiness',
+              substrateLot: 'SUB-LOT-202606',
+              buffer: '50 mM Tris pH 8.0, 300 mM NaCl',
+              sopVersion: 'Enzyme_Assay_SOP_v3',
+              deviceType: 'Plate reader',
+              deviceId: 'PR-3107',
+              labLocation: 'Lab B / Enzyme bench 03',
+              experimentRoute: 'sample-prep -> assay -> raw-data-return',
+              workflowTemplate: 'SmartExperiment enzyme small-scale assay',
+              readinessChecks: ['底物放行', '设备校准有效', 'SOP 生效'],
+            },
+            {
+              type: 'approvalGateCard',
+              title: '订单提交审批',
+              approvalType: 'experimentOrder',
+              status: 'pending',
+              approver: '实验负责人',
+              details: [
+                { label: '发起人', value: 'ProteinDesign Agent' },
+                { label: '审批对象', value: 'BM-LAB-ENZ-20260602-001' },
+                { label: '发起时间', value: '2026-06-02 11:01' },
+                { label: '当前动作', value: '发起审批，不创建 Experiment Task' },
+              ],
+              checklist: ['订单边界资料已提交', '样本与板图资料已提交'],
+              riskSummary: '审批发起资料已提交，当前还没有创建实验任务。',
+              decision: '审批流程已发起，等待审批人处理',
+            },
+            {
+              type: 'approvalGateCard',
+              title: '订单提交审批',
+              approvalType: 'experimentOrder',
+              status: 'approved',
+              approver: '实验负责人',
+              decidedAt: '2026-06-02 11:04',
+              checklist: ['范围确认', '样本与板图确认', '异常处理策略确认'],
+              riskSummary: '提交后仅创建本轮实验任务，不触发下一轮设计。',
+              decision: '批准提交 BM-LAB-ENZ-20260602-001',
+            },
+            {
+              type: 'executionTaskStatus',
+              taskId: 'EXP-TASK-ENZ-20260602-001',
+              orderId: 'BM-LAB-ENZ-20260602-001',
+              croRef: 'SmartExperiment / internal execution',
+              stage: 'result-returned',
+              status: 'completed',
+              owner: '实验运营',
+              startedAt: '2026-06-03 09:10',
+              completedAt: '2026-06-04 15:20',
+              records: ['Sample prep complete', 'Assay run complete', 'Result package returned'],
+            },
+            {
+              type: 'runLogTable',
+              logId: 'RUNLOG-ENZ-20260604-001',
+              taskId: 'EXP-TASK-ENZ-20260602-001',
+              rows: [
+                {
+                  time: '2026-06-04 10:40',
+                  actor: 'SmartExperiment',
+                  system: 'PlateReader',
+                  event: 'Activity plate read complete',
+                  recordId: 'REC-ACT-001',
+                  status: 'done',
+                },
+              ],
+            },
+            {
+              type: 'anomalyReviewTable',
+              anomalyLogId: 'ANOM-ENZ-20260604-001',
+              policy: '原始读数保留，异常孔进入人工复核，不自动剔除。',
+              rows: [
+                {
+                  sampleId: 'ENZ-V017',
+                  well: 'G8',
+                  anomalyType: 'edge-effect',
+                  rawReadingPreserved: 'yes',
+                  autoExcluded: 'no',
+                  reviewOwner: '实验负责人',
+                  status: 'reviewed',
+                },
+              ],
+            },
+            {
+              type: 'resultPackageChecklist',
+              packageName: 'Enzyme_Experiment_Result_Package.xlsx',
+              receivedAt: '2026-06-04 15:22',
+              files: ['raw_activity.csv', 'plate_map.csv', 'anomaly_log.csv'],
+              schemaChecks: ['样本 ID 对齐', '板位映射完整', '异常记录可追溯'],
+              missingItems: [],
+              archiveLocations: ['Project Files / Results', 'Operational Record Index'],
+              readyForAnalysis: true,
+            },
+          ] satisfies ConversationBlock[],
+        },
+      ],
+    }
+
+    const html = renderToString(
+      <ThreadWorkspace
+        thread={experimentThread}
+        projectName="Industrial Enzyme Design"
+        draft=""
+        onDraftChange={noop}
+        onSubmit={noop}
+        onRenameThread={noop}
+        onArchiveThread={noop}
+        onDeleteThread={noop}
+        onNotify={noop}
+        runInspectorOpen={false}
+        onRunInspectorOpenChange={noop}
+      />,
+    )
+
+    expect(html).toContain('ENZ-P0 设计交接包')
+    expect(html).toContain('BM-LAB-ENZ-20260602-001')
+    expect(html).toContain('ENZ-V001 至 ENZ-V048')
+    expect(html).toContain('Activity Assay')
+    expect(html).toContain('PM-ENZ-20260602-001')
+    expect(html).toContain('SB-ENZ-20260602-004')
+    expect(html).toContain('PR-3107')
+    expect(html).toContain('PENDING')
+    expect(html).toContain('发起时间')
+    expect(html).toContain('2026-06-02 11:01')
+    expect(html).toContain('APPROVED')
+    expect(html).toContain('审批通过时间')
+    expect(html).toContain('2026-06-02 11:04')
+    expect(html).toContain('批准提交 BM-LAB-ENZ-20260602-001')
+    expect(html).not.toContain('Decided at')
+    expect(html).not.toContain('Approver')
+    expect(html).toContain('EXP-TASK-ENZ-20260602-001')
+    expect(html).toContain('RUNLOG-ENZ-20260604-001')
+    expect(html).toContain('ANOM-ENZ-20260604-001')
+    expect(html).toContain('Enzyme_Experiment_Result_Package.xlsx')
+    expect(html).not.toContain('Enzyme Experiment Order Draft')
+  })
+
   it('renders candidate evidence table blocks with configured enzyme columns', () => {
     const enzymeThread: DemoThread = {
       ...thread,
@@ -274,6 +499,337 @@ describe('ThreadWorkspace', () => {
     expect(html).toContain('已完成干湿闭环')
   })
 
+  it('opens the workspace side window from a dedicated header button', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace({
+      initialRunInspectorOpen: true,
+    })
+
+    expect(container.querySelector('#thread-run-inspector')).not.toBeNull()
+
+    await act(async () => {
+      getButton(container, '打开侧窗').click()
+    })
+    await waitForTimers()
+
+    expect(container.querySelector('#thread-run-inspector')).toBeNull()
+    expect(container.querySelector('.workspace-side-window')).not.toBeNull()
+    expect(getButton(container, '文件')).toBeTruthy()
+    expect(getButton(container, '侧边聊天')).toBeTruthy()
+    expect(container.textContent).toContain('浏览项目文件')
+    expect(container.textContent).toContain('发起侧边对话')
+
+    root.unmount()
+  })
+
+  it('renders file mode with an empty preview and right-side object tree', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace({
+      threadOverride: {
+        ...thread,
+        id: 'enzyme-experiment-execution',
+        title: '酶库订单与实验执行',
+      },
+      projectName: 'Industrial Enzyme Design',
+    })
+
+    await act(async () => {
+      getButton(container, '打开侧窗').click()
+    })
+    await act(async () => {
+      getButton(container, '文件').click()
+    })
+
+    expect(container.querySelector('.workspace-file-browser')).not.toBeNull()
+    expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
+      '打开文件',
+    )
+    expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
+      '从右侧对象树选择文件',
+    )
+    expect(container.querySelector('.workspace-file-tree')).not.toBeNull()
+    expect(container.textContent).toContain('Industrial Enzyme Design /')
+    expect(container.textContent).toContain('Design')
+    expect(container.textContent).toContain('Execution')
+    expect(container.querySelector('.workspace-file-tree')?.textContent).toContain(
+      'BM-LAB-ENZ-20260602-001_order_summary.md',
+    )
+    expect(container.querySelector('.workspace-file-tree')?.textContent).not.toContain(
+      'Current Thread · 已保存',
+    )
+    expect(container.querySelector('.workspace-file-tree')?.textContent).not.toContain(
+      'Industrial Enzyme Design/Execution/BM-LAB-ENZ-20260602-001_order_summary.md',
+    )
+
+    root.unmount()
+  })
+
+  it('renders markdown json and image file previews from the side window', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace({
+      threadOverride: {
+        ...thread,
+        id: 'enzyme-experiment-execution',
+        title: '酶库订单与实验执行',
+      },
+      projectName: 'Industrial Enzyme Design',
+    })
+
+    await act(async () => {
+      getButton(container, '打开侧窗').click()
+    })
+    await act(async () => {
+      getButton(container, '文件').click()
+    })
+    await act(async () => {
+      getButton(container, 'BM-LAB-ENZ-20260602-001_order_summary.md').click()
+    })
+
+    expect(container.querySelector('.workspace-file-preview h1')?.textContent).toContain(
+      'BM-LAB-ENZ-20260602-001 Order Summary',
+    )
+    expect(container.querySelector('.workspace-file-preview table')).not.toBeNull()
+
+    await act(async () => {
+      getButton(container, 'BM-LAB-ENZ-20260602-001_order_payload.json').click()
+    })
+
+    expect(container.querySelector('.workspace-file-preview__json-key')?.textContent).toContain(
+      '"orderId"',
+    )
+    expect(container.querySelector('.workspace-file-preview__json-string')?.textContent).toContain(
+      '"BM-LAB-ENZ-20260602-001"',
+    )
+
+    await act(async () => {
+      getButton(container, 'enzyme-experiment-record-summary.png').click()
+    })
+
+    expect(container.querySelector('.workspace-file-preview img')).not.toBeNull()
+
+    root.unmount()
+  })
+
+  it('shows an unsupported preview card for workbook files', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace({
+      threadOverride: {
+        ...thread,
+        id: 'enzyme-experiment-execution',
+        title: '酶库订单与实验执行',
+      },
+      projectName: 'Industrial Enzyme Design',
+    })
+
+    await act(async () => {
+      getButton(container, '打开侧窗').click()
+    })
+    await act(async () => {
+      getButton(container, '文件').click()
+    })
+    await act(async () => {
+      getButton(container, 'Enzyme_Experiment_Result_Package.xlsx').click()
+    })
+
+    expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
+      '当前版本暂不支持内嵌预览',
+    )
+    expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
+      'Industrial Enzyme Design/Results/Enzyme_Experiment_Result_Package.xlsx',
+    )
+
+    await act(async () => {
+      getButton(container, 'ENZ_raw_readout_summary.csv').click()
+    })
+
+    expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
+      '当前版本暂不支持内嵌预览',
+    )
+    expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
+      'Industrial Enzyme Design/Results/ENZ_raw_readout_summary.csv',
+    )
+
+    await act(async () => {
+      getButton(container, 'approval_decision_record.pdf').click()
+    })
+
+    expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
+      '当前版本暂不支持内嵌预览',
+    )
+    expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
+      'Industrial Enzyme Design/Reports/approval_decision_record.pdf',
+    )
+
+    await act(async () => {
+      getButton(container, 'ELN-ENZ-20260602-117_attachment_bundle.zip').click()
+    })
+
+    expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
+      '当前版本暂不支持内嵌预览',
+    )
+    expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
+      'Industrial Enzyme Design/ELN/ELN-ENZ-20260602-117_attachment_bundle.zip',
+    )
+
+    root.unmount()
+  })
+
+  it('filters and collapses the side window file tree', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace({
+      threadOverride: {
+        ...thread,
+        id: 'enzyme-experiment-execution',
+        title: '酶库订单与实验执行',
+      },
+      projectName: 'Industrial Enzyme Design',
+    })
+
+    await act(async () => {
+      getButton(container, '打开侧窗').click()
+    })
+    await act(async () => {
+      getButton(container, '文件').click()
+    })
+
+    const searchInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="筛选文件"]',
+    )
+    expect(searchInput).not.toBeNull()
+
+    await act(async () => {
+      searchInput!.value = 'lab owner'
+      searchInput!.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+
+    expect(container.textContent).toContain('Enzyme_Assay_SOP_v3.md')
+    expect(container.textContent).not.toContain(
+      'BM-LAB-ENZ-20260602-001_order_summary.md',
+    )
+
+    await act(async () => {
+      searchInput!.value = 'not-a-real-file'
+      searchInput!.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    expect(container.textContent).toContain('没有匹配的文件')
+
+    await act(async () => {
+      getButton(container, '收起文件树').click()
+    })
+    expect(container.querySelector('.workspace-file-browser--tree-collapsed')).not.toBeNull()
+    expect(getButton(container, '展开文件树')).toBeTruthy()
+
+    root.unmount()
+  })
+
+  it('renders side chat as a disabled empty state', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace()
+
+    await act(async () => {
+      getButton(container, '打开侧窗').click()
+    })
+    await act(async () => {
+      getButton(container, '侧边聊天').click()
+    })
+
+    const input = container.querySelector<HTMLInputElement>(
+      'input[placeholder="侧边聊天将在后续接入"]',
+    )
+
+    expect(container.querySelector('.workspace-side-chat-placeholder')).not.toBeNull()
+    expect(input).not.toBeNull()
+    expect(input?.disabled).toBe(true)
+    expect(container.textContent).not.toContain('Lab Owner')
+
+    root.unmount()
+  })
+
+  it('restores the previous run inspector state when the side window closes', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace({
+      initialRunInspectorOpen: true,
+    })
+
+    await act(async () => {
+      getButton(container, '打开侧窗').click()
+    })
+    expect(container.querySelector('#thread-run-inspector')).toBeNull()
+
+    await act(async () => {
+      getButton(container, '关闭侧窗').click()
+    })
+    await waitForTimers()
+
+    expect(container.querySelector('.workspace-side-window')).toBeNull()
+    expect(container.querySelector('#thread-run-inspector')).not.toBeNull()
+
+    root.unmount()
+  })
+
+  it('does not restore a previous thread run inspector after switching threads inside an open side window', async () => {
+    const { container, root } = renderSwitchingThreadWorkspace()
+
+    await act(async () => {
+      getButton(container, '打开侧窗').click()
+    })
+    expect(container.querySelector('#thread-run-inspector')).toBeNull()
+
+    await act(async () => {
+      getButton(container, '切换线程').click()
+    })
+    await act(async () => {
+      getButton(container, '关闭侧窗').click()
+    })
+    await waitForTimers()
+
+    expect(container.textContent).toContain('结果解释与下一轮建议')
+    expect(container.querySelector('#thread-run-inspector')).toBeNull()
+
+    root.unmount()
+  })
+
+  it('opens run info when the user clicks it while the side window is open', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace()
+
+    await act(async () => {
+      getButton(container, '打开侧窗').click()
+    })
+    expect(container.querySelector('.workspace-side-window')).not.toBeNull()
+
+    await act(async () => {
+      getButton(container, '打开运行信息').click()
+    })
+
+    expect(container.querySelector('.workspace-side-window')).toBeNull()
+    expect(container.querySelector('#thread-run-inspector')).not.toBeNull()
+
+    root.unmount()
+  })
+
+  it('closes the side window once when Escape is pressed in drawer mode', async () => {
+    const closeCalls: boolean[] = []
+    const { container, root } = renderInteractiveThreadWorkspace({
+      onRunInspectorChange: (open) => closeCalls.push(open),
+    })
+
+    await act(async () => {
+      getButton(container, '打开侧窗').click()
+    })
+
+    const panel = container.querySelector<HTMLElement>('#thread-workspace-side-window')
+    expect(panel).not.toBeNull()
+
+    await act(async () => {
+      panel?.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Escape',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+    await waitForTimers()
+
+    expect(container.querySelector('.workspace-side-window')).toBeNull()
+    expect(closeCalls).toEqual([false])
+
+    root.unmount()
+  })
+
   it('keeps keyboard focus inside the run inspector drawer and restores it on close', async () => {
     const { container, root } = renderInteractiveThreadWorkspace()
 
@@ -367,20 +923,33 @@ describe('ThreadWorkspace', () => {
 
 function renderInteractiveThreadWorkspace({
   onNotify = noop,
+  onRunInspectorChange,
+  initialRunInspectorOpen = false,
+  projectName = 'Antibody Optimization',
+  threadOverride = thread,
 }: {
   onNotify?: (message: string) => void
+  onRunInspectorChange?: (open: boolean) => void
+  initialRunInspectorOpen?: boolean
+  projectName?: string
+  threadOverride?: DemoThread
 } = {}) {
   const container = document.createElement('div')
   document.body.append(container)
   const root = createRoot(container)
 
   function Harness() {
-    const [open, setOpen] = useState(false)
+    const [open, setOpen] = useState(initialRunInspectorOpen)
+
+    function handleRunInspectorChange(nextOpen: boolean) {
+      onRunInspectorChange?.(nextOpen)
+      setOpen(nextOpen)
+    }
 
     return (
       <ThreadWorkspace
-        thread={thread}
-        projectName="Antibody Optimization"
+        thread={threadOverride}
+        projectName={projectName}
         draft=""
         onDraftChange={noop}
         onSubmit={noop}
@@ -389,8 +958,56 @@ function renderInteractiveThreadWorkspace({
         onDeleteThread={noop}
         onNotify={onNotify}
         runInspectorOpen={open}
-        onRunInspectorOpenChange={setOpen}
+        onRunInspectorOpenChange={handleRunInspectorChange}
       />
+    )
+  }
+
+  act(() => {
+    root.render(<Harness />)
+  })
+
+  return { container, root }
+}
+
+function renderSwitchingThreadWorkspace() {
+  const container = document.createElement('div')
+  document.body.append(container)
+  const root = createRoot(container)
+  const firstThread: DemoThread = {
+    ...thread,
+    id: 'enzyme-experiment-execution',
+    title: '酶库订单与实验执行',
+  }
+  const secondThread: DemoThread = {
+    ...thread,
+    id: 'enzyme-analysis-iteration',
+    title: '结果解释与下一轮建议',
+  }
+
+  function Harness() {
+    const [currentThread, setCurrentThread] = useState(firstThread)
+    const [open, setOpen] = useState(true)
+
+    return (
+      <>
+        <button type="button" onClick={() => setCurrentThread(secondThread)}>
+          切换线程
+        </button>
+        <ThreadWorkspace
+          thread={currentThread}
+          projectName="Industrial Enzyme Design"
+          draft=""
+          onDraftChange={noop}
+          onSubmit={noop}
+          onRenameThread={noop}
+          onArchiveThread={noop}
+          onDeleteThread={noop}
+          onNotify={noop}
+          runInspectorOpen={open}
+          onRunInspectorOpenChange={setOpen}
+        />
+      </>
     )
   }
 

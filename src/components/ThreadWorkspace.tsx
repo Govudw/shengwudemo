@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { buildThreadObjectStorageFiles } from '../data/workspaceSideWindowMockData'
 import type { DemoThread } from '../store/demoStoreLogic'
 import ConversationTranscript from './ConversationTranscript'
 import {
@@ -11,9 +12,12 @@ import {
   ShareIcon,
   TrashIcon,
   WarningIcon,
+  WorkspaceToolWindowIcon,
 } from './icons'
 import RunInspector from './RunInspector'
 import ThreadComposer from './ThreadComposer'
+import WorkspaceSideWindow from './WorkspaceSideWindow'
+import type { WorkspaceSideWindowThreadState } from './WorkspaceSideWindow'
 
 type ThreadWorkspaceProps = {
   thread: DemoThread
@@ -50,12 +54,25 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
   const renameDialogRef = useRef<HTMLFormElement>(null)
   const deleteDialogRef = useRef<HTMLDivElement>(null)
   const runInfoButtonRef = useRef<HTMLButtonElement>(null)
+  const sideWindowButtonRef = useRef<HTMLButtonElement>(null)
   const runInspectorPanelRef = useRef<HTMLElement>(null)
+  const sideWindowPanelRef = useRef<HTMLElement>(null)
   const renameInputRef = useRef<HTMLInputElement>(null)
   const cancelDeleteButtonRef = useRef<HTMLButtonElement>(null)
   const [runInspectorDrawer, setRunInspectorDrawer] = useState(false)
+  const [sideWindowOpen, setSideWindowOpen] = useState(false)
+  const [sideWindowStateByThreadId, setSideWindowStateByThreadId] = useState<
+    Record<string, WorkspaceSideWindowThreadState>
+  >({})
+  const previousRunInspectorOpenRef = useRef<boolean | null>(null)
   const statusBadges = getThreadStatusBadges(thread)
   const infoTooltip = `${projectName} · ${thread.transcript.length} 轮对话`
+  const sideWindowState =
+    sideWindowStateByThreadId[thread.id] ?? getDefaultSideWindowThreadState()
+  const sideWindowFiles = useMemo(
+    () => buildThreadObjectStorageFiles(projectName, thread.id),
+    [projectName, thread.id],
+  )
 
   const closeRunInspector = useCallback(() => {
     onRunInspectorOpenChange(false)
@@ -63,6 +80,24 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
       runInfoButtonRef.current?.focus()
     }, 0)
   }, [onRunInspectorOpenChange])
+
+  const closeSideWindow = useCallback(() => {
+    setSideWindowOpen(false)
+
+    if (previousRunInspectorOpenRef.current) {
+      onRunInspectorOpenChange(true)
+    }
+
+    previousRunInspectorOpenRef.current = null
+
+    window.setTimeout(() => {
+      sideWindowButtonRef.current?.focus()
+    }, 0)
+  }, [onRunInspectorOpenChange])
+
+  useEffect(() => {
+    previousRunInspectorOpenRef.current = null
+  }, [thread.id])
 
   useEffect(() => {
     if (!menuOpen) {
@@ -143,6 +178,16 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
   }, [runInspectorDrawer, runInspectorOpen])
 
   useEffect(() => {
+    if (!sideWindowOpen || !runInspectorDrawer) {
+      return
+    }
+
+    window.setTimeout(() => {
+      sideWindowPanelRef.current?.focus()
+    }, 0)
+  }, [runInspectorDrawer, sideWindowOpen])
+
+  useEffect(() => {
     if (!runInspectorOpen || renameOpen || deleteOpen) {
       return undefined
     }
@@ -160,6 +205,48 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
     }
   }, [closeRunInspector, deleteOpen, renameOpen, runInspectorOpen])
 
+  useEffect(() => {
+    if (!sideWindowOpen || renameOpen || deleteOpen) {
+      return undefined
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        closeSideWindow()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [closeSideWindow, deleteOpen, renameOpen, sideWindowOpen])
+
+  function openSideWindow() {
+    previousRunInspectorOpenRef.current = runInspectorOpen
+    onRunInspectorOpenChange(false)
+    setSideWindowOpen(true)
+  }
+
+  function handleRunInspectorButtonClick() {
+    if (sideWindowOpen) {
+      previousRunInspectorOpenRef.current = null
+      setSideWindowOpen(false)
+      onRunInspectorOpenChange(true)
+      return
+    }
+
+    onRunInspectorOpenChange(!runInspectorOpen)
+  }
+
+  function updateSideWindowState(nextState: WorkspaceSideWindowThreadState) {
+    setSideWindowStateByThreadId((current) => ({
+      ...current,
+      [thread.id]: nextState,
+    }))
+  }
+
   function submitRename() {
     const nextTitle = renameValue.trim().replace(/\s+/g, ' ')
 
@@ -176,6 +263,7 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
     <section
       className={`thread-workspace${
         runInspectorOpen ? ' thread-workspace--run-inspector-open' : ''
+      }${sideWindowOpen ? ' thread-workspace--side-window-open' : ''
       }`}
       aria-label={thread.title}
     >
@@ -215,10 +303,22 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
             aria-expanded={runInspectorOpen}
             aria-controls="thread-run-inspector"
             title={runInspectorOpen ? '关闭运行信息' : '打开运行信息'}
-            onClick={() => onRunInspectorOpenChange(!runInspectorOpen)}
+            onClick={handleRunInspectorButtonClick}
           >
             <PanelRightIcon className="thread-workspace__run-info-icon" />
             <span>运行信息</span>
+          </button>
+          <button
+            ref={sideWindowButtonRef}
+            type="button"
+            className="thread-workspace__side-window-button"
+            aria-label="打开侧窗"
+            aria-expanded={sideWindowOpen}
+            aria-controls="thread-workspace-side-window"
+            title="打开侧窗"
+            onClick={openSideWindow}
+          >
+            <WorkspaceToolWindowIcon className="thread-workspace__side-window-icon" />
           </button>
           <button
             type="button"
@@ -323,6 +423,41 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
             }}
           >
             <RunInspector data={thread.runInspector} />
+          </aside>
+        </>
+      ) : null}
+
+      {sideWindowOpen ? (
+        <>
+          <button
+            type="button"
+            className="thread-workspace__drawer-backdrop thread-workspace__side-window-backdrop"
+            aria-label="关闭侧窗"
+            aria-hidden="true"
+            tabIndex={-1}
+            onClick={closeSideWindow}
+          />
+          <aside
+            ref={sideWindowPanelRef}
+            id="thread-workspace-side-window"
+            className="thread-workspace__side-window"
+            role={runInspectorDrawer ? 'dialog' : 'complementary'}
+            aria-modal={runInspectorDrawer ? true : undefined}
+            aria-label="Workspace 侧窗"
+            tabIndex={runInspectorDrawer ? -1 : undefined}
+            onKeyDown={(event) => {
+              if (runInspectorDrawer) {
+                trapDialogFocus(event, sideWindowPanelRef.current, closeSideWindow)
+              }
+            }}
+          >
+            <WorkspaceSideWindow
+              projectName={projectName}
+              state={sideWindowState}
+              files={sideWindowFiles}
+              onStateChange={updateSideWindowState}
+              onClose={closeSideWindow}
+            />
           </aside>
         </>
       ) : null}
@@ -453,6 +588,15 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
   )
 }
 
+function getDefaultSideWindowThreadState(): WorkspaceSideWindowThreadState {
+  return {
+    mode: 'launcher',
+    selectedFileId: null,
+    searchQuery: '',
+    fileTreeCollapsed: false,
+  }
+}
+
 function getThreadStatusBadges(thread: DemoThread) {
   const approvals = thread.runInspector?.approvals ?? []
   const hasPendingApproval = approvals.some(
@@ -480,6 +624,8 @@ function trapDialogFocus(
   closeDialog: () => void,
 ) {
   if (event.key === 'Escape') {
+    event.preventDefault()
+    event.stopPropagation()
     closeDialog()
     return
   }

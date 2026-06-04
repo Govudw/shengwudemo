@@ -288,7 +288,7 @@ describe('CapabilitiesPage', () => {
     const pipelineNames = [
       'EGFR 抗体亲和力优化 Pipeline',
       '蛋白稳定性改造 Pipeline',
-      '湿实验验证订单 Pipeline',
+      '酶库订单与实验执行 Pipeline',
       'AI-ready 数据集整理 Pipeline',
       '分子候选筛选 Pipeline',
       'ENZ-P0 Assay Characterization Pipeline',
@@ -304,6 +304,86 @@ describe('CapabilitiesPage', () => {
       expect(container.textContent).toContain('Human Gate')
       expect(container.textContent).toContain('QC Decision')
     })
+
+    root.unmount()
+  })
+
+  it('renders the wet-lab order Pipeline as the enzyme experiment execution contract', () => {
+    const wetlabPipeline = capabilityEntries.find(
+      (entry) => entry.id === 'pipeline-wetlab-order',
+    )
+    const expectedExecutionSteps = [
+      '读取设计交接',
+      '确认订单边界',
+      '固化样本范围',
+      '固化读数面板',
+      '生成板图',
+      '检查样本库存与孔板关联',
+      '检查物料/SOP/设备/线路',
+      '订单提交审批',
+      '创建 Experiment Task',
+      '同步样本准备',
+      '同步 assay 执行',
+      '回收结果包',
+      '记录异常事件',
+      '校验结果包 schema',
+      '归档操作索引',
+    ]
+
+    expect(wetlabPipeline).toMatchObject({
+      name: '酶库订单与实验执行 Pipeline',
+      kind: 'pipeline',
+      source: 'created',
+      version: 'v1.0',
+    })
+    expect(wetlabPipeline?.metrics).toEqual(
+      expect.arrayContaining([
+        { label: '步骤', value: '15' },
+        { label: '正式审批', value: '1' },
+      ]),
+    )
+    expect(wetlabPipeline?.interface.inputs).toEqual(
+      expect.arrayContaining([
+        '设计交接包：ENZ-LIB-20260602-048、parent enzyme、候选变体范围和禁止自动动作',
+        '样本与库存：48 个候选酶、对照、分装计划、样本批次和孔板关联记录',
+        '实验约束：读数面板、SOP v3、底物批次 QC、设备与实验线路',
+      ]),
+    )
+    expect(wetlabPipeline?.interface.outputs).toEqual(
+      expect.arrayContaining([
+        '已提交实验订单：BM-LAB-ENZ-20260602-001 及审批记录',
+        '执行记录索引：Experiment Task、运行日志、异常复核记录和样本追踪',
+        '结果包：原始读数、板图映射、QC/异常表、schema 校验结果和 Enzyme_Experiment_Result_Package.xlsx',
+      ]),
+    )
+    expect(wetlabPipeline?.interface.permissions).toEqual(
+      expect.arrayContaining([
+        '订单提交必须通过正式 Approval Gate',
+        '异常孔不得自动剔除，必须保留原始读数并进入人工复核',
+        '不得自动进入下一轮设计或自动提交后续实验',
+      ]),
+    )
+    expect(wetlabPipeline?.steps).toEqual(expectedExecutionSteps)
+    expect(wetlabPipeline?.dag?.nodes.map((node) => node.title)).toEqual(
+      expect.arrayContaining([
+        '读取设计交接',
+        '订单提交审批',
+        '归档操作索引',
+      ]),
+    )
+
+    const { container, root } = renderCapabilitiesPage()
+
+    act(() => {
+      getButtonContaining(container, '酶库订单与实验执行 Pipeline').click()
+    })
+
+    expect(container.textContent).toContain('v1.0')
+    expect(container.textContent).toContain('正式审批')
+    expect(container.textContent).toContain('异常孔不得自动剔除')
+    expect(container.textContent).toContain('读取设计交接')
+    expect(container.textContent).toContain('归档操作索引')
+    expect(container.textContent).not.toContain('CRO connector 权限复核')
 
     root.unmount()
   })

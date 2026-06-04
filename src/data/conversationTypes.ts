@@ -78,11 +78,33 @@ export type ConversationBlock =
   | ElapsedWorkReplayBlock
   | ScientificFigureBlock
   | PipelineDagBlock
+  | DesignHandoffBriefBlock
+  | ExperimentOrderSummaryBlock
+  | SampleScopePanelBlock
+  | AssayPanelTableBlock
+  | PlateMapMiniBlock
+  | SampleInventoryLinkBlock
+  | MaterialSopReadinessBlock
+  | ApprovalGateCardBlock
+  | ExecutionTaskStatusBlock
+  | ExperimentNotebookSummaryBlock
+  | RunLogTableBlock
+  | AnomalyReviewTableBlock
+  | ResultPackageChecklistBlock
 
 export type ProjectFileBlock = {
   type: 'projectFile'
   fileName: string
-  fileKind: 'pdf' | 'xlsx' | 'csv' | 'png' | 'jpg' | 'fasta' | 'pdb' | 'md'
+  fileKind:
+    | 'pdf'
+    | 'xlsx'
+    | 'csv'
+    | 'png'
+    | 'jpg'
+    | 'fasta'
+    | 'pdb'
+    | 'md'
+    | 'json'
   location: string
   note: string
 }
@@ -209,4 +231,177 @@ export type PipelineDagBlock = {
   status: 'draft' | 'validated' | 'saved'
   summary: string
   dag: PipelineDag
+}
+
+export type DesignHandoffBriefBlock = {
+  type: 'designHandoffBrief'
+  designPackage: string
+  libraryId: string
+  parentEnzyme: string
+  variantRange: string
+  executionConstraints: string[]
+  forbiddenActions: string[]
+  sourceFiles: string[]
+}
+
+export type ExperimentOrderSummaryBlock = {
+  type: 'experimentOrderSummary'
+  title: string
+  orderId: string
+  status: string
+  reviewStatus: string
+  projectId: string
+  libraryId: string
+  parentEnzyme: string
+  purpose: string
+  scopeLock: string
+  owner: string
+  createdAt: string
+  dueAt: string
+  rows: Array<{ label: string; value: string }>
+}
+
+export type SampleScopePanelBlock = {
+  type: 'sampleScopePanel'
+  libraryId: string
+  variantCount: number
+  variantRange: string
+  controls: string[]
+  replicatePlan: string
+  sampleSource: string
+  exclusions: string[]
+  lockedBy: string
+}
+
+export type AssayPanelTableBlock = {
+  type: 'assayPanelTable'
+  panelStatus: string
+  sopReference: string
+  assays: Array<{
+    name: string
+    purpose: string
+    readout: string
+    method: string
+    replicateCount: number
+    qcRule: string
+  }>
+}
+
+export type PlateMapMiniBlock = {
+  type: 'plateMapMini'
+  plateMapId: string
+  plateCount: number
+  dimensions: string
+  wells: Array<{ position: string; label: string; group: string }>
+  legend: Array<{ label: string; color: string }>
+  locked: boolean
+}
+
+export type SampleInventoryLinkBlock = {
+  type: 'sampleInventoryLink'
+  sampleBatchId: string
+  inventoryStatus: string
+  storageCondition: string
+  aliquotPlan: string
+  plateLinkRecord: string
+  missingItems: string[]
+}
+
+export type MaterialSopReadinessBlock = {
+  type: 'materialSopReadiness'
+  substrateLot: string
+  buffer: string
+  sopVersion: string
+  deviceType: string
+  deviceId: string
+  labLocation: string
+  experimentRoute: string
+  workflowTemplate: string
+  readinessChecks: string[]
+}
+
+export type ApprovalGateCardBlock = {
+  type: 'approvalGateCard'
+  title: string
+  approvalType: string
+  status: 'pending' | 'approved' | 'rejected' | 'blocked'
+  approver?: string
+  decidedAt?: string
+  approvalAdvice?: string
+  details?: Array<{ label: string; value: string }>
+  checklist: string[]
+  riskSummary: string
+  decision?: string
+}
+
+export type ExecutionTaskStatusBlock = {
+  type: 'executionTaskStatus'
+  taskId: string
+  orderId: string
+  croRef: string
+  stage: string
+  status: string
+  owner: string
+  startedAt: string
+  completedAt?: string
+  records: string[]
+}
+
+export type ExperimentNotebookSummaryBlock = {
+  type: 'experimentNotebookSummary'
+  notebookId: string
+  taskId: string
+  orderId: string
+  status: string
+  estimatedSubmitBy: string
+  submittedAt: string
+  submittedBy: string
+  callbackId: string
+  recordSections: Array<{
+    label: string
+    value: string
+    status: string
+  }>
+  observations: string[]
+  attachments: string[]
+}
+
+export type RunLogTableBlock = {
+  type: 'runLogTable'
+  logId: string
+  taskId: string
+  rows: Array<{
+    time: string
+    actor: string
+    system: string
+    event: string
+    recordId: string
+    status: string
+  }>
+}
+
+export type AnomalyReviewTableBlock = {
+  type: 'anomalyReviewTable'
+  anomalyLogId: string
+  policy: string
+  rows: Array<{
+    sampleId: string
+    well: string
+    anomalyType: string
+    rawReadingPreserved: string
+    autoExcluded: string
+    reviewOwner: string
+    status: string
+  }>
+}
+
+export type ResultPackageChecklistBlock = {
+  type: 'resultPackageChecklist'
+  packageName: string
+  receivedAt: string
+  files: string[]
+  schemaChecks: string[]
+  missingItems: string[]
+  archiveLocations: string[]
+  readyForAnalysis: boolean
 }

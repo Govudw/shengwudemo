@@ -143,6 +143,20 @@ function PanelRightIcon({ className }: IconProps) {
   )
 }
 
+function WorkspaceToolWindowIcon({ className }: IconProps) {
+  return (
+    <IconSvg className={className}>
+      <rect x="3.5" y="4" width="17" height="16" rx="2" />
+      <path d="M13.5 4v16" />
+      <path d="M7 8.5h3" />
+      <path d="M7 12h3" />
+      <path d="M16 8.5h2" />
+      <path d="M16 12h2" />
+      <path d="M16 15.5h2" />
+    </IconSvg>
+  )
+}
+
 function MessageCircleIcon({ className }: IconProps) {
   return (
     <IconSvg className={className}>
@@ -310,5 +324,6 @@ export {
   TargetIcon,
   TrashIcon,
   WarningIcon,
+  WorkspaceToolWindowIcon,
   XIcon,
 }

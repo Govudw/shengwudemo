@@ -12,13 +12,6 @@ import enzymeMutationDesignMap from '../assets/mock-science/enzyme/enzyme-mutati
 import enzymeModelScorePanel from '../assets/mock-science/enzyme/enzyme-model-score-panel.png'
 import enzymeParetoRanking from '../assets/mock-science/enzyme/enzyme-pareto-ranking.png'
 import enzymeLibraryDesignMatrix from '../assets/mock-science/enzyme/enzyme-library-design-matrix.png'
-import enzymeExperimentOrderDraft from '../assets/mock-science/enzyme/enzyme-experiment-order-draft.png'
-import enzymeAssayPanelDesign from '../assets/mock-science/enzyme/enzyme-assay-panel-design.png'
-import enzymePlateMap from '../assets/mock-science/enzyme/enzyme-plate-map.png'
-import enzymeSampleMaterialDeviceFlow from '../assets/mock-science/enzyme/enzyme-sample-material-device-flow.png'
-import enzymeCroTaskStatus from '../assets/mock-science/enzyme/enzyme-cro-task-status.png'
-import enzymeExperimentAnomalyLog from '../assets/mock-science/enzyme/enzyme-experiment-anomaly-log.png'
-import enzymeResultIngestionChecklist from '../assets/mock-science/enzyme/enzyme-result-ingestion-checklist.png'
 import enzymeResultPackageQcOverview from '../assets/mock-science/enzyme/enzyme-result-package-qc-overview.png'
 import enzymeKineticsCurveFitting from '../assets/mock-science/enzyme/enzyme-kinetics-curve-fitting.png'
 import enzymePhTemperatureProfile from '../assets/mock-science/enzyme/enzyme-ph-temperature-profile.png'
@@ -26,10 +19,17 @@ import enzymeStabilityHalfLife from '../assets/mock-science/enzyme/enzyme-stabil
 import enzymeModelConsensusMatrix from '../assets/mock-science/enzyme/enzyme-model-consensus-matrix.png'
 import enzymeUncertaintySensitivityAnalysis from '../assets/mock-science/enzyme/enzyme-uncertainty-sensitivity-analysis.png'
 import enzymeIterationDecisionTree from '../assets/mock-science/enzyme/enzyme-iteration-decision-tree.png'
+import enzymeExperimentNotebookPolling from '../assets/mock-science/enzyme/enzyme-experiment-notebook-polling.png'
+import enzymeExperimentRecordSummary from '../assets/mock-science/enzyme/enzyme-experiment-record-summary.png'
+import enzymeExperimentAnomalyLog from '../assets/mock-science/enzyme/enzyme-experiment-anomaly-log.png'
+import enzymeResultIngestionChecklist from '../assets/mock-science/enzyme/enzyme-result-ingestion-checklist.png'
 import type {
   CandidateEvidenceTableBlock,
   CapabilityRunReplayBlock,
+  ConversationBlock,
   ConversationTurn,
+  HumanConfirmationBlock,
+  ProjectFileBlock,
   RunInspectorCapabilityRunItem,
   RunInspectorData,
   ScientificFigureBlock,
@@ -533,50 +533,75 @@ const designRuns = [
 
 const experimentRuns = [
   capabilityRun(
-    'ExperimentOrderBuilder.composeDraft',
-    '生成 BM-LAB 实验订单草稿',
+    'DesignHandoffReader.extractExecutionScope',
+    '读取设计交接并抽取实验执行范围',
+    {
+      designPackage: 'Enzyme_Candidate_Design_Package.md',
+      libraryId: 'ENZ-LIB-20260602-048',
+      orderId: 'BM-LAB-ENZ-20260602-001',
+    },
+    {
+      parentEnzyme: 'ENZ-P0',
+      variantRange: 'ENZ-MUT-001 through ENZ-MUT-048',
+      variantCount: 48,
+      executionMode: 'linear',
+      resultPackage: 'Enzyme_Experiment_Result_Package.xlsx',
+    },
+    [
+      {
+        name: 'Enzyme_Candidate_Design_Package.md',
+        kind: 'md',
+        description: '候选库设计交接、实验边界和交付物要求。',
+      },
+    ],
+  ),
+  capabilityRun(
+    'ExperimentOrderBuilder.composeBoundary',
+    '整理订单边界、读数面板和交付物',
     {
       orderId: 'BM-LAB-ENZ-20260602-001',
       libraryId: 'ENZ-LIB-20260602-048',
-      designPackage: 'Enzyme_Candidate_Design_Package.md',
+      readouts: 'activity,kcatKm_proxy,Tm,pH_window,expression',
     },
     {
-      status: 'draft',
-      sampleCount: 48,
+      boundaryStatus: 'pending_approval',
+      variantCount: 48,
+      controlsPerPlate: 8,
       approvalRequired: true,
     },
     [
       {
-        name: 'BM-LAB-ENZ-20260602-001_draft.md',
-        kind: 'md',
-        description: '实验订单草稿和人工审批项。',
+        name: 'BM-LAB-ENZ-20260602-001_boundary.json',
+        kind: 'json',
+        description: '订单范围、样本边界和交付物清单。',
       },
     ],
   ),
   capabilityRun(
-    'AssayPanelDesigner.freezeReadouts',
-    '冻结活性、动力学代理、Tm 和 pH 读数面板',
+    'SampleInventoryResolver.checkAvailability',
+    '检查样本库存和孔板关联',
     {
-      parent: 'ENZ-P0',
-      readouts: 'activity,kcatKm_proxy,Tm,pH_window,expression',
-      controls: 8,
+      libraryId: 'ENZ-LIB-20260602-048',
+      sampleBatchId: 'SB-ENZ-20260602-004',
+      plateLinkRecord: 'PLATE-LINK-ENZ-048',
     },
     {
-      readoutPanels: 5,
-      minimumReplicates: 3,
-      mechanismClaim: 'not_requested',
+      variantAliquotsReady: 48,
+      controlAliquotsReady: 8,
+      missingItems: 0,
+      inventoryStatus: 'ready',
     },
     [
       {
-        name: 'ENZ_assay_panel_design.xlsx',
-        kind: 'xlsx',
-        description: '读数面板、重复数和 QC 门限。',
+        name: 'ENZ_sample_inventory_link.csv',
+        kind: 'csv',
+        description: '样本批次、工作液、备份管和孔板关联记录。',
       },
     ],
   ),
   capabilityRun(
-    'PlateMapGenerator.assignVariants',
-    '生成 ENZ-PLATEMAP 板图',
+    'PlateMapGenerator.assignControls',
+    '生成带对照和重复孔的板图',
     {
       libraryId: 'ENZ-LIB-20260602-048',
       variantRange: 'ENZ-MUT-001 through ENZ-MUT-048',
@@ -584,7 +609,8 @@ const experimentRuns = [
     },
     {
       assignedVariants: 48,
-      controlWells: 8,
+      controlWells: 16,
+      plateCount: 2,
       lockedByHuman: true,
     },
     [
@@ -596,17 +622,41 @@ const experimentRuns = [
     ],
   ),
   capabilityRun(
+    'MaterialSopReadinessChecker.validate',
+    '检查物料、SOP、设备和执行线路',
+    {
+      substrateLot: 'SUB-LOT-202606',
+      sopVersion: 'Enzyme_Assay_SOP_v3',
+      deviceId: 'PR-3107',
+    },
+    {
+      readinessStatus: 'ready',
+      substrateReleased: true,
+      deviceCalibrationValid: true,
+      routeLocked: true,
+    },
+    [
+      {
+        name: 'ENZ_material_sop_readiness.json',
+        kind: 'json',
+        description: '底物批次、SOP、设备校准和执行线路检查。',
+      },
+    ],
+  ),
+  capabilityRun(
     'LabOrderGateway.submitApprovedOrder',
     '提交已审批实验订单',
     {
       orderId: 'BM-LAB-ENZ-20260602-001',
       taskId: 'ENZ-EXPTASK-20260602-001',
-      approver: 'Process Owner',
+      approver: 'Lab Owner',
     },
     {
       submitted: true,
-      croRef: 'CRO-ENZ-20260602-001',
-      autoSubmitted: false,
+      orderStatus: 'submitted',
+      formalApproval: 'approved',
+      taskCreated: false,
+      readyForTaskCreation: true,
     },
     [
       {
@@ -617,23 +667,117 @@ const experimentRuns = [
     ],
   ),
   capabilityRun(
-    'ExperimentTaskTracker.syncCroStatus',
-    '同步 CRO 任务状态',
+    'ExperimentTaskTracker.createTask',
+    '创建 Experiment Task 并绑定订单',
     {
       taskId: 'ENZ-EXPTASK-20260602-001',
-      croRef: 'CRO-ENZ-20260602-001',
       orderId: 'BM-LAB-ENZ-20260602-001',
+      notebookId: 'ELN-ENZ-20260602-117',
     },
     {
-      synthesisDone: true,
-      assayDone: true,
-      resultPackage: 'Enzyme_Experiment_Result_Package.xlsx',
+      taskStatus: 'running',
+      executionOwner: 'Experiment Operations',
+      notebookTemplate: 'enzyme_activity_stability_v1',
+      dataMutationAllowed: false,
     },
     [
       {
-        name: 'CRO-ENZ-20260602-001_status.json',
+        name: 'ENZ-EXPTASK-20260602-001_status.json',
         kind: 'json',
-        description: 'CRO 合成、质控和测定状态。',
+        description: 'Experiment Task、订单和实验记录本绑定关系。',
+      },
+    ],
+  ),
+  capabilityRun(
+    'ExperimentNotebookMonitor.schedulePolling',
+    '按预计提交时间创建实验记录本轮询任务',
+    {
+      taskId: 'ENZ-EXPTASK-20260602-001',
+      notebookId: 'ELN-ENZ-20260602-117',
+      estimatedSubmitBy: '2026-06-02 14:40',
+      pollIntervalMinutes: 5,
+    },
+    {
+      pollingTaskId: 'POLL-ELN-ENZ-20260602-117',
+      firstCheckAt: '2026-06-02 14:40',
+      overdueReminderAt: '2026-06-02 15:15',
+      callbackId: 'CALLBACK-ELN-ENZ-20260602-117',
+    },
+    [
+      {
+        name: 'ELN-ENZ-20260602-117_polling_plan.json',
+        kind: 'json',
+        description: '实验记录本预计提交、轮询频率和回调任务。',
+      },
+    ],
+    '8.4s',
+  ),
+  capabilityRun(
+    'ExperimentNotebookMonitor.checkSubmission',
+    '到达预计时间后检查实验记录本提交状态',
+    {
+      pollingTaskId: 'POLL-ELN-ENZ-20260602-117',
+      notebookId: 'ELN-ENZ-20260602-117',
+      checkAt: '2026-06-02 14:45',
+    },
+    {
+      submitted: false,
+      minutesPastEstimate: 5,
+      reminderSent: true,
+      reminderChannel: 'system message + lab inbox',
+    },
+    [
+      {
+        name: 'ELN-ENZ-20260602-117_overdue_notice.json',
+        kind: 'json',
+        description: '记录本未提交检查和提醒发送记录。',
+      },
+    ],
+    '6.2s',
+  ),
+  capabilityRun(
+    'ExperimentNotebookCallback.ingestRecord',
+    '接收回调并解析实验记录本数据',
+    {
+      callbackId: 'CALLBACK-ELN-ENZ-20260602-117',
+      notebookId: 'ELN-ENZ-20260602-117',
+      submittedAt: '2026-06-02 15:42',
+    },
+    {
+      sectionsReceived: 6,
+      wellsRead: 192,
+      anomaliesFlagged: 3,
+      attachmentsReceived: 12,
+      recordStatus: 'validated',
+    },
+    [
+      {
+        name: 'ELN-ENZ-20260602-117_record.json',
+        kind: 'json',
+        description: '实验记录本回调载荷、分段摘要和附件索引。',
+      },
+    ],
+    '21.3s',
+  ),
+  capabilityRun(
+    'ExperimentTaskTracker.syncAssayExecution',
+    '从实验记录本同步 assay 执行日志',
+    {
+      taskId: 'ENZ-EXPTASK-20260602-001',
+      notebookId: 'ELN-ENZ-20260602-117',
+      resultPackage: 'Enzyme_Experiment_Result_Package.xlsx',
+    },
+    {
+      samplePrep: 'completed',
+      assayExecution: 'completed',
+      stage: 'record_submitted',
+      readoutRecordsLinked: 576,
+    },
+    [
+      {
+        name: 'RUNLOG-ENZ-20260602-ASSAY.csv',
+        kind: 'csv',
+        description: '实验记录本解析出的活性、动力学代理、Tm、pH 和表达日志。',
       },
     ],
   ),
@@ -659,44 +803,24 @@ const experimentRuns = [
     ],
   ),
   capabilityRun(
-    'ResultPackageReceiver.validateFiles',
-    '校验结果包文件完整性',
+    'ResultPackageReceiver.validateSchema',
+    '校验结果包 schema 和跨文件索引',
     {
       package: 'Enzyme_Experiment_Result_Package.xlsx',
       plateMap: 'ENZ-PLATEMAP-20260602-001.csv',
       orderId: 'BM-LAB-ENZ-20260602-001',
     },
     {
-      filesReceived: 6,
-      missingFiles: 0,
-      flaggedForQc: true,
+      schemaStatus: 'completed',
+      filesReceived: 7,
+      missingItems: 0,
+      readyForAnalysis: true,
     },
     [
       {
         name: 'Enzyme_Experiment_Result_Package.xlsx',
         kind: 'xlsx',
-        description: '实验结果包和原始读数。',
-      },
-    ],
-  ),
-  capabilityRun(
-    'CurveQcSummarizer.prepareReviewWorkbook',
-    '生成曲线拟合和 QC 汇总',
-    {
-      resultPackage: 'Enzyme_Experiment_Result_Package.xlsx',
-      curveSummary: 'Enzyme_Curve_Fit_and_QC_Summary.xlsx',
-      taskId: 'ENZ-EXPTASK-20260602-001',
-    },
-    {
-      curveFits: 48,
-      qcWarnings: 5,
-      reportBoundary: 'execution only',
-    },
-    [
-      {
-        name: 'Enzyme_Curve_Fit_and_QC_Summary.xlsx',
-        kind: 'xlsx',
-        description: '曲线拟合、QC 标记和复核建议。',
+        description: '实验结果包、原始读数、异常标记和元数据 schema。',
       },
     ],
   ),
@@ -1507,261 +1631,862 @@ const designTranscript: ConversationTurn[] = [
   },
 ]
 
+function experimentExecutionTurn(
+  index: number,
+  role: ConversationTurn['role'],
+  markdown: string,
+  contentBlocks?: ConversationBlock[],
+): ConversationTurn {
+  return {
+    id: `enzyme-experiment-execution-turn-${String(index).padStart(3, '0')}`,
+    role,
+    markdown,
+    ...(contentBlocks?.length ? { contentBlocks } : {}),
+  }
+}
+
+function executionConfirmation(
+  title: string,
+  confirmedBy: string,
+  confirmedAt: string,
+  decision: string,
+): HumanConfirmationBlock {
+  return {
+    type: 'humanConfirmation',
+    title,
+    confirmedBy,
+    confirmedAt,
+    decision,
+  }
+}
+
+function executionProjectFile(
+  fileName: string,
+  fileKind: ProjectFileBlock['fileKind'],
+  location: string,
+  note: string,
+): ProjectFileBlock {
+  return {
+    type: 'projectFile',
+    fileName,
+    fileKind,
+    location,
+    note,
+  }
+}
+
 const experimentTranscript: ConversationTurn[] = [
-  {
-    id: 'enzyme-experiment-execution-turn-001',
-    role: 'user',
-    markdown:
-      '基于 ENZ-LIB-20260602-048 推进实验执行：订单 BM-LAB-ENZ-20260602-001，候选 ENZ-MUT-001 through ENZ-MUT-048，结果包 Enzyme_Experiment_Result_Package.xlsx。',
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-002',
-    role: 'mainAgent',
-    markdown:
-      '我先生成订单草稿，状态保持 draft，等你确认读数面板和交付物后才提交。',
-    contentBlocks: [
+  experimentExecutionTurn(
+    1,
+    'user',
+    '请按线性实验执行模块接手 ENZ-LIB-20260602-048：订单 BM-LAB-ENZ-20260602-001，结果包 Enzyme_Experiment_Result_Package.xlsx。一次只推进一个原子模块，每个检查点先让我确认。',
+  ),
+  experimentExecutionTurn(
+    2,
+    'mainAgent',
+    '模块 01 读取设计交接。请确认处理方式，我建议选 A。\n\n- 推荐 A：只抽取 ENZ-P0、ENZ-MUT-001 through ENZ-MUT-048、读数和交付边界。\n  原因：只抽取执行边界能避免把设计阶段的假设误写成实验结论，也方便后面按订单、样本、读数逐步锁定。\n- B：重新解释设计理由。\n- C：等待实验室补充说明。',
+  ),
+  experimentExecutionTurn(
+    3,
+    'user',
+    '确认 A。只抽取执行边界，不重新解释候选设计。',
+  ),
+  experimentExecutionTurn(
+    4,
+    'mainAgent',
+    '已读取设计交接，执行范围固定为本轮 48 个候选和指定结果包。',
+    [
       experimentRuns[0],
       {
-        type: 'experimentOrderDraft',
-        title: 'Industrial enzyme library assay order',
+        type: 'designHandoffBrief',
+        designPackage: 'Enzyme_Candidate_Design_Package.md',
+        libraryId: 'ENZ-LIB-20260602-048',
+        parentEnzyme: 'ENZ-P0',
+        variantRange: 'ENZ-MUT-001 through ENZ-MUT-048',
+        executionConstraints: [
+          '只执行已交接候选库',
+          '不扩展候选范围',
+          '结果解释留给分析阶段',
+        ],
+        forbiddenActions: ['不新建设计候选', '不提交后续实验'],
+        sourceFiles: ['Enzyme_Candidate_Design_Package.md', 'ENZ-P0_assay_constraints.md'],
+      },
+      executionConfirmation(
+        '确认设计交接读取',
+        'Project Lead',
+        '2026-06-02 10:34',
+        '仅抽取实验执行范围，候选设计解释不在本模块重写。',
+      ),
+      executionProjectFile(
+        'Enzyme_Candidate_Design_Package.md',
+        'md',
+        'Industrial Enzyme Design / Files / Design',
+        'MD · ENZ-LIB-20260602-048 的候选库、约束和交接说明。',
+      ),
+    ],
+  ),
+  experimentExecutionTurn(5, 'mainAgent', '模块 01 记录完成，下一步只处理订单边界。'),
+  experimentExecutionTurn(
+    6,
+    'mainAgent',
+    '模块 02 确认订单边界。请确认订单范围，我建议选 A。\n\n- 推荐 A：订单仅覆盖 BM-LAB-ENZ-20260602-001 与本轮候选。\n  原因：这个范围和设计交接一致，能减少后续样本、板图和结果包之间的追踪歧义。\n- B：拆成多个订单。\n- C：暂停到实验负责人补齐字段。',
+  ),
+  experimentExecutionTurn(
+    7,
+    'user',
+    '确认 A。订单边界只覆盖 BM-LAB-ENZ-20260602-001 和 ENZ-LIB-20260602-048。',
+  ),
+  experimentExecutionTurn(
+    8,
+    'mainAgent',
+    '订单边界已形成，提交状态仍等待正式审批。',
+    [
+      experimentRuns[1],
+      {
+        type: 'experimentOrderSummary',
+        title: 'Experiment Order Boundary',
         orderId: 'BM-LAB-ENZ-20260602-001',
         status: 'draft',
-        items: [
-          { label: 'Library', value: 'ENZ-LIB-20260602-048' },
-          { label: 'Task', value: 'ENZ-EXPTASK-20260602-001' },
-          { label: 'CRO', value: 'CRO-ENZ-20260602-001' },
+        reviewStatus: 'pending',
+        projectId: 'industrial-enzyme-design',
+        libraryId: 'ENZ-LIB-20260602-048',
+        parentEnzyme: 'ENZ-P0',
+        purpose: '验证 48 个候选酶在工业底物窗口下的活性、稳定性和表达读数',
+        scopeLock: '仅执行已确认样本范围、读数面板和板图',
+        owner: 'Experiment Operations',
+        createdAt: '2026-06-02 10:42',
+        dueAt: '2026-06-04 17:30',
+        rows: [
+          { label: 'Variant range', value: 'ENZ-MUT-001 through ENZ-MUT-048' },
           { label: 'Result package', value: 'Enzyme_Experiment_Result_Package.xlsx' },
+          { label: 'Submission gate', value: '订单提交审批' },
+        ],
+      },
+      executionConfirmation(
+        '确认订单边界',
+        'Lab Owner',
+        '2026-06-02 10:45',
+        '订单只覆盖本轮候选库、固定读数和指定交付物。',
+      ),
+      executionProjectFile(
+        'BM-LAB-ENZ-20260602-001_boundary.json',
+        'json',
+        'Industrial Enzyme Design / Files / Execution',
+        'JSON · 订单边界、交付物和审批前检查清单。',
+      ),
+    ],
+  ),
+  experimentExecutionTurn(9, 'mainAgent', '模块 02 记录完成，订单尚未提交。'),
+  experimentExecutionTurn(
+    10,
+    'mainAgent',
+    '模块 03 固化样本范围。请确认纳入哪些样本，我建议选 A。\n\n- 推荐 A：48 个候选、ENZ-P0、空白和热失活对照进入范围。\n  原因：完整样本范围能让本轮订单和板图一次成型，也保留必要的对照解释空间。\n- B：先只跑 24 个候选。\n- C：等待样本库存复核。',
+  ),
+  experimentExecutionTurn(
+    11,
+    'user',
+    '确认 A。48 个候选和三类对照都进入范围，缺失样本不能替补。',
+  ),
+  experimentExecutionTurn(
+    12,
+    'mainAgent',
+    '样本范围已固化，后续板图不得新增候选。',
+    [
+      {
+        type: 'sampleScopePanel',
+        libraryId: 'ENZ-LIB-20260602-048',
+        variantCount: 48,
+        variantRange: 'ENZ-MUT-001 through ENZ-MUT-048',
+        controls: ['ENZ-P0 parent', 'blank buffer', 'heat-inactivated ENZ-P0'],
+        replicatePlan: '2 plates; activity duplicate wells; stability and pH profile single scheduled runs',
+        sampleSource: 'Design Package and Sample Inventory',
+        exclusions: ['库存缺失样本不得替补', '未通过批次 QC 的工作液不得上板'],
+        lockedBy: 'Lab Owner',
+      },
+      executionConfirmation(
+        '确认样本范围',
+        'Lab Owner',
+        '2026-06-02 10:52',
+        '48 个候选、ENZ-P0、空白和热失活对照进入固定样本范围。',
+      ),
+      executionProjectFile(
+        'ENZ_sample_scope_lock.csv',
+        'csv',
+        'Industrial Enzyme Design / Files / Execution',
+        'CSV · 样本范围、对照集合和排除规则。',
+      ),
+    ],
+  ),
+  experimentExecutionTurn(13, 'mainAgent', '模块 03 记录完成，样本边界已锁定。'),
+  experimentExecutionTurn(
+    14,
+    'mainAgent',
+    '模块 04 固化读数面板。请确认读数字段，我建议选 A。\n\n- 推荐 A：Activity、kcat/Km proxy、Tm、pH window、expression 五项读数。\n  原因：这组字段覆盖活性、稳定性、窗口和表达风险，但仍然只作为实验读数，不会被写成机制结论。\n- B：只跑活性和表达。\n- C：等待工艺团队改读数。',
+  ),
+  experimentExecutionTurn(
+    15,
+    'user',
+    '确认 A。保留 kcat/Km proxy 这个名称，不写成真实 kcat/Km。',
+  ),
+  experimentExecutionTurn(
+    16,
+    'mainAgent',
+    '读数面板已锁定，读数只作为实验结果字段。',
+    [
+      {
+        type: 'assayPanelTable',
+        panelStatus: 'locked',
+        sopReference: 'Enzyme_Assay_SOP_v3',
+        assays: [
+          {
+            name: 'Activity Assay',
+            purpose: '工业底物窗口下的相对活性',
+            readout: 'Relative Activity (%)',
+            method: '96-well colorimetric assay',
+            replicateCount: 2,
+            qcRule: 'Z-factor >= 0.6; CV <= 15%',
+          },
+          {
+            name: 'kcat/Km proxy panel',
+            purpose: '动力学代理读数',
+            readout: 'Initial-rate proxy',
+            method: 'serial substrate points',
+            replicateCount: 1,
+            qcRule: 'curve fit warning retained',
+          },
+          {
+            name: 'Tm and pH window',
+            purpose: '稳定性与弱酸窗口',
+            readout: 'Tm; pH 4.5-5.5 activity retention',
+            method: 'thermal shift and buffered activity readout',
+            replicateCount: 1,
+            qcRule: 'raw readings preserved',
+          },
+        ],
+      },
+      executionConfirmation(
+        '确认读数面板',
+        'Enzyme SME',
+        '2026-06-02 10:58',
+        '读数面板固定为五项字段，kcat/Km proxy 不改写为真实 kcat/Km。',
+      ),
+      executionProjectFile(
+        'ENZ_assay_panel_lock.xlsx',
+        'xlsx',
+        'Industrial Enzyme Design / Files / Execution',
+        'XLSX · 读数面板、QC 规则和字段说明。',
+      ),
+    ],
+  ),
+  experimentExecutionTurn(17, 'mainAgent', '模块 04 记录完成，读数字段已锁定。'),
+  experimentExecutionTurn(
+    18,
+    'mainAgent',
+    '模块 05 生成板图。请确认对照和排布方式，我建议选 A。\n\n- 推荐 A：每块板放置 ENZ-P0、空白和热失活对照，候选按固定重复孔排布。\n  原因：三类对照能支撑后续 QC 和异常复核，固定重复孔也能减少人工改板造成的追踪错误。\n- B：只放 ENZ-P0。\n- C：暂停等待手工板图。',
+  ),
+  experimentExecutionTurn(
+    19,
+    'user',
+    '确认 A。每块板都要有 ENZ-P0、空白和热失活对照。',
+  ),
+  experimentExecutionTurn(
+    20,
+    'mainAgent',
+    '板图已生成，控制孔和候选孔的映射可追溯。',
+    [
+      experimentRuns[3],
+      {
+        type: 'plateMapMini',
+        plateMapId: 'ENZ-PLATEMAP-20260602-001',
+        plateCount: 2,
+        dimensions: '96-well',
+        wells: [
+          { position: 'A1', label: 'ENZ-P0', group: 'Parent control' },
+          { position: 'A2', label: 'blank', group: 'Blank control' },
+          { position: 'A3', label: 'heat-inactivated ENZ-P0', group: 'Inactive control' },
+          { position: 'B1', label: 'ENZ-MUT-001', group: 'Variant' },
+          { position: 'B2', label: 'ENZ-MUT-002', group: 'Variant' },
+          { position: 'H12', label: 'ENZ-MUT-048', group: 'Variant' },
+        ],
+        legend: [
+          { label: 'Parent control', color: 'teal' },
+          { label: 'Blank control', color: 'gray' },
+          { label: 'Inactive control', color: 'violet' },
+          { label: 'Variant', color: 'orange' },
+        ],
+        locked: true,
+      },
+      executionConfirmation(
+        '确认板图对照',
+        'Lab Owner',
+        '2026-06-02 11:06',
+        '每块板保留三类对照，候选孔位不再调整。',
+      ),
+      executionProjectFile(
+        'ENZ-PLATEMAP-20260602-001.csv',
+        'csv',
+        'Industrial Enzyme Design / Files / Execution',
+        'CSV · 96 孔板候选、对照和重复孔映射。',
+      ),
+    ],
+  ),
+  experimentExecutionTurn(21, 'mainAgent', '模块 05 记录完成，板图进入锁定状态。'),
+  experimentExecutionTurn(
+    22,
+    'mainAgent',
+    '模块 06 检查样本库存与孔板关联。请确认样本批次和关联记录，我建议选 A。\n\n- 推荐 A：使用 SB-ENZ-20260602-004，并写入 PLATE-LINK-ENZ-048。\n  原因：该批次已经和当前板图对齐，直接写入关联记录可以保证样本、孔位和结果包可追溯。\n- B：改用备用批次。\n- C：暂停等待库存盘点。',
+  ),
+  experimentExecutionTurn(
+    23,
+    'user',
+    '确认 A。使用 SB-ENZ-20260602-004，孔板关联必须写入操作索引。',
+  ),
+  experimentExecutionTurn(
+    24,
+    'mainAgent',
+    '样本库存检查通过，工作液和备份管均可追溯。',
+    [
+      experimentRuns[2],
+      {
+        type: 'sampleInventoryLink',
+        sampleBatchId: 'SB-ENZ-20260602-004',
+        inventoryStatus: 'ready',
+        storageCondition: '4 C short hold; -80 C backup aliquot',
+        aliquotPlan: '每个候选 2 管工作液 + 1 管备份；对照按每块板独立分装',
+        plateLinkRecord: 'PLATE-LINK-ENZ-048',
+        missingItems: [],
+      },
+      executionConfirmation(
+        '确认样本库存与孔板关联',
+        'Sample Custodian',
+        '2026-06-02 11:14',
+        '使用 SB-ENZ-20260602-004，并把 PLATE-LINK-ENZ-048 写入索引。',
+      ),
+      executionProjectFile(
+        'ENZ_sample_inventory_link.csv',
+        'csv',
+        'Industrial Enzyme Design / Files / Execution',
+        'CSV · 样本批次、工作液、备份管和板图关联。',
+      ),
+    ],
+  ),
+  experimentExecutionTurn(25, 'mainAgent', '模块 06 记录完成，样本与孔板链路已固定。'),
+  experimentExecutionTurn(
+    26,
+    'mainAgent',
+    '模块 07 检查物料/SOP/设备/线路。请确认执行条件，我建议选 A。\n\n- 推荐 A：使用 SUB-LOT-202606、Enzyme_Assay_SOP_v3、PR-3107 和既定线路。\n  原因：这组物料、SOP、设备和线路都能直接绑定到订单，减少提交审批前的变量。\n- B：更换底物批次。\n- C：暂停等设备复校。',
+  ),
+  experimentExecutionTurn(
+    27,
+    'user',
+    '确认 A。物料、SOP、设备和线路按你列出的组合执行。',
+  ),
+  experimentExecutionTurn(
+    28,
+    'mainAgent',
+    '物料、SOP、设备和线路检查通过。',
+    [
+      experimentRuns[4],
+      {
+        type: 'materialSopReadiness',
+        substrateLot: 'SUB-LOT-202606',
+        buffer: '50 mM citrate-phosphate pH 5.0; 150 mM NaCl',
+        sopVersion: 'Enzyme_Assay_SOP_v3',
+        deviceType: 'Plate reader',
+        deviceId: 'PR-3107',
+        labLocation: 'Lab B / Enzyme bench 03',
+        experimentRoute: 'sample-prep -> assay-readout -> result-package-return',
+        workflowTemplate: 'SmartExperiment enzyme small-scale assay',
+        readinessChecks: ['底物放行', '设备校准有效', 'SOP 生效', '数据回收路径可写'],
+      },
+      executionConfirmation(
+        '确认物料与执行线路',
+        'Lab Owner',
+        '2026-06-02 11:22',
+        'SUB-LOT-202606、Enzyme_Assay_SOP_v3、PR-3107 和固定线路可用于本订单。',
+      ),
+      executionProjectFile(
+        'ENZ_material_sop_readiness.json',
+        'json',
+        'Industrial Enzyme Design / Files / Execution',
+        'JSON · 物料、SOP、设备校准和执行线路检查记录。',
+      ),
+    ],
+  ),
+  experimentExecutionTurn(29, 'mainAgent', '模块 07 记录完成，提交审批前检查已齐备。'),
+  experimentExecutionTurn(
+    30,
+    'mainAgent',
+    '模块 08 订单提交审批。请确认是否可以提交订单 BM-LAB-ENZ-20260602-001。\n\n请重点检查这些内容：\n\n- 订单范围：只覆盖 ENZ-LIB-20260602-048，本轮 48 个候选和已确认对照。\n- 样本与板图：样本范围已锁定，ENZ-PLATEMAP-20260602-001 与 PLATE-LINK-ENZ-048 已对齐。\n- 读数面板：Activity、kcat/Km proxy、Tm、pH window、expression 已固定，不在提交后追加字段。\n- 物料和线路：SUB-LOT-202606、Enzyme_Assay_SOP_v3、PR-3107 和执行线路均已通过提交前检查。\n- 权限边界：提交后只创建本轮 Experiment Task，不触发后续设计或额外订单。\n\n如果这些都可以，请直接回复 OK。',
+  ),
+  experimentExecutionTurn(
+    31,
+    'user',
+    'OK。',
+  ),
+  experimentExecutionTurn(
+    32,
+    'mainAgent',
+    '我已提交审批。BM-LAB-ENZ-20260602-001 正在等待 Lab Owner 审批。\n\n我会等待审批结束，结束后会在这里继续。如果你需要撤回并修改，可随时告诉我。',
+    [
+      {
+        type: 'approvalGateCard',
+        title: '订单提交审批',
+        approvalType: 'experimentOrder',
+        status: 'pending',
+        approver: 'Lab Owner',
+        details: [
+          { label: '发起人', value: 'ProteinDesign Agent' },
+          { label: '审批对象', value: 'BM-LAB-ENZ-20260602-001' },
+          { label: '发起时间', value: '2026-06-02 11:31' },
+          { label: '当前动作', value: '发起审批，不创建 Experiment Task' },
+          { label: '撤回条件', value: '用户要求修改订单范围、样本、板图或读数面板' },
+        ],
+        checklist: [
+          '订单边界资料：BM-LAB-ENZ-20260602-001 / ENZ-LIB-20260602-048',
+          '样本与板图资料：ENZ-PLATEMAP-20260602-001 / PLATE-LINK-ENZ-048',
+          '读数面板资料：Activity、kcat/Km proxy、Tm、pH window、expression',
+          '物料与线路资料：SUB-LOT-202606 / SOP v3 / PR-3107',
+        ],
+        riskSummary: '审批发起资料已提交：订单范围、样本板图、读数面板、物料线路和权限边界均随单进入审批；当前还没有创建实验任务。',
+        decision: '审批流程已发起，等待审批人处理',
+      },
+    ],
+  ),
+  experimentExecutionTurn(
+    33,
+    'mainAgent',
+    '已经通过审批，这是审批建议和结果：',
+    [
+      experimentRuns[5],
+      {
+        type: 'approvalGateCard',
+        title: '订单提交审批',
+        approvalType: 'experimentOrder',
+        status: 'approved',
+        approver: 'Lab Owner',
+        decidedAt: '2026-06-02 11:34',
+        approvalAdvice: '建议通过；实验范围、样本、板图和物料检查均满足提交条件。',
+        details: [
+          { label: '审批人', value: 'Lab Owner' },
+          { label: '审批通过时间', value: '2026-06-02 11:34' },
+          { label: '生效动作', value: '创建 ENZ-EXPTASK-20260602-001' },
+          { label: '限制条件', value: '只授权本轮执行，不触发后续设计或额外订单' },
+        ],
+        checklist: ['范围确认', '样本与板图确认', '物料/SOP/设备确认', '结果包交付确认'],
+        riskSummary: '仅授权 BM-LAB-ENZ-20260602-001，本模块不创建后续实验。',
+        decision: '批准提交 BM-LAB-ENZ-20260602-001',
+      },
+      executionProjectFile(
+        'BM-LAB-ENZ-20260602-001_submission.json',
+        'json',
+        'Industrial Enzyme Design / Experiments',
+        'JSON · 订单提交审批、提交时间和任务映射。',
+      ),
+    ],
+  ),
+  experimentExecutionTurn(
+    34,
+    'mainAgent',
+    '模块 09 创建 Experiment Task。订单已审批通过，我直接创建本轮任务，不再让你重复确认。\n\n执行边界：只绑定 BM-LAB-ENZ-20260602-001、ENZ-LIB-20260602-048、ENZ-PLATEMAP-20260602-001 和实验记录本 ELN-ENZ-20260602-117；任务只同步执行状态，不改写实验读数。',
+  ),
+  experimentExecutionTurn(
+    36,
+    'mainAgent',
+    'Experiment Task 创建请求已提交，正在绑定订单、板图和记录本模板。',
+    [
+      experimentRuns[6],
+      {
+        type: 'executionTaskStatus',
+        taskId: 'ENZ-EXPTASK-20260602-001',
+        orderId: 'BM-LAB-ENZ-20260602-001',
+        croRef: 'SmartExperiment / internal execution',
+        stage: 'task-created',
+        status: 'running',
+        owner: 'Experiment Operations',
+        startedAt: '2026-06-02 11:38',
+        records: ['Order submitted', 'Task created', 'Sample preparation queued'],
+      },
+      executionProjectFile(
+        'ENZ-EXPTASK-20260602-001_status.json',
+        'json',
+        'Industrial Enzyme Design / Experiments',
+        'JSON · Experiment Task 创建记录和状态来源。',
+      ),
+    ],
+  ),
+  experimentExecutionTurn(
+    37,
+    'mainAgent',
+    '任务状态已进入 running。我继续写入三条执行约束：样本准备由实验室完成、读数从记录本回调进入、异常只打标不自动剔除。',
+  ),
+  experimentExecutionTurn(
+    38,
+    'mainAgent',
+    '模块 09 记录完成，任务已进入样本准备队列。',
+  ),
+  experimentExecutionTurn(
+    39,
+    'mainAgent',
+    '模块 10 实验记录本。我为 ELN-ENZ-20260602-117 设置预计提交时间：2026-06-02 14:40。\n\n我会创建一个轮询任务，到预计时间检查实验室是否提交记录本；如果未提交，我会提醒你和实验室负责人，并继续等待回调。',
+    [
+      experimentRuns[7],
+      executionProjectFile(
+        'ELN-ENZ-20260602-117_polling_plan.json',
+        'json',
+        'Industrial Enzyme Design / Experiments',
+        'JSON · 实验记录本预计提交时间、轮询频率、提醒策略和回调任务。',
+      ),
+    ],
+  ),
+  experimentExecutionTurn(
+    40,
+    'mainAgent',
+    '轮询任务已创建：POLL-ELN-ENZ-20260602-117。检查频率为每 5 分钟一次，预计提交时间后 30 分钟仍未提交则发送超时提醒。',
+  ),
+  experimentExecutionTurn(
+    41,
+    'mainAgent',
+    '到达预计提交时间后，我检查了实验记录本状态：2026-06-02 14:45 尚未提交实验记录。我已发送提醒，并继续等待回调任务。',
+    [
+      experimentRuns[8],
+      {
+        type: 'runLogTable',
+        logId: 'ELN-POLL-ENZ-20260602-117',
+        taskId: 'ENZ-EXPTASK-20260602-001',
+        rows: [
+          {
+            time: '2026-06-02 14:40',
+            actor: 'ExperimentNotebookMonitor',
+            system: 'ELN',
+            event: 'Expected submission check',
+            recordId: 'POLL-ELN-001',
+            status: 'not-submitted',
+          },
+          {
+            time: '2026-06-02 14:45',
+            actor: 'ExperimentNotebookMonitor',
+            system: 'ELN',
+            event: 'Reminder sent to Lab Owner and operator',
+            recordId: 'REMINDER-ELN-001',
+            status: 'sent',
+          },
+        ],
+      },
+      executionProjectFile(
+        'ELN-ENZ-20260602-117_overdue_notice.json',
+        'json',
+        'Industrial Enzyme Design / Experiments',
+        'JSON · 记录本未提交检查、提醒对象和提醒时间。',
+      ),
+    ],
+  ),
+  experimentExecutionTurn(
+    42,
+    'mainAgent',
+    '我会继续等待实验记录本回调。这里不会主动猜测实验结果，也不会从缺失记录里推断数据。',
+  ),
+  experimentExecutionTurn(
+    43,
+    'mainAgent',
+    '收到回调任务 CALLBACK-ELN-ENZ-20260602-117。实验记录本已提交，我开始解析记录数据。',
+  ),
+  experimentExecutionTurn(
+    44,
+    'mainAgent',
+    '实验记录数据摘要如下。记录本显示样本处理、assay 条件、读数记录、QC 控制、异常备注和附件均已返回；异常仍只作为 flag 保留。',
+    [
+      experimentRuns[9],
+      {
+        type: 'experimentNotebookSummary',
+        notebookId: 'ELN-ENZ-20260602-117',
+        taskId: 'ENZ-EXPTASK-20260602-001',
+        orderId: 'BM-LAB-ENZ-20260602-001',
+        status: 'validated',
+        estimatedSubmitBy: '2026-06-02 14:40',
+        submittedAt: '2026-06-02 15:42',
+        submittedBy: 'Tech_A / Lab B',
+        callbackId: 'CALLBACK-ELN-ENZ-20260602-117',
+        recordSections: [
+          {
+            label: '样本处理',
+            value: '48 个候选和 4 组对照完成分装、上板和标签核对。',
+            status: 'completed',
+          },
+          {
+            label: '实验条件',
+            value: 'SOP v3、SUB-LOT-202606、PR-3107、25 C 台面条件已记录。',
+            status: 'completed',
+          },
+          {
+            label: '读数记录',
+            value: 'Activity、kcat/Km proxy、Tm、pH window、expression 读数共 576 条。',
+            status: 'completed',
+          },
+          {
+            label: 'QC 控制',
+            value: '阳性/阴性/blank/reference controls 均达到接受标准。',
+            status: 'passed',
+          },
+          {
+            label: '异常备注',
+            value: '3 条异常记录进入复核，未自动剔除原始读数。',
+            status: 'flagged',
+          },
+        ],
+        observations: [
+          'G8 边缘效应被标记，原始读数保留。',
+          'ENZ-MUT-031 有表达备注，需要分析阶段降权处理。',
+          '记录本附件校验通过，结果包可以进入回收。',
+        ],
+        attachments: [
+          'PlateMap_20260602.csv',
+          'RawData_Activity.xlsx',
+          'RawData_Kinetics.xlsx',
+          'RawData_Tm.xlsx',
+          'RunLog_20260602.txt',
         ],
       },
       scientificFigure(
-        'enzyme-experiment-order-draft',
-        'Experiment order draft',
-        'BM-LAB-ENZ-20260602-001 的订单范围、样本和交付物草稿。',
-        enzymeExperimentOrderDraft,
+        'enzyme-experiment-notebook-polling',
+        'Experiment notebook polling monitor',
+        '实验记录本预计提交、轮询检查、超时提醒和回调接收状态。',
+        enzymeExperimentNotebookPolling,
       ),
-    ],
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-003',
-    role: 'mainAgent',
-    markdown:
-      '订单边界：只测试本轮 48 个候选和对照，不追加突变，不根据中间结果自动改板图。',
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-004',
-    role: 'mainAgent',
-    markdown:
-      '读数面板包含 Activity、kcat/Km proxy、Tm、pH window 和 expression；这些读数用于证据强度，不用于证明机制。',
-    contentBlocks: [
-      experimentRuns[1],
       scientificFigure(
-        'enzyme-assay-panel-design',
-        'Assay panel design',
-        '工业酶候选库的活性、动力学代理、稳定性、pH 和表达读数面板。',
-        enzymeAssayPanelDesign,
+        'enzyme-experiment-record-summary',
+        'Experiment notebook record summary',
+        'ELN 回调后的样本处理、assay 条件、读数记录、QC、异常和附件摘要。',
+        enzymeExperimentRecordSummary,
+      ),
+      executionProjectFile(
+        'ELN-ENZ-20260602-117_record.json',
+        'json',
+        'Industrial Enzyme Design / Files / Execution',
+        'JSON · 实验记录本回调载荷、记录分段摘要、异常备注和附件索引。',
       ),
     ],
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-005',
-    role: 'user',
-    markdown:
-      '读数面板可以。请把 ENZ-P0 和空白对照放在每块板上，异常点只标记，不自动删除。',
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-006',
-    role: 'mainAgent',
-    markdown:
-      '已固定对照和异常点策略，ENZ-PLATEMAP-20260602-001.csv 会保留每个孔的样本来源。',
-    contentBlocks: [
-      experimentRuns[2],
+  ),
+  experimentExecutionTurn(45, 'mainAgent', '模块 10 记录完成，实验记录本已回调并锁定。'),
+  experimentExecutionTurn(
+    46,
+    'mainAgent',
+    '模块 11 同步 assay 执行。我从实验记录本抽取 assay 执行日志，按设备、读数面板和 record ID 关联，不改变任何原始读数。',
+  ),
+  experimentExecutionTurn(
+    47,
+    'mainAgent',
+    'assay 执行日志已同步，异常策略保持打标。',
+    [
+      experimentRuns[10],
       {
-        type: 'humanConfirmation',
-        title: '确认板图和异常点策略',
-        confirmedBy: 'Lab Owner',
-        confirmedAt: '2026-06-02 11:05',
-        decision: '每块板保留 ENZ-P0 和空白对照，异常点只标记。',
+        type: 'runLogTable',
+        logId: 'RUNLOG-ENZ-20260602-ASSAY',
+        taskId: 'ENZ-EXPTASK-20260602-001',
+        rows: [
+          {
+            time: '2026-06-02 12:18',
+            actor: 'Lab Technician',
+            system: 'Sample Bench',
+            event: 'Sample handling section locked',
+            recordId: 'REC-SAMPLE-001',
+            status: 'done',
+          },
+          {
+            time: '2026-06-02 13:20',
+            actor: 'PlateReader PR-3107',
+            system: 'Activity Assay',
+            event: 'Activity plate read complete',
+            recordId: 'REC-ACT-001',
+            status: 'done',
+          },
+          {
+            time: '2026-06-02 14:18',
+            actor: 'PlateReader PR-3107',
+            system: 'Thermal Shift',
+            event: 'Tm readout complete',
+            recordId: 'REC-TM-001',
+            status: 'done',
+          },
+          {
+            time: '2026-06-02 15:38',
+            actor: 'ExperimentNotebookCallback',
+            system: 'ELN',
+            event: 'Readout records linked to task',
+            recordId: 'REC-LINK-001',
+            status: 'done',
+          },
+        ],
       },
       scientificFigure(
-        'enzyme-plate-map',
-        'Plate map',
-        'ENZ-PLATEMAP-20260602-001.csv 的候选、对照和重复孔布局。',
-        enzymePlateMap,
+        'enzyme-assay-execution-readout-summary',
+        'Assay execution readout summary',
+        '实验记录本解析出的活性、动力学代理、稳定性和 pH 读数执行摘要。',
+        enzymeResultPackageSummary,
+      ),
+      executionProjectFile(
+        'RUNLOG-ENZ-20260602-ASSAY.csv',
+        'csv',
+        'Industrial Enzyme Design / Files / Execution',
+        'CSV · 从实验记录本解析出的样本处理、读数执行和记录关联日志。',
       ),
     ],
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-007',
-    role: 'mainAgent',
-    markdown:
-      '请确认是否提交 BM-LAB-ENZ-20260602-001。提交后只执行已冻结范围，不会自动追加下一轮设计。',
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-008',
-    role: 'mainAgent',
-    markdown:
-      '交付物清单：ENZ-PLATEMAP-20260602-001.csv、Enzyme_Experiment_Result_Package.xlsx、Enzyme_Curve_Fit_and_QC_Summary.xlsx 和 Enzyme_Operational_Record_Index.csv。',
-    contentBlocks: [
+  ),
+  experimentExecutionTurn(48, 'mainAgent', '模块 11 记录完成，assay 状态已同步。'),
+  experimentExecutionTurn(
+    49,
+    'mainAgent',
+    '模块 12 回收结果包。我继续检查结果包是否和订单、任务、记录本、板图一致。',
+  ),
+  experimentExecutionTurn(
+    50,
+    'mainAgent',
+    '结果包已回收，任务状态同步到 result_returned。',
+    [
       {
-        type: 'projectFile',
-        fileName: 'ENZ-PLATEMAP-20260602-001.csv',
-        fileKind: 'csv',
-        location: 'Industrial Enzyme Design / Files / Execution',
-        note: 'CSV · 96 孔板位、候选、对照和重复孔映射。',
-      },
-    ],
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-009',
-    role: 'user',
-    markdown:
-      '批准提交 BM-LAB-ENZ-20260602-001。范围只限 ENZ-LIB-20260602-048，不允许自动扩展实验。',
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-010',
-    role: 'mainAgent',
-    markdown:
-      '已按人工审批提交订单，并生成 ENZ-EXPTASK-20260602-001。样本、材料、设备链路会写入操作索引。',
-    contentBlocks: [
-      experimentRuns[3],
-      {
-        type: 'approvalRequestReplay',
-        title: '提交 BM-LAB-ENZ-20260602-001',
-        approvalType: 'experimentOrder',
-        status: 'approved',
-        decidedBy: 'Lab Owner',
-        decidedAt: '2026-06-02 11:24',
-        decision: '批准提交已冻结的 48 个候选实验订单。',
-        requestSummary: '仅授权 ENZ-LIB-20260602-048，不授权追加候选或下一轮实验。',
-      },
-      {
-        type: 'elapsedWorkReplay',
-        target: 'Order submission',
-        elapsed: '12 分钟',
+        type: 'executionTaskStatus',
+        taskId: 'ENZ-EXPTASK-20260602-001',
+        orderId: 'BM-LAB-ENZ-20260602-001',
+        croRef: 'SmartExperiment / internal execution',
+        stage: 'result-returned',
         status: 'completed',
-        summary: '订单从 draft 变为 submitted，并绑定 ENZ-EXPTASK-20260602-001。',
+        owner: 'Experiment Operations',
+        startedAt: '2026-06-02 11:38',
+        completedAt: '2026-06-02 15:28',
+        records: [
+          'Notebook callback ingested',
+          'Assay run linked',
+          'Result package returned',
+        ],
       },
-      scientificFigure(
-        'enzyme-sample-material-device-flow',
-        'Sample material device flow',
-        '样本、材料、设备和结果文件之间的可追溯链路。',
-        enzymeSampleMaterialDeviceFlow,
+      executionProjectFile(
+        'Enzyme_Experiment_Result_Package.xlsx',
+        'xlsx',
+        'Industrial Enzyme Design / Files / Results',
+        'XLSX · 原始读数、重复孔、异常标记和元数据。',
       ),
     ],
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-011',
-    role: 'mainAgent',
-    markdown:
-      'CRO-ENZ-20260602-001 已接受任务。我只同步执行状态，不直接控制实验设备。',
-    contentBlocks: [experimentRuns[4]],
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-012',
-    role: 'mainAgent',
-    markdown:
-      '任务执行完成，CRO 状态从合成、表达、测定到结果包回收均有时间戳。',
-    contentBlocks: [
+  ),
+  experimentExecutionTurn(51, 'mainAgent', '模块 12 记录完成，结果包进入校验队列。'),
+  experimentExecutionTurn(
+    52,
+    'mainAgent',
+    '模块 13 记录异常事件。我把记录本里的异常备注、边缘孔、曲线警告和表达备注写成复核清单，执行阶段不自动删数。',
+  ),
+  experimentExecutionTurn(
+    53,
+    'mainAgent',
+    '异常事件已记录，所有原始读数仍保留。',
+    [
+      experimentRuns[11],
       {
-        type: 'elapsedWorkReplay',
-        target: 'CRO-ENZ-20260602-001 execution',
-        elapsed: '4 小时 4 分钟',
-        status: 'completed',
-        summary: '完成表达、纯化、活性读数、Tm 和 pH profile 测定。',
-      },
-      scientificFigure(
-        'enzyme-cro-task-status',
-        'CRO task status',
-        'CRO-ENZ-20260602-001 的任务状态和回收节点。',
-        enzymeCroTaskStatus,
-      ),
-    ],
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-013',
-    role: 'user',
-    markdown:
-      '如果边缘孔有异常，请在 Enzyme_Experiment_Result_Package.xlsx 里保留原始读数并打标，不要替我决定删除。',
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-014',
-    role: 'mainAgent',
-    markdown:
-      '异常记录已保留，未自动丢弃任何孔；分析阶段会把异常策略作为敏感性条件。',
-    contentBlocks: [
-      experimentRuns[5],
-      {
-        type: 'humanConfirmation',
-        title: '确认异常处理边界',
-        confirmedBy: 'Lab Owner',
-        confirmedAt: '2026-06-02 15:10',
-        decision: '异常孔只标记，不自动排除；由分析阶段复核。',
+        type: 'anomalyReviewTable',
+        anomalyLogId: 'ANOM-ENZ-20260602-001',
+        policy: '原始读数保留，异常孔进入人工复核，不自动剔除。',
+        rows: [
+          {
+            sampleId: 'ENZ-MUT-017',
+            well: 'G8',
+            anomalyType: 'edge-effect',
+            rawReadingPreserved: 'yes',
+            autoExcluded: 'no',
+            reviewOwner: 'Lab Owner',
+            status: 'flagged',
+          },
+          {
+            sampleId: 'ENZ-MUT-031',
+            well: 'D11',
+            anomalyType: 'expression-note',
+            rawReadingPreserved: 'yes',
+            autoExcluded: 'no',
+            reviewOwner: 'Enzyme SME',
+            status: 'flagged',
+          },
+        ],
       },
       scientificFigure(
         'enzyme-experiment-anomaly-log',
         'Experiment anomaly log',
-        '边缘孔、表达备注和设备事件的异常记录。',
+        '执行异常、边缘孔、表达备注和人工复核状态摘要。',
         enzymeExperimentAnomalyLog,
       ),
+      executionProjectFile(
+        'ENZ_execution_anomaly_log.csv',
+        'csv',
+        'Industrial Enzyme Design / Files / Results',
+        'CSV · 异常孔、表达备注、设备事件和复核责任人。',
+      ),
     ],
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-015',
-    role: 'mainAgent',
-    markdown:
-      '结果包校验通过：Enzyme_Experiment_Result_Package.xlsx 与板图、订单和任务编号可以互相追溯。',
-    contentBlocks: [experimentRuns[6]],
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-016',
-    role: 'mainAgent',
-    markdown:
-      '我生成了结果回收清单，并把曲线 QC 汇总写入 Enzyme_Curve_Fit_and_QC_Summary.xlsx。',
-    contentBlocks: [
-      experimentRuns[7],
+  ),
+  experimentExecutionTurn(54, 'mainAgent', '模块 13 记录完成，异常策略已写入结果包索引。'),
+  experimentExecutionTurn(
+    55,
+    'mainAgent',
+    '模块 14 校验结果包 schema。我检查样本 ID、板位、读数字段、异常表、记录本元数据和附件索引，只判断是否可被分析读取。',
+  ),
+  experimentExecutionTurn(
+    56,
+    'mainAgent',
+    '结果包 schema 校验通过，没有缺项。',
+    [
+      experimentRuns[12],
       {
-        type: 'projectFile',
-        fileName: 'Enzyme_Experiment_Result_Package.xlsx',
-        fileKind: 'xlsx',
-        location: 'Industrial Enzyme Design / Files / Results',
-        note: 'XLSX · 原始实验读数、重复孔、异常标记和元数据。',
+        type: 'resultPackageChecklist',
+        packageName: 'Enzyme_Experiment_Result_Package.xlsx',
+        receivedAt: '2026-06-02 15:31',
+        files: [
+          'raw_activity.csv',
+          'kinetics_proxy.csv',
+          'tm_profile.csv',
+          'ph_window.csv',
+          'expression_notes.csv',
+          'plate_map.csv',
+          'anomaly_log.csv',
+        ],
+        schemaChecks: ['样本 ID 对齐', '板位映射完整', '读数字段完整', '异常记录可追溯'],
+        missingItems: [],
+        archiveLocations: ['Project Files / Results', 'Operational Record Index'],
+        readyForAnalysis: true,
       },
       scientificFigure(
         'enzyme-result-ingestion-checklist',
         'Result ingestion checklist',
-        '结果包、曲线汇总、板图和操作索引的回收检查。',
+        '结果包 schema、板图、异常表、记录本元数据和附件索引校验摘要。',
         enzymeResultIngestionChecklist,
       ),
+      executionProjectFile(
+        'Enzyme_Result_Package_Schema_Check.json',
+        'json',
+        'Industrial Enzyme Design / Files / Results',
+        'JSON · 结果包字段、文件完整性和缺项检查记录。',
+      ),
     ],
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-017',
-    role: 'mainAgent',
-    markdown:
-      '实验执行阶段交付完成：BM-LAB-ENZ-20260602-001、ENZ-EXPTASK-20260602-001、CRO-ENZ-20260602-001、Enzyme_Operational_Record_Index.csv 均已归档。',
-    contentBlocks: [experimentRuns[8]],
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-018',
-    role: 'user',
-    markdown:
-      '确认执行归档。把后续解释限制交给分析阶段，不要在这里给候选结论。',
-  },
-  {
-    id: 'enzyme-experiment-execution-turn-019',
-    role: 'mainAgent',
-    markdown:
-      '已归档执行结果。这一步只说明订单、执行、回收和 QC，不输出候选优先级，也不自动设计下一轮实验。',
-    contentBlocks: [
-      {
-        type: 'humanConfirmation',
-        title: '确认实验执行归档',
-        confirmedBy: 'Project Lead',
-        confirmedAt: '2026-06-02 16:00',
-        decision: '实验执行阶段只交付结果包和操作索引，分析结论留给下一阶段。',
-      },
+  ),
+  experimentExecutionTurn(57, 'mainAgent', '模块 14 记录完成，结果包可交给分析阶段读取。'),
+  experimentExecutionTurn(
+    58,
+    'mainAgent',
+    '模块 15 归档操作索引。我写入订单、任务、样本、板图、实验记录本、轮询提醒、异常、结果包和 schema 校验索引；分析阶段只按这个索引读取证据。',
+  ),
+  experimentExecutionTurn(
+    59,
+    'mainAgent',
+    '操作索引已归档，执行模块不输出候选结论。',
+    [
+      experimentRuns[13],
+      executionProjectFile(
+        'Enzyme_Operational_Record_Index.csv',
+        'csv',
+        'Industrial Enzyme Design / Files / Execution',
+        'CSV · 从 BM-LAB-ENZ-20260602-001 到 Enzyme_Experiment_Result_Package.xlsx 的可追溯索引。',
+      ),
     ],
-  },
+  ),
+  experimentExecutionTurn(
+    60,
+    'mainAgent',
+    '结果包已准备进入分析：ENZ-LIB-20260602-048、BM-LAB-ENZ-20260602-001、Enzyme_Experiment_Result_Package.xlsx 和 Enzyme_Operational_Record_Index.csv 已完成执行归档。',
+  ),
 ]
 
 const analysisTranscript: ConversationTurn[] = [
@@ -2171,15 +2896,22 @@ export const industrialEnzymeThreads: EnzymeThread[] = [
     lastActivity: '38 分钟',
     transcript: experimentTranscript,
     runInspector: runInspector(
-      '酶库实验执行回收完成',
+      '实验执行模块',
       progress('enzyme-experiment-execution', [
-        '生成订单草稿',
-        '冻结读数面板',
+        '读取设计交接',
+        '确认订单边界',
+        '固化样本范围',
+        '固化读数面板',
         '生成板图',
-        '提交已审批订单',
-        '同步 CRO 执行',
+        '检查样本库存与孔板关联',
+        '检查物料/SOP/设备/线路',
+        '订单提交审批',
+        '创建 Experiment Task',
+        '监控实验记录本',
+        '同步 assay 执行',
+        '回收结果包',
         '记录异常事件',
-        '校验结果包',
+        '校验结果包 schema',
         '归档操作索引',
       ]),
       [
@@ -2202,62 +2934,94 @@ export const industrialEnzymeThreads: EnzymeThread[] = [
           name: 'ENZ-PLATEMAP-20260602-001.csv',
           kind: 'dataset',
           location: 'Industrial Enzyme Design / Files / Execution',
-          status: 'saved',
+          status: 'completed',
         },
         {
           id: 'enzyme-experiment-output-04',
+          name: 'ELN-ENZ-20260602-117_record.json',
+          kind: 'dataset',
+          location: 'Industrial Enzyme Design / Files / Execution',
+          status: 'completed',
+        },
+        {
+          id: 'enzyme-experiment-output-05',
           name: 'Enzyme_Experiment_Result_Package.xlsx',
           kind: 'dataset',
           location: 'Industrial Enzyme Design / Files / Results',
           status: 'completed',
         },
         {
-          id: 'enzyme-experiment-output-05',
-          name: 'Enzyme_Curve_Fit_and_QC_Summary.xlsx',
-          kind: 'projectFile',
-          location: 'Industrial Enzyme Design / Files / Results',
-          status: 'saved',
-        },
-        {
           id: 'enzyme-experiment-output-06',
           name: 'Enzyme_Operational_Record_Index.csv',
           kind: 'dataset',
           location: 'Industrial Enzyme Design / Files / Execution',
-          status: 'saved',
+          status: 'completed',
         },
       ],
       [
         {
           id: 'enzyme-experiment-approval-01',
           kind: 'humanConfirmation',
-          title: '确认板图和异常点策略',
+          title: '确认设计交接读取',
           status: 'confirmed',
-          actor: 'Lab Owner',
-          decidedAt: '2026-06-02 11:05',
+          actor: 'Project Lead',
+          decidedAt: '2026-06-02 10:34',
         },
         {
           id: 'enzyme-experiment-approval-02',
-          kind: 'approvalRequest',
-          title: '提交 BM-LAB-ENZ-20260602-001',
-          status: 'approved',
+          kind: 'humanConfirmation',
+          title: '确认订单边界',
+          status: 'confirmed',
           actor: 'Lab Owner',
-          decidedAt: '2026-06-02 11:24',
+          decidedAt: '2026-06-02 10:45',
         },
         {
           id: 'enzyme-experiment-approval-03',
           kind: 'humanConfirmation',
-          title: '确认异常处理边界',
+          title: '确认样本范围',
           status: 'confirmed',
           actor: 'Lab Owner',
-          decidedAt: '2026-06-02 15:10',
+          decidedAt: '2026-06-02 10:52',
         },
         {
           id: 'enzyme-experiment-approval-04',
           kind: 'humanConfirmation',
-          title: '确认实验执行归档',
+          title: '确认读数面板',
           status: 'confirmed',
-          actor: 'Project Lead',
-          decidedAt: '2026-06-02 16:00',
+          actor: 'Enzyme SME',
+          decidedAt: '2026-06-02 10:58',
+        },
+        {
+          id: 'enzyme-experiment-approval-05',
+          kind: 'humanConfirmation',
+          title: '确认板图对照',
+          status: 'confirmed',
+          actor: 'Lab Owner',
+          decidedAt: '2026-06-02 11:06',
+        },
+        {
+          id: 'enzyme-experiment-approval-06',
+          kind: 'humanConfirmation',
+          title: '确认样本库存与孔板关联',
+          status: 'confirmed',
+          actor: 'Sample Custodian',
+          decidedAt: '2026-06-02 11:14',
+        },
+        {
+          id: 'enzyme-experiment-approval-07',
+          kind: 'humanConfirmation',
+          title: '确认物料与执行线路',
+          status: 'confirmed',
+          actor: 'Lab Owner',
+          decidedAt: '2026-06-02 11:22',
+        },
+        {
+          id: 'enzyme-experiment-approval-08',
+          kind: 'approvalRequest',
+          title: '订单提交审批',
+          status: 'approved',
+          actor: 'Lab Owner',
+          decidedAt: '2026-06-02 11:34',
         },
       ],
       experimentRuns,
