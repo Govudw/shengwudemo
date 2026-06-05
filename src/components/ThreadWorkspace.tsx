@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
+import type { ProjectFileBlock } from '../data/conversationTypes'
 import { buildThreadObjectStorageFiles } from '../data/workspaceSideWindowMockData'
 import type { DemoThread } from '../store/demoStoreLogic'
 import ConversationTranscript from './ConversationTranscript'
@@ -229,6 +230,15 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
     setSideWindowOpen(true)
   }
 
+  function handleSideWindowButtonClick() {
+    if (sideWindowOpen) {
+      closeSideWindow()
+      return
+    }
+
+    openSideWindow()
+  }
+
   function handleRunInspectorButtonClick() {
     if (sideWindowOpen) {
       previousRunInspectorOpenRef.current = null
@@ -238,6 +248,21 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
     }
 
     onRunInspectorOpenChange(!runInspectorOpen)
+  }
+
+  function handleProjectFileOpen(block: ProjectFileBlock) {
+    const matchedFile = sideWindowFiles.find(
+      (file) => file.fileName === block.fileName,
+    )
+
+    updateSideWindowState({
+      ...sideWindowState,
+      mode: 'files',
+      selectedFileId: matchedFile?.id ?? null,
+      searchQuery: '',
+      fileTreeCollapsed: true,
+    })
+    openSideWindow()
   }
 
   function updateSideWindowState(nextState: WorkspaceSideWindowThreadState) {
@@ -312,11 +337,11 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
             ref={sideWindowButtonRef}
             type="button"
             className="thread-workspace__side-window-button"
-            aria-label="打开侧窗"
+            aria-label={sideWindowOpen ? '关闭侧窗' : '打开侧窗'}
             aria-expanded={sideWindowOpen}
             aria-controls="thread-workspace-side-window"
-            title="打开侧窗"
-            onClick={openSideWindow}
+            title={sideWindowOpen ? '关闭侧窗' : '打开侧窗'}
+            onClick={handleSideWindowButtonClick}
           >
             <WorkspaceToolWindowIcon className="thread-workspace__side-window-icon" />
           </button>
@@ -383,7 +408,10 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
 
       <div className="thread-workspace__conversation-column">
         {thread.transcript.length > 0 ? (
-          <ConversationTranscript turns={thread.transcript} />
+          <ConversationTranscript
+            turns={thread.transcript}
+            onProjectFileOpen={handleProjectFileOpen}
+          />
         ) : (
           <div className="thread-workspace__empty">
             这个对话暂未制作内容

@@ -78,9 +78,12 @@ describe('CapabilitiesPage', () => {
     expect(getCssRule(appCss, '.capabilities-dag-canvas--preview')).toContain(
       'height: 260px;',
     )
+    expect(getCssRule(appCss, '.capabilities-dag-canvas')).toContain(
+      'cursor: grab;',
+    )
     expect(
       getCssRule(appCss, '.capabilities-dag-canvas--preview .capabilities-dag-node'),
-    ).toContain('min-height: 24px;')
+    ).toContain('min-height: 36px;')
     expect(
       getCssRule(appCss, '.capabilities-dag-canvas--preview .capabilities-dag-node__subtype'),
     ).toContain('display: none;')
@@ -255,11 +258,11 @@ describe('CapabilitiesPage', () => {
     })
 
     expect(container.textContent).toContain('preset-qc-check')
-    expect(getDagViewport(container).dataset.viewport).toBe('default')
-    expect(getDagViewport(container).style.transform).toBe('')
+    expect(getDagViewport(container).dataset.viewport).toBe('fit')
+    expect(getDagViewport(container).style.transform).toContain('translate')
 
     act(() => {
-      getButtonContaining(container, 'Fit').click()
+      getButtonContaining(container, '居中').click()
     })
 
     expect(getDagViewport(container).dataset.viewport).toBe('fit')
@@ -267,11 +270,11 @@ describe('CapabilitiesPage', () => {
     expect(container.textContent).toContain('preset-qc-check')
 
     act(() => {
-      getButtonContaining(container, 'Reset').click()
+      getButtonContaining(container, '重置').click()
     })
 
-    expect(getDagViewport(container).dataset.viewport).toBe('default')
-    expect(getDagViewport(container).style.transform).toBe('')
+    expect(getDagViewport(container).dataset.viewport).toBe('fit')
+    expect(getDagViewport(container).style.transform).toContain('translate')
     expect(container.textContent).toContain('选择一个节点查看执行条件。')
 
     act(() => {
@@ -279,6 +282,41 @@ describe('CapabilitiesPage', () => {
     })
 
     expect(container.querySelector('[role="dialog"]')).toBeNull()
+
+    root.unmount()
+  })
+
+  it('pans the Pipeline DAG canvas by dragging the background', () => {
+    const { container, root } = renderCapabilitiesPage()
+
+    act(() => {
+      getButtonContaining(container, '最大化查看').click()
+    })
+
+    const canvas = getDagCanvas(container)
+    const beforeTransform = getDagViewport(container).style.transform
+
+    act(() => {
+      canvas.dispatchEvent(
+        new MouseEvent('mousedown', {
+          bubbles: true,
+          button: 0,
+          clientX: 100,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new MouseEvent('mousemove', {
+          bubbles: true,
+          clientX: 145,
+          clientY: 152,
+        }),
+      )
+      window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }))
+    })
+
+    expect(getDagViewport(container).style.transform).not.toBe(beforeTransform)
+    expect(getDagCanvas(container).dataset.dragging).toBe('false')
 
     root.unmount()
   })
@@ -564,6 +602,18 @@ function getDagViewport(container: HTMLElement) {
   }
 
   return viewport
+}
+
+function getDagCanvas(container: HTMLElement) {
+  const canvas = container.querySelector<HTMLElement>(
+    '.capabilities-dag-canvas--modal',
+  )
+
+  if (!canvas) {
+    throw new Error('DAG canvas not found')
+  }
+
+  return canvas
 }
 
 function getButtonByLabel(container: HTMLElement, label: string) {

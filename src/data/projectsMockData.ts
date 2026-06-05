@@ -231,6 +231,37 @@ const projectProfiles = {
     description: '候选酶实验流程编排、DAG 生成和 Pipeline 保存项目。',
     tags: ['Pipeline', '流程编排', '酶实验'],
   },
+  'enzyme-synthesis-ops': {
+    status: 'active',
+    favoritedByCurrentUser: false,
+    trashed: false,
+    responsibleMember: memberDirectory.labOps,
+    readOnlyPermissionMembers: [memberDirectory.zhengjun, memberDirectory.researchLead],
+    editPermissionMembers: [memberDirectory.mainAgent, memberDirectory.processDev],
+    assetSummary: {
+      files: 24,
+      data: 8,
+      experiments: 1,
+      models: 0,
+    },
+    contextSummary: {
+      projectContext:
+        '项目描述：围绕标准 LIMS 酶合成实验流程，负责人通过 Agent 监控输入确认、审批、工单派发、设备和人员回调、QC gate、数据入库与效率复盘。',
+      objective: '让实验室负责人在一个 Thread 中启动并追踪整轮酶合成实验运行。',
+      constraints: [
+        '发起人默认拥有本轮资产 owner 权限',
+        '审批节点只接收审批人、审批类型和资料包',
+        '异常样本不自动剔除，必须保留原始读数和 flag',
+      ],
+      deliverables: [
+        'LIMS 酶合成执行 Pipeline',
+        'RUN-ENZ-SYN-20260604-001 运行记录',
+        '工单包、QC 摘要、结果包和效率复盘',
+      ],
+    },
+    description: 'LIMS 酶合成实验流程的自动运行、回调监控和效率分析项目。',
+    tags: ['LIMS', '酶合成', '实验运营'],
+  },
   'data-assetization': {
     status: 'active',
     favoritedByCurrentUser: true,

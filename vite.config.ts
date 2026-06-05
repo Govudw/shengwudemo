@@ -9,6 +9,7 @@ export default defineConfig({
   base: githubPagesBase,
   plugins: [react()],
   test: {
+    include: ['src/**/*.{test,spec}.{ts,tsx}', 'tests/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/.worktrees/**'],
   },
 })

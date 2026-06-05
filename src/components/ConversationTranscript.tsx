@@ -1,10 +1,13 @@
 import { memo, useMemo } from 'react'
 import type { ReactNode } from 'react'
-import type { ConversationTurn } from '../data/conversationTypes'
+import type { ConversationBlock, ConversationTurn } from '../data/conversationTypes'
 import ConversationBlocks from './ConversationBlocks'
 
 type ConversationTranscriptProps = {
   turns: ConversationTurn[]
+  onProjectFileOpen?: (
+    block: Extract<ConversationBlock, { type: 'projectFile' }>,
+  ) => void
 }
 
 type MarkdownSegment =
@@ -18,7 +21,10 @@ type MarkdownSegment =
       rows: string[][]
     }
 
-function ConversationTranscript({ turns }: ConversationTranscriptProps) {
+function ConversationTranscript({
+  turns,
+  onProjectFileOpen,
+}: ConversationTranscriptProps) {
   return (
     <div className="conversation-transcript" aria-label="对话记录">
       <div className="conversation-transcript__inner">
@@ -35,7 +41,10 @@ function ConversationTranscript({ turns }: ConversationTranscriptProps) {
             ) : null}
 
             {turn.contentBlocks?.length ? (
-              <ConversationBlocks blocks={turn.contentBlocks} />
+              <ConversationBlocks
+                blocks={turn.contentBlocks}
+                onProjectFileOpen={onProjectFileOpen}
+              />
             ) : null}
           </article>
         ))}

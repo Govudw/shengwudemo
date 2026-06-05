@@ -40,18 +40,37 @@ export function getDagNodePositions(dag: PipelineDag) {
     return {}
   }
 
-  const maxRow = Math.max(...dag.nodes.map((node) => node.layout.row), 1)
-  const maxColumn = Math.max(...dag.nodes.map((node) => node.layout.column), 0)
+  const columnGap = 230
+  const rowGap = 96
+  const marginX = 94
+  const marginY = 58
 
   return Object.fromEntries(
     dag.nodes.map((node) => {
-      const x =
-        maxColumn === 0 ? 50 : 12 + (node.layout.column / maxColumn) * 76
-      const y = 8 + (node.layout.row / maxRow) * 84
+      const x = marginX + node.layout.column * columnGap
+      const y = marginY + node.layout.row * rowGap
 
       return [node.id, { x, y }]
     }),
   ) as Record<string, { x: number; y: number }>
+}
+
+export function getDagCanvasSize(
+  positions: Record<string, { x: number; y: number }>,
+) {
+  const points = Object.values(positions)
+
+  if (!points.length) {
+    return { width: 720, height: 320 }
+  }
+
+  const maxX = Math.max(...points.map((point) => point.x))
+  const maxY = Math.max(...points.map((point) => point.y))
+
+  return {
+    width: Math.max(720, maxX + 180),
+    height: Math.max(320, maxY + 110),
+  }
 }
 
 export function getDagFitViewportStyle(
@@ -69,13 +88,11 @@ export function getDagFitViewportStyle(
   const maxX = Math.max(...xs)
   const minY = Math.min(...ys)
   const maxY = Math.max(...ys)
-  const centerX = (minX + maxX) / 2
-  const centerY = (minY + maxY) / 2
-  const widthSpan = Math.max(maxX - minX, 20) + 18
-  const heightSpan = Math.max(maxY - minY, 20) + 18
-  const scale = Math.min(1, 88 / widthSpan, 88 / heightSpan)
+  const widthSpan = Math.max(maxX - minX, 240)
+  const heightSpan = Math.max(maxY - minY, 180)
+  const scale = Math.min(1, 920 / widthSpan, 560 / heightSpan)
 
   return {
-    transform: `translate(${50 - centerX}%, ${50 - centerY}%) scale(${scale.toFixed(3)})`,
+    transform: `translate(${24 - minX * scale}px, ${24 - minY * scale}px) scale(${scale.toFixed(3)})`,
   }
 }

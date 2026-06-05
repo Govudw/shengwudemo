@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type {
   SideWindowFileAsset,
   SideWindowFileDirectory,
+  SideWindowSpreadsheetPreview,
 } from '../data/workspaceSideWindowMockData'
 import { filterSideWindowFiles } from '../data/workspaceSideWindowMockData'
 import {
@@ -30,14 +31,24 @@ type WorkspaceSideWindowProps = {
   onClose: () => void
 }
 
-const directories: SideWindowFileDirectory[] = [
+const preferredDirectories: SideWindowFileDirectory[] = [
   'Design',
   'Execution',
   'ELN',
   'Results',
   'Reports',
   'Figures',
+  'Runs/RUN-ENZ-SYN-20260604-001/inputs',
+  'Runs/RUN-ENZ-SYN-20260604-001/approvals',
+  'Runs/RUN-ENZ-SYN-20260604-001/work_orders',
+  'Runs/RUN-ENZ-SYN-20260604-001/callbacks',
+  'Runs/RUN-ENZ-SYN-20260604-001/qc',
+  'Runs/RUN-ENZ-SYN-20260604-001/exceptions',
+  'Runs/RUN-ENZ-SYN-20260604-001/results',
+  'Runs/RUN-ENZ-SYN-20260604-001/analysis',
 ]
+
+const preferredDirectorySet = new Set<string>(preferredDirectories)
 
 function WorkspaceSideWindow({
   projectName,
@@ -47,6 +58,10 @@ function WorkspaceSideWindow({
   onClose,
 }: WorkspaceSideWindowProps) {
   const mode = state.mode
+  const selectedFile =
+    mode === 'files'
+      ? files.find((file) => file.id === state.selectedFileId) ?? null
+      : null
 
   function updateState(patch: Partial<WorkspaceSideWindowThreadState>) {
     onStateChange({ ...state, ...patch })
@@ -90,7 +105,22 @@ function WorkspaceSideWindow({
         </button>
       </header>
 
-      <div className="workspace-side-window__path">{projectName} /</div>
+      <div className="workspace-side-window__path">
+        <span className="workspace-side-window__path-text">
+          {projectName} /{selectedFile ? ` ${selectedFile.fileName}` : ''}
+        </span>
+        {mode === 'files' && state.fileTreeCollapsed ? (
+          <button
+            type="button"
+            className="workspace-side-window__path-action"
+            aria-label="展开文件树"
+            title="展开文件树"
+            onClick={() => updateState({ fileTreeCollapsed: false })}
+          >
+            <FolderIcon className="workspace-side-window__path-action-icon" />
+          </button>
+        ) : null}
+      </div>
 
       {mode === 'launcher' ? (
         <WorkspaceSideWindowLauncher
@@ -153,6 +183,7 @@ function WorkspaceFileBrowser({
   onStateChange: (nextState: WorkspaceSideWindowThreadState) => void
 }) {
   const filteredFiles = filterSideWindowFiles(files, state.searchQuery)
+  const directories = getOrderedFileDirectories(filteredFiles)
   const selectedFile =
     files.find((file) => file.id === state.selectedFileId) ?? null
 
@@ -167,103 +198,103 @@ function WorkspaceFileBrowser({
       }`}
     >
       <WorkspaceFilePreview file={selectedFile} />
-      <aside className="workspace-file-tree" aria-label="对象存储文件树">
-        {state.fileTreeCollapsed ? (
-          <button
-            type="button"
-            className="workspace-file-tree__collapse-button"
-            aria-label="展开文件树"
-            title="展开文件树"
-            onClick={() => updateState({ fileTreeCollapsed: false })}
-          >
-            <FolderIcon className="workspace-file-tree__collapse-icon" />
-          </button>
-        ) : (
-          <>
-            <div className="workspace-file-tree__toolbar">
-              <label className="workspace-file-tree__search">
-                <SearchIcon className="workspace-file-tree__search-icon" />
-                <input
-                  type="search"
-                  value={state.searchQuery}
-                  placeholder="筛选文件..."
-                  aria-label="筛选文件"
-                  onInput={(event) =>
-                    updateState({ searchQuery: event.currentTarget.value })
-                  }
-                />
-              </label>
-              <button
-                type="button"
-                className="workspace-file-tree__collapse-button"
-                aria-label="收起文件树"
-                title="收起文件树"
-                onClick={() => updateState({ fileTreeCollapsed: true })}
-              >
-                <ChevronRightIcon className="workspace-file-tree__collapse-icon" />
-              </button>
+      {!state.fileTreeCollapsed ? (
+        <aside className="workspace-file-tree" aria-label="对象存储文件树">
+          <div className="workspace-file-tree__toolbar">
+            <label className="workspace-file-tree__search">
+              <SearchIcon className="workspace-file-tree__search-icon" />
+              <input
+                type="search"
+                value={state.searchQuery}
+                placeholder="筛选文件..."
+                aria-label="筛选文件"
+                onInput={(event) =>
+                  updateState({ searchQuery: event.currentTarget.value })
+                }
+              />
+            </label>
+            <button
+              type="button"
+              className="workspace-file-tree__collapse-button"
+              aria-label="收起文件树"
+              title="收起文件树"
+              onClick={() => updateState({ fileTreeCollapsed: true })}
+            >
+              <ChevronRightIcon className="workspace-file-tree__collapse-icon" />
+            </button>
+          </div>
+          {filteredFiles.length > 0 ? (
+            <div className="workspace-file-tree__groups">
+              {directories.map((directory) => {
+                const directoryFiles = filteredFiles.filter(
+                  (file) => file.directory === directory,
+                )
+
+                if (directoryFiles.length === 0) {
+                  return null
+                }
+
+                return (
+                  <section
+                    key={directory}
+                    className="workspace-file-tree__group"
+                    aria-label={`${directory} 文件`}
+                  >
+                    <div className="workspace-file-tree__group-title">
+                      <ChevronDownIcon className="workspace-file-tree__group-icon" />
+                      <span>{directory}</span>
+                    </div>
+                    <ul className="workspace-file-tree__file-list">
+                      {directoryFiles.map((file) => (
+                        <li key={file.id}>
+                          <button
+                            type="button"
+                            className={`workspace-file-tree__file-button${
+                              file.id === state.selectedFileId
+                                ? ' workspace-file-tree__file-button--selected'
+                                : ''
+                            }`}
+                            aria-label={file.fileName}
+                            aria-pressed={file.id === state.selectedFileId}
+                            onClick={() =>
+                              updateState({ selectedFileId: file.id })
+                            }
+                          >
+                            <span className="workspace-file-tree__file-extension">
+                              {file.extension || 'file'}
+                            </span>
+                            <span className="workspace-file-tree__file-body">
+                              <span className="workspace-file-tree__file-name">
+                                {file.fileName}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )
+              })}
             </div>
-            {filteredFiles.length > 0 ? (
-              <div className="workspace-file-tree__groups">
-                {directories.map((directory) => {
-                  const directoryFiles = filteredFiles.filter(
-                    (file) => file.directory === directory,
-                  )
-
-                  if (directoryFiles.length === 0) {
-                    return null
-                  }
-
-                  return (
-                    <section
-                      key={directory}
-                      className="workspace-file-tree__group"
-                      aria-label={`${directory} 文件`}
-                    >
-                      <div className="workspace-file-tree__group-title">
-                        <ChevronDownIcon className="workspace-file-tree__group-icon" />
-                        <span>{directory}</span>
-                      </div>
-                      <ul className="workspace-file-tree__file-list">
-                        {directoryFiles.map((file) => (
-                          <li key={file.id}>
-                            <button
-                              type="button"
-                              className={`workspace-file-tree__file-button${
-                                file.id === state.selectedFileId
-                                  ? ' workspace-file-tree__file-button--selected'
-                                  : ''
-                              }`}
-                              aria-label={file.fileName}
-                              aria-pressed={file.id === state.selectedFileId}
-                              onClick={() =>
-                                updateState({ selectedFileId: file.id })
-                              }
-                            >
-                              <span className="workspace-file-tree__file-extension">
-                                {file.extension || 'file'}
-                              </span>
-                              <span className="workspace-file-tree__file-body">
-                                <span className="workspace-file-tree__file-name">
-                                  {file.fileName}
-                                </span>
-                              </span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  )
-                })}
-              </div>
-            ) : (
-              <div className="workspace-file-tree__empty">没有匹配的文件</div>
-            )}
-          </>
-        )}
-      </aside>
+          ) : (
+            <div className="workspace-file-tree__empty">没有匹配的文件</div>
+          )}
+        </aside>
+      ) : null}
     </div>
   )
+}
+
+function getOrderedFileDirectories(files: SideWindowFileAsset[]) {
+  const fileDirectorySet = new Set(files.map((file) => file.directory))
+  const orderedDirectories = preferredDirectories.filter((directory) =>
+    fileDirectorySet.has(directory),
+  )
+  const remainingDirectories = Array.from(fileDirectorySet)
+    .filter((directory) => !preferredDirectorySet.has(directory))
+    .sort((left, right) => left.localeCompare(right))
+
+  return [...orderedDirectories, ...remainingDirectories]
 }
 
 function WorkspaceFilePreview({ file }: { file: SideWindowFileAsset | null }) {
@@ -281,13 +312,6 @@ function WorkspaceFilePreview({ file }: { file: SideWindowFileAsset | null }) {
 
   return (
     <section className="workspace-file-preview" aria-label={`${file.fileName} 预览`}>
-      <header className="workspace-file-preview__header">
-        <div>
-          <h2>{file.fileName}</h2>
-          <p>{file.objectPath}</p>
-        </div>
-        <span className="workspace-file-preview__kind">{file.extension}</span>
-      </header>
       {file.previewKind === 'markdown' ? (
         <div className="workspace-file-preview__markdown">
           {renderMarkdownContent(file.content)}
@@ -301,14 +325,74 @@ function WorkspaceFilePreview({ file }: { file: SideWindowFileAsset | null }) {
       {file.previewKind === 'image' && file.imageSrc ? (
         <figure className="workspace-file-preview__figure">
           <img src={file.imageSrc} alt={file.fileName} />
-          <figcaption>{file.objectPath}</figcaption>
         </figure>
+      ) : null}
+      {file.previewKind === 'spreadsheet' ? (
+        <SpreadsheetFilePreview file={file} />
       ) : null}
       {file.previewKind === 'unsupported' ? (
         <UnsupportedFilePreview file={file} />
       ) : null}
     </section>
   )
+}
+
+function SpreadsheetFilePreview({ file }: { file: SideWindowFileAsset }) {
+  const preview =
+    file.spreadsheetPreview ?? getFallbackSpreadsheetPreview(file.fileName)
+
+  return (
+    <div className="workspace-file-preview__sheet">
+      <header className="workspace-file-preview__sheet-header">
+        <div>
+          <p className="workspace-file-preview__sheet-eyebrow">
+            {file.extension.toUpperCase()} preview
+          </p>
+          <h3>{file.fileName}</h3>
+          <p>{preview.summary}</p>
+        </div>
+        <span className="workspace-file-preview__sheet-badge">
+          Sheet: {preview.sheetName}
+        </span>
+      </header>
+      <div className="workspace-file-preview__sheet-meta">
+        <span>{preview.totalRows} 行记录</span>
+        <span>{preview.columns.length} 列</span>
+        <span>{file.sourceLabel}</span>
+        <span>{file.statusLabel}</span>
+      </div>
+      <div className="workspace-file-preview__sheet-table-scroll">
+        <table className="workspace-file-preview__sheet-table">
+          <thead>
+            <tr>
+              {preview.columns.map((column) => (
+                <th key={column}>{column}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {preview.rows.map((row, rowIndex) => (
+              <tr key={`${file.id}-row-${rowIndex}`}>
+                {preview.columns.map((column, cellIndex) => (
+                  <td key={`${column}-${cellIndex}`}>{row[cellIndex] ?? ''}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function getFallbackSpreadsheetPreview(fileName: string): SideWindowSpreadsheetPreview {
+  return {
+    sheetName: 'Preview',
+    summary: '对象存储中的表格文件预览，当前仅显示前几行代表性记录。',
+    columns: ['file', 'preview_status', 'note'],
+    totalRows: 1,
+    rows: [[fileName, 'available', 'table preview']],
+  }
 }
 
 function UnsupportedFilePreview({ file }: { file: SideWindowFileAsset }) {

@@ -1,9 +1,11 @@
 import type { ConversationBlock } from '../data/conversationTypes'
 import { memo } from 'react'
+import EChartDataChart from './EChartDataChart'
 import PipelineDagBlock from './PipelineDagBlock'
 
 type ConversationBlocksProps = {
   blocks: ConversationBlock[]
+  onProjectFileOpen?: (block: BlockOf<'projectFile'>) => void
 }
 
 type BlockOf<T extends ConversationBlock['type']> = Extract<ConversationBlock, { type: T }>
@@ -36,28 +38,43 @@ const approvalStatusLabels: Record<
   blocked: 'BLOCKED',
 }
 
-function ConversationBlocks({ blocks }: ConversationBlocksProps) {
+function ConversationBlocks({ blocks, onProjectFileOpen }: ConversationBlocksProps) {
   return (
     <div className="conversation-blocks">
       {blocks.map((block, index) => (
-        <MemoizedConversationBlockView key={`${block.type}-${index}`} block={block} />
+        <MemoizedConversationBlockView
+          key={`${block.type}-${index}`}
+          block={block}
+          onProjectFileOpen={onProjectFileOpen}
+        />
       ))}
     </div>
   )
 }
 
-function ConversationBlockView({ block }: { block: ConversationBlock }) {
+function ConversationBlockView({
+  block,
+  onProjectFileOpen,
+}: {
+  block: ConversationBlock
+  onProjectFileOpen?: (block: BlockOf<'projectFile'>) => void
+}) {
   switch (block.type) {
     case 'projectFile':
       return (
-        <div className="project-file-block">
+        <button
+          type="button"
+          className="project-file-block"
+          aria-label={block.fileName}
+          onClick={() => onProjectFileOpen?.(block)}
+        >
           <div className="project-file-block__kind">{block.fileKind}</div>
           <div className="project-file-block__body">
             <div className="project-file-block__name">{block.fileName}</div>
             <div className="project-file-block__location">{block.location}</div>
             <p>{block.note}</p>
           </div>
-        </div>
+        </button>
       )
 
     case 'mainAgentProgress':
@@ -257,6 +274,9 @@ function ConversationBlockView({ block }: { block: ConversationBlock }) {
 
     case 'resultPackageChecklist':
       return <ResultPackageChecklist block={block} />
+
+    case 'dataChart':
+      return <EChartDataChart block={block} />
 
     case 'capabilityRunReplay':
       return (

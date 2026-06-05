@@ -1,3 +1,4 @@
+import { enzymeSynthesisLimsPipeline } from './enzymeSynthesisOpsMockData'
 import { enzP0AssayCharacterizationPipeline } from './pipelineBuildMockData'
 
 export type CapabilityEntryKind = 'pipeline' | 'skill' | 'mcp-server' | 'plugin'
@@ -1066,6 +1067,7 @@ export const capabilityEntries: MockCapabilityEntry[] = [
     }),
   },
   enzP0AssayCharacterizationPipeline,
+  enzymeSynthesisLimsPipeline,
   {
     id: 'skill-protein-design',
     kind: 'skill',

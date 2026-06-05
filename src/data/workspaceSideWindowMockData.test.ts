@@ -13,8 +13,8 @@ describe('workspace side window file data', () => {
     expect(getPreviewKindByExtension('md')).toBe('markdown')
     expect(getPreviewKindByExtension('.json')).toBe('json')
     expect(getPreviewKindByExtension('PNG')).toBe('image')
-    expect(getPreviewKindByExtension('xlsx')).toBe('unsupported')
-    expect(getPreviewKindByExtension('csv')).toBe('unsupported')
+    expect(getPreviewKindByExtension('xlsx')).toBe('spreadsheet')
+    expect(getPreviewKindByExtension('csv')).toBe('spreadsheet')
     expect(getPreviewKindByExtension('pdf')).toBe('unsupported')
     expect(getPreviewKindByExtension('zip')).toBe('unsupported')
   })
@@ -77,7 +77,7 @@ describe('workspace side window file data', () => {
     }
   })
 
-  it('includes preview payloads for md json and images while preserving unsupported metadata', () => {
+  it('includes preview payloads for md json images and spreadsheets while preserving unsupported metadata', () => {
     const files = buildThreadObjectStorageFiles(projectName, executionThreadId)
 
     const markdown = files.find(
@@ -89,6 +89,12 @@ describe('workspace side window file data', () => {
     const image = files.find((file) => file.extension === 'png')
     const workbook = files.find(
       (file) => file.fileName === 'Enzyme_Experiment_Result_Package.xlsx',
+    )
+    const csv = files.find(
+      (file) => file.fileName === 'ENZ_raw_readout_summary.csv',
+    )
+    const unsupported = files.find(
+      (file) => file.fileName === 'approval_decision_record.pdf',
     )
 
     expect(markdown).toMatchObject({
@@ -104,7 +110,7 @@ describe('workspace side window file data', () => {
       imageSrc: expect.stringMatching(/enzyme-/),
     })
     expect(workbook).toMatchObject({
-      previewKind: 'unsupported',
+      previewKind: 'spreadsheet',
       fileName: 'Enzyme_Experiment_Result_Package.xlsx',
       objectPath:
         'Industrial Enzyme Design/Results/Enzyme_Experiment_Result_Package.xlsx',
@@ -112,8 +118,29 @@ describe('workspace side window file data', () => {
       sizeLabel: expect.any(String),
       updatedAt: expect.any(String),
       statusLabel: expect.any(String),
+      spreadsheetPreview: expect.objectContaining({
+        sheetName: 'Summary',
+        columns: expect.arrayContaining(['variant_id', 'activity_pct']),
+        rows: expect.arrayContaining([
+          expect.arrayContaining(['ENZ-MUT-017']),
+        ]),
+      }),
     })
     expect(workbook?.content).toBeUndefined()
     expect(workbook?.imageSrc).toBeUndefined()
+    expect(csv).toMatchObject({
+      previewKind: 'spreadsheet',
+      spreadsheetPreview: expect.objectContaining({
+        sheetName: 'CSV preview',
+        columns: expect.arrayContaining(['well', 'variant_id']),
+        rows: expect.arrayContaining([
+          expect.arrayContaining(['A03', 'ENZ-MUT-017']),
+        ]),
+      }),
+    })
+    expect(unsupported).toMatchObject({
+      previewKind: 'unsupported',
+      fileName: 'approval_decision_record.pdf',
+    })
   })
 })

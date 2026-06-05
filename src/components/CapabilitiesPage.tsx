@@ -662,7 +662,7 @@ function PipelineDagPreview({
           最大化查看
         </button>
       </div>
-      <PipelineDagCanvas dag={dag} mode="preview" />
+      <PipelineDagCanvas key={entryName} dag={dag} mode="preview" />
     </section>
   )
 }
@@ -677,7 +677,8 @@ function PipelineDagViewerModal({
   onClose: () => void
 }) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
-  const [viewportMode, setViewportMode] = useState<'default' | 'fit'>('default')
+  const [viewportMode, setViewportMode] = useState<'default' | 'fit'>('fit')
+  const [canvasResetVersion, setCanvasResetVersion] = useState(0)
   const closeButtonRef = useRef<HTMLButtonElement | null>(null)
   const selectedNode =
     dag.nodes.find((node) => node.id === selectedNodeId) ?? null
@@ -698,11 +699,13 @@ function PipelineDagViewerModal({
 
   function clearSelection() {
     setSelectedNodeId(null)
-    setViewportMode('default')
+    setViewportMode('fit')
+    setCanvasResetVersion((version) => version + 1)
   }
 
   function handleFit() {
     setViewportMode('fit')
+    setCanvasResetVersion((version) => version + 1)
   }
 
   return (
@@ -725,14 +728,14 @@ function PipelineDagViewerModal({
               className="capabilities-secondary-action"
               onClick={handleFit}
             >
-              Fit
+              居中
             </button>
             <button
               type="button"
               className="capabilities-secondary-action"
               onClick={clearSelection}
             >
-              Reset
+              重置
             </button>
             <button
               type="button"
@@ -748,6 +751,7 @@ function PipelineDagViewerModal({
         <div className="capabilities-dag-modal__body">
           <div className="capabilities-dag-modal__canvas">
             <PipelineDagCanvas
+              key={`${entry.id}-${viewportMode}-${canvasResetVersion}`}
               dag={dag}
               mode="modal"
               viewportMode={viewportMode}

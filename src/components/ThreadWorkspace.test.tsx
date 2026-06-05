@@ -4,6 +4,7 @@ import { act, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToString } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { projects } from '../data/mockData'
 import type { PipelineDag } from '../data/mockCapabilities'
 import type { ConversationBlock } from '../data/conversationTypes'
 import type { DemoThread } from '../store/demoStoreLogic'
@@ -521,6 +522,33 @@ describe('ThreadWorkspace', () => {
     root.unmount()
   })
 
+  it('toggles the workspace side window from the dedicated header button', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace()
+
+    const sideWindowButton = container.querySelector<HTMLButtonElement>(
+      '.thread-workspace__side-window-button',
+    )
+    expect(sideWindowButton).not.toBeNull()
+    expect(sideWindowButton?.getAttribute('aria-label')).toBe('打开侧窗')
+
+    await act(async () => {
+      sideWindowButton?.click()
+    })
+
+    expect(container.querySelector('.workspace-side-window')).not.toBeNull()
+    expect(sideWindowButton?.getAttribute('aria-label')).toBe('关闭侧窗')
+
+    await act(async () => {
+      sideWindowButton?.click()
+    })
+    await waitForTimers()
+
+    expect(container.querySelector('.workspace-side-window')).toBeNull()
+    expect(sideWindowButton?.getAttribute('aria-label')).toBe('打开侧窗')
+
+    root.unmount()
+  })
+
   it('renders file mode with an empty preview and right-side object tree', async () => {
     const { container, root } = renderInteractiveThreadWorkspace({
       threadOverride: {
@@ -562,6 +590,38 @@ describe('ThreadWorkspace', () => {
     root.unmount()
   })
 
+  it('renders LIMS run-scoped object storage directories in the side window file tree', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace({
+      threadOverride: {
+        ...thread,
+        id: 'lims-flow-run',
+        title: 'LIMS 流程运行',
+      },
+      projectName: 'Enzyme Synthesis Ops',
+    })
+
+    await act(async () => {
+      getButton(container, '打开侧窗').click()
+    })
+    await act(async () => {
+      getButton(container, '文件').click()
+    })
+
+    const fileTreeText = container.querySelector('.workspace-file-tree')?.textContent
+
+    expect(fileTreeText).toContain('Runs/RUN-ENZ-SYN-20260604-001/inputs')
+    expect(fileTreeText).toContain('RUN-ENZ-SYN-20260604-001_input_package.md')
+    expect(fileTreeText).toContain('Runs/RUN-ENZ-SYN-20260604-001/work_orders')
+    expect(fileTreeText).toContain('WO-BUNDLE-ENZ-SYN-001.json')
+    expect(fileTreeText).toContain('Runs/RUN-ENZ-SYN-20260604-001/qc')
+    expect(fileTreeText).toContain('construction_qc_summary.md')
+    expect(fileTreeText).toContain('Runs/RUN-ENZ-SYN-20260604-001/analysis')
+    expect(fileTreeText).toContain('RUN-ENZ-SYN-20260604-001_efficiency_review.md')
+    expect(fileTreeText).not.toContain('Enzyme Synthesis Ops/Runs/')
+
+    root.unmount()
+  })
+
   it('renders markdown json and image file previews from the side window', async () => {
     const { container, root } = renderInteractiveThreadWorkspace({
       threadOverride: {
@@ -582,6 +642,14 @@ describe('ThreadWorkspace', () => {
       getButton(container, 'BM-LAB-ENZ-20260602-001_order_summary.md').click()
     })
 
+    expect(container.querySelector('.workspace-side-window__path')?.textContent).toBe(
+      'Industrial Enzyme Design / BM-LAB-ENZ-20260602-001_order_summary.md',
+    )
+    expect(container.querySelector('.workspace-file-preview__header')).toBeNull()
+    expect(container.querySelector('.workspace-file-preview__kind')).toBeNull()
+    expect(container.querySelector('.workspace-file-preview')?.textContent).not.toContain(
+      'Industrial Enzyme Design/Execution/BM-LAB-ENZ-20260602-001_order_summary.md',
+    )
     expect(container.querySelector('.workspace-file-preview h1')?.textContent).toContain(
       'BM-LAB-ENZ-20260602-001 Order Summary',
     )
@@ -597,17 +665,24 @@ describe('ThreadWorkspace', () => {
     expect(container.querySelector('.workspace-file-preview__json-string')?.textContent).toContain(
       '"BM-LAB-ENZ-20260602-001"',
     )
+    expect(container.querySelector('.workspace-side-window__path')?.textContent).toBe(
+      'Industrial Enzyme Design / BM-LAB-ENZ-20260602-001_order_payload.json',
+    )
 
     await act(async () => {
       getButton(container, 'enzyme-experiment-record-summary.png').click()
     })
 
     expect(container.querySelector('.workspace-file-preview img')).not.toBeNull()
+    expect(container.querySelector('.workspace-file-preview figcaption')).toBeNull()
+    expect(container.querySelector('.workspace-side-window__path')?.textContent).toBe(
+      'Industrial Enzyme Design / enzyme-experiment-record-summary.png',
+    )
 
     root.unmount()
   })
 
-  it('shows an unsupported preview card for workbook files', async () => {
+  it('renders CSV and Excel mock files as spreadsheet previews', async () => {
     const { container, root } = renderInteractiveThreadWorkspace({
       threadOverride: {
         ...thread,
@@ -627,23 +702,27 @@ describe('ThreadWorkspace', () => {
       getButton(container, 'Enzyme_Experiment_Result_Package.xlsx').click()
     })
 
-    expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
-      '当前版本暂不支持内嵌预览',
+    let spreadsheetPreview = container.querySelector('.workspace-file-preview__sheet')
+    expect(spreadsheetPreview).not.toBeNull()
+    expect(spreadsheetPreview?.textContent).toContain(
+      'Enzyme_Experiment_Result_Package.xlsx',
     )
-    expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
-      'Industrial Enzyme Design/Results/Enzyme_Experiment_Result_Package.xlsx',
-    )
+    expect(spreadsheetPreview?.textContent).toContain('Sheet: Summary')
+    expect(spreadsheetPreview?.textContent).toContain('ENZ-MUT-017')
+    expect(spreadsheetPreview?.textContent).toContain('activity_pct')
+    expect(spreadsheetPreview?.textContent).not.toContain('当前版本暂不支持内嵌预览')
 
     await act(async () => {
       getButton(container, 'ENZ_raw_readout_summary.csv').click()
     })
 
-    expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
-      '当前版本暂不支持内嵌预览',
-    )
-    expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
-      'Industrial Enzyme Design/Results/ENZ_raw_readout_summary.csv',
-    )
+    spreadsheetPreview = container.querySelector('.workspace-file-preview__sheet')
+    expect(spreadsheetPreview).not.toBeNull()
+    expect(spreadsheetPreview?.textContent).toContain('ENZ_raw_readout_summary.csv')
+    expect(spreadsheetPreview?.textContent).toContain('Sheet: CSV preview')
+    expect(spreadsheetPreview?.textContent).toContain('well')
+    expect(spreadsheetPreview?.textContent).toContain('A03')
+    expect(spreadsheetPreview?.textContent).not.toContain('当前版本暂不支持内嵌预览')
 
     await act(async () => {
       getButton(container, 'approval_decision_record.pdf').click()
@@ -665,6 +744,71 @@ describe('ThreadWorkspace', () => {
     )
     expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
       'Industrial Enzyme Design/ELN/ELN-ENZ-20260602-117_attachment_bundle.zip',
+    )
+
+    root.unmount()
+  })
+
+  it('renders the LIMS sample manifest workbook as a compact spreadsheet preview', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace({
+      threadOverride: {
+        ...thread,
+        id: 'lims-flow-run',
+        title: 'LIMS 流程运行',
+      },
+      projectName: 'Enzyme Synthesis Ops',
+    })
+
+    await act(async () => {
+      getButton(container, '打开侧窗').click()
+    })
+    await act(async () => {
+      getButton(container, '文件').click()
+    })
+    await act(async () => {
+      getButton(container, 'ENZ-SYN-BATCH-048_sample_manifest.xlsx').click()
+    })
+
+    const spreadsheetPreview = container.querySelector('.workspace-file-preview__sheet')
+    expect(spreadsheetPreview).not.toBeNull()
+    expect(spreadsheetPreview?.textContent).toContain(
+      'ENZ-SYN-BATCH-048_sample_manifest.xlsx',
+    )
+    expect(spreadsheetPreview?.textContent).toContain('Sheet: Sample Manifest')
+    expect(spreadsheetPreview?.textContent).toContain('ENZ-SYN-019')
+    expect(spreadsheetPreview?.textContent).toContain('样本登记')
+    expect(spreadsheetPreview?.textContent).not.toContain('当前版本暂不支持内嵌预览')
+
+    root.unmount()
+  })
+
+  it('opens a clicked transcript file in the side window with the file tree hidden', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace({
+      threadOverride: getProjectThreadFixture(
+        'enzyme-synthesis-ops',
+        'lims-flow-run',
+      ),
+      projectName: 'Enzyme Synthesis Ops',
+    })
+
+    expect(container.querySelector('.workspace-side-window')).toBeNull()
+
+    await act(async () => {
+      getButton(container, 'RUN-ENZ-SYN-20260604-001_input_package.md').click()
+    })
+
+    expect(container.querySelector('.workspace-side-window')).not.toBeNull()
+    expect(container.querySelector('.workspace-file-browser')).not.toBeNull()
+    expect(container.querySelector('.workspace-file-browser--tree-collapsed')).not.toBeNull()
+    expect(container.querySelector('.workspace-file-tree')).toBeNull()
+    expect(container.querySelector('.workspace-side-window__path')?.textContent).toBe(
+      'Enzyme Synthesis Ops / RUN-ENZ-SYN-20260604-001_input_package.md',
+    )
+    expect(
+      container.querySelector('.workspace-side-window__path button[aria-label="展开文件树"]'),
+    ).not.toBeNull()
+    expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
+      'RUN-ENZ-SYN-20260604-001 Input Package',
     )
 
     root.unmount()
@@ -712,7 +856,16 @@ describe('ThreadWorkspace', () => {
       getButton(container, '收起文件树').click()
     })
     expect(container.querySelector('.workspace-file-browser--tree-collapsed')).not.toBeNull()
-    expect(getButton(container, '展开文件树')).toBeTruthy()
+    expect(container.querySelector('.workspace-file-tree')).toBeNull()
+    expect(
+      container.querySelector('.workspace-side-window__path button[aria-label="展开文件树"]'),
+    ).not.toBeNull()
+
+    await act(async () => {
+      getButton(container, '展开文件树').click()
+    })
+
+    expect(container.querySelector('.workspace-file-tree')).not.toBeNull()
 
     root.unmount()
   })
@@ -968,6 +1121,24 @@ function renderInteractiveThreadWorkspace({
   })
 
   return { container, root }
+}
+
+function getProjectThreadFixture(projectId: string, threadId: string): DemoThread {
+  const sourceThread = projects
+    .find((project) => project.id === projectId)
+    ?.threads.find((item) => item.id === threadId)
+
+  if (!sourceThread) {
+    throw new Error(`Missing thread fixture: ${projectId}/${threadId}`)
+  }
+
+  return {
+    ...thread,
+    id: sourceThread.id,
+    title: sourceThread.title,
+    transcript: sourceThread.transcript ?? [],
+    runInspector: sourceThread.runInspector,
+  }
 }
 
 function renderSwitchingThreadWorkspace() {

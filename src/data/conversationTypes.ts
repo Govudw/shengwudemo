@@ -91,6 +91,7 @@ export type ConversationBlock =
   | RunLogTableBlock
   | AnomalyReviewTableBlock
   | ResultPackageChecklistBlock
+  | DataChartBlock
 
 export type ProjectFileBlock = {
   type: 'projectFile'
@@ -231,6 +232,10 @@ export type PipelineDagBlock = {
   status: 'draft' | 'validated' | 'saved'
   summary: string
   dag: PipelineDag
+  progressSummary?: string
+  completedNodeIds?: string[]
+  activeNodeId?: string
+  defaultCollapsed?: boolean
 }
 
 export type DesignHandoffBriefBlock = {
@@ -404,4 +409,17 @@ export type ResultPackageChecklistBlock = {
   missingItems: string[]
   archiveLocations: string[]
   readyForAnalysis: boolean
+}
+
+export type DataChartBlock = {
+  type: 'dataChart'
+  title: string
+  chartType: 'line' | 'bar' | 'pie'
+  xLabel?: string
+  yLabel?: string
+  series: Array<{
+    label: string
+    color?: string
+    points: Array<{ label: string; value: number }>
+  }>
 }
