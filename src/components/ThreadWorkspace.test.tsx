@@ -549,6 +549,83 @@ describe('ThreadWorkspace', () => {
     root.unmount()
   })
 
+  it('uses an internal maximize toggle instead of a close control in the side window', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace()
+
+    await act(async () => {
+      getButton(container, '打开侧窗').click()
+    })
+
+    const panel = container.querySelector<HTMLElement>('#thread-workspace-side-window')
+    expect(panel).not.toBeNull()
+    expect(panel?.querySelector('.workspace-side-window__close')).toBeNull()
+
+    await act(async () => {
+      getButton(panel as HTMLElement, '最大化侧窗').click()
+    })
+
+    expect(
+      container.querySelector('.thread-workspace--side-window-maximized'),
+    ).not.toBeNull()
+    expect(getButton(panel as HTMLElement, '还原侧窗')).toBeTruthy()
+
+    await act(async () => {
+      getButton(panel as HTMLElement, '还原侧窗').click()
+    })
+
+    expect(
+      container.querySelector('.thread-workspace--side-window-maximized'),
+    ).toBeNull()
+    expect(container.querySelector('.workspace-side-window')).not.toBeNull()
+
+    root.unmount()
+  })
+
+  it('collapses the project sidebar while the side window is maximized and restores it after close', async () => {
+    const sidebarStates: boolean[] = []
+    const { container, root } = renderInteractiveThreadWorkspace({
+      initialRunInspectorOpen: true,
+      onSidebarCollapsedChange: (collapsed) => sidebarStates.push(collapsed),
+    })
+
+    await act(async () => {
+      getButton(container, '打开侧窗').click()
+    })
+    await act(async () => {
+      getButton(container, '最大化侧窗').click()
+    })
+
+    expect(sidebarStates).toEqual([true])
+    expect(container.querySelector('#thread-run-inspector')).toBeNull()
+    expect(
+      container.querySelector('.thread-workspace--side-window-maximized'),
+    ).not.toBeNull()
+
+    await act(async () => {
+      getButton(container, '还原侧窗').click()
+    })
+
+    expect(sidebarStates).toEqual([true, false])
+    expect(
+      container.querySelector('.thread-workspace--side-window-maximized'),
+    ).toBeNull()
+    expect(container.querySelector('.workspace-side-window')).not.toBeNull()
+
+    await act(async () => {
+      getButton(container, '最大化侧窗').click()
+    })
+    await act(async () => {
+      getButton(container, '关闭侧窗').click()
+    })
+    await waitForTimers()
+
+    expect(sidebarStates).toEqual([true, false, true, false])
+    expect(container.querySelector('.workspace-side-window')).toBeNull()
+    expect(container.querySelector('#thread-run-inspector')).not.toBeNull()
+
+    root.unmount()
+  })
+
   it('renders file mode with an empty preview and right-side object tree', async () => {
     const { container, root } = renderInteractiveThreadWorkspace({
       threadOverride: {
@@ -831,6 +908,11 @@ describe('ThreadWorkspace', () => {
       getButton(container, '文件').click()
     })
 
+    expect(
+      container.querySelector('.workspace-side-window__path button[aria-label="收起文件树"]'),
+    ).not.toBeNull()
+    expect(container.querySelector('.workspace-file-tree__collapse-button')).toBeNull()
+
     const searchInput = container.querySelector<HTMLInputElement>(
       'input[aria-label="筛选文件"]',
     )
@@ -866,6 +948,10 @@ describe('ThreadWorkspace', () => {
     })
 
     expect(container.querySelector('.workspace-file-tree')).not.toBeNull()
+    expect(
+      container.querySelector('.workspace-side-window__path button[aria-label="收起文件树"] svg'),
+    ).not.toBeNull()
+    expect(container.querySelector('.workspace-file-tree__collapse-button')).toBeNull()
 
     root.unmount()
   })
@@ -885,6 +971,7 @@ describe('ThreadWorkspace', () => {
     )
 
     expect(container.querySelector('.workspace-side-chat-placeholder')).not.toBeNull()
+    expect(container.querySelector('.workspace-side-window__path')).toBeNull()
     expect(input).not.toBeNull()
     expect(input?.disabled).toBe(true)
     expect(container.textContent).not.toContain('Lab Owner')
@@ -1068,7 +1155,7 @@ describe('ThreadWorkspace', () => {
     })
 
     expect(container.querySelector('.attachment-menu')).toBeNull()
-    expect(notifications).toContain('上传文件或图片将在后续 Demo 中展开')
+    expect(notifications).toContain('上传文件或图片尚未接入当前工作区')
 
     root.unmount()
   })
@@ -1077,13 +1164,17 @@ describe('ThreadWorkspace', () => {
 function renderInteractiveThreadWorkspace({
   onNotify = noop,
   onRunInspectorChange,
+  onSidebarCollapsedChange,
   initialRunInspectorOpen = false,
+  initialSidebarCollapsed = false,
   projectName = 'Antibody Optimization',
   threadOverride = thread,
 }: {
   onNotify?: (message: string) => void
   onRunInspectorChange?: (open: boolean) => void
+  onSidebarCollapsedChange?: (collapsed: boolean) => void
   initialRunInspectorOpen?: boolean
+  initialSidebarCollapsed?: boolean
   projectName?: string
   threadOverride?: DemoThread
 } = {}) {
@@ -1093,10 +1184,18 @@ function renderInteractiveThreadWorkspace({
 
   function Harness() {
     const [open, setOpen] = useState(initialRunInspectorOpen)
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(
+      initialSidebarCollapsed,
+    )
 
     function handleRunInspectorChange(nextOpen: boolean) {
       onRunInspectorChange?.(nextOpen)
       setOpen(nextOpen)
+    }
+
+    function handleSidebarCollapsedChange(collapsed: boolean) {
+      onSidebarCollapsedChange?.(collapsed)
+      setSidebarCollapsed(collapsed)
     }
 
     return (
@@ -1112,6 +1211,8 @@ function renderInteractiveThreadWorkspace({
         onNotify={onNotify}
         runInspectorOpen={open}
         onRunInspectorOpenChange={handleRunInspectorChange}
+        sidebarCollapsed={sidebarCollapsed}
+        onSidebarCollapsedChange={handleSidebarCollapsedChange}
       />
     )
   }

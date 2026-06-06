@@ -40,6 +40,28 @@ function XIcon({ className }: IconProps) {
   )
 }
 
+function MaximizeIcon({ className }: IconProps) {
+  return (
+    <IconSvg className={className}>
+      <path d="M8 3.5H4.5A1.5 1.5 0 0 0 3 5v3.5" />
+      <path d="M16 3.5h3.5A1.5 1.5 0 0 1 21 5v3.5" />
+      <path d="M8 20.5H4.5A1.5 1.5 0 0 1 3 19v-3.5" />
+      <path d="M16 20.5h3.5A1.5 1.5 0 0 0 21 19v-3.5" />
+    </IconSvg>
+  )
+}
+
+function MinimizeIcon({ className }: IconProps) {
+  return (
+    <IconSvg className={className}>
+      <path d="M8 3.5v3A1.5 1.5 0 0 1 6.5 8h-3" />
+      <path d="M16 3.5v3A1.5 1.5 0 0 0 17.5 8h3" />
+      <path d="M8 20.5v-3A1.5 1.5 0 0 0 6.5 16h-3" />
+      <path d="M16 20.5v-3A1.5 1.5 0 0 1 17.5 16h3" />
+    </IconSvg>
+  )
+}
+
 function SearchIcon({ className }: IconProps) {
   return (
     <IconSvg className={className}>
@@ -309,8 +331,10 @@ export {
   FlaskIcon,
   FolderIcon,
   InfoIcon,
+  MaximizeIcon,
   MessageCircleIcon,
   MicIcon,
+  MinimizeIcon,
   MoreHorizontalIcon,
   PackageIcon,
   PanelRightIcon,

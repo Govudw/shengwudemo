@@ -51,7 +51,7 @@ function TopNav({ activeItem, onNavigate, onNotify }: TopNavProps) {
           type="button"
           className="top-nav__bell"
           aria-label="通知"
-          onClick={() => onNotify('通知中心将在后续演示中展开')}
+          onClick={() => onNotify('通知中心尚未接入当前工作区')}
         >
           <BellIcon className="top-nav__icon" />
           <span className="top-nav__badge">3</span>
@@ -60,7 +60,7 @@ function TopNav({ activeItem, onNavigate, onNotify }: TopNavProps) {
         <button
           type="button"
           className="top-nav__user"
-          onClick={() => onNotify('账户菜单将在后续演示中展开')}
+          onClick={() => onNotify('账户菜单尚未接入当前工作区')}
         >
           <span className="top-nav__avatar" aria-hidden="true">
             Z

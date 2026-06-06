@@ -204,19 +204,19 @@ function AssetsPage({
                 <div className="assets-popover assets-popover--compact assets-popover--right">
                   <button
                     type="button"
-                    onClick={() => handleMockAction('分享视图将在后续 Demo 中展开')}
+                    onClick={() => handleMockAction('分享视图尚未接入当前工作区')}
                   >
                     分享当前视图
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleMockAction('资产导出将在后续 Demo 中展开')}
+                    onClick={() => handleMockAction('资产导出尚未接入当前工作区')}
                   >
                     导出清单
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleMockAction('显示字段将在后续 Demo 中展开')}
+                    onClick={() => handleMockAction('显示字段尚未接入当前工作区')}
                   >
                     显示字段
                   </button>
@@ -495,7 +495,7 @@ function FileSpaceView({
                 <button
                   type="button"
                   className="assets-row-action"
-                  onClick={() => onNotify('资产操作将在后续 Demo 中展开')}
+                  onClick={() => onNotify('资产操作尚未接入当前工作区')}
                 >
                   <MoreHorizontalIcon className="assets-row-action__icon" />
                 </button>
@@ -756,7 +756,7 @@ function XtrimoModelAssetsView({
             type="button"
             className="assets-xtrimo-search-scope"
             aria-haspopup="listbox"
-            onClick={() => onNotify('搜索范围切换将在后续 Demo 中展开')}
+            onClick={() => onNotify('搜索范围切换尚未接入当前工作区')}
           >
             <span>综合</span>
             <ChevronDownIcon className="assets-xtrimo-search-scope__icon" />
@@ -907,7 +907,7 @@ function FileRecordCard({
       <button
         type="button"
         className="assets-record-card__action"
-        onClick={() => onNotify('资产操作将在后续 Demo 中展开')}
+        onClick={() => onNotify('资产操作尚未接入当前工作区')}
       >
         查看详情
       </button>
@@ -946,7 +946,7 @@ function ExperimentRecordCard({
       <button
         type="button"
         className="assets-record-card__action"
-        onClick={() => onNotify('实验资产详情将在后续 Demo 中展开')}
+        onClick={() => onNotify('实验资产详情尚未接入当前工作区')}
       >
         查看详情
       </button>
@@ -1002,7 +1002,7 @@ function ExperimentAssetsTable({
             <button
               type="button"
               className="assets-row-action"
-              onClick={() => onNotify('实验资产详情将在后续 Demo 中展开')}
+              onClick={() => onNotify('实验资产详情尚未接入当前工作区')}
             >
               <MoreHorizontalIcon className="assets-row-action__icon" />
             </button>
@@ -1096,7 +1096,7 @@ function XtrimoModelCard({
         onClick={() =>
           onNotify(
             isCallable
-              ? '模型详情将在后续 Demo 中展开'
+              ? '模型详情尚未接入当前工作区'
               : '该模型即将上线，当前仅支持预览',
           )
         }
@@ -1292,11 +1292,11 @@ function getNewAssetMenuActions(
       return [
         {
           label: '新建实验订单草稿',
-          message: '新建实验订单草稿将在后续 Demo 中展开',
+          message: '新建实验订单草稿尚未接入当前工作区',
         },
         {
           label: '新建设计包',
-          message: '新建设计包将在后续 Demo 中展开',
+          message: '新建设计包尚未接入当前工作区',
         },
       ]
     }
@@ -1305,59 +1305,59 @@ function getNewAssetMenuActions(
       return [
         {
           label: '登记实验记录',
-          message: '登记实验记录将在后续 Demo 中展开',
+          message: '登记实验记录尚未接入当前工作区',
         },
         {
           label: '创建调度占位',
-          message: '创建调度占位将在后续 Demo 中展开',
+          message: '创建调度占位尚未接入当前工作区',
         },
       ]
     }
 
     if (item === 'inventory') {
       return [
-        { label: '登记样本', message: '登记样本将在后续 Demo 中展开' },
-        { label: '登记物料', message: '登记物料将在后续 Demo 中展开' },
-        { label: '新增孔板', message: '新增孔板将在后续 Demo 中展开' },
+        { label: '登记样本', message: '登记样本尚未接入当前工作区' },
+        { label: '登记物料', message: '登记物料尚未接入当前工作区' },
+        { label: '新增孔板', message: '新增孔板尚未接入当前工作区' },
       ]
     }
 
     if (item === 'equipment') {
       return [
-        { label: '登记设备', message: '登记设备将在后续 Demo 中展开' },
+        { label: '登记设备', message: '登记设备尚未接入当前工作区' },
         {
           label: '新增可用窗口',
-          message: '新增可用窗口将在后续 Demo 中展开',
+          message: '新增可用窗口尚未接入当前工作区',
         },
       ]
     }
 
     return [
-      { label: '新建配方', message: '新建配方将在后续 Demo 中展开' },
+      { label: '新建配方', message: '新建配方尚未接入当前工作区' },
       {
         label: '复制公开配方到项目',
-        message: '复制公开配方到项目将在后续 Demo 中展开',
+        message: '复制公开配方到项目尚未接入当前工作区',
       },
     ]
   }
 
   if (section === 'file') {
     return [
-      { label: '新建文件夹', message: '新建文件夹将在后续 Demo 中展开' },
-      { label: '新建文档', message: '新建文档将在后续 Demo 中展开' },
+      { label: '新建文件夹', message: '新建文件夹尚未接入当前工作区' },
+      { label: '新建文档', message: '新建文档尚未接入当前工作区' },
     ]
   }
 
   if (section === 'data') {
     return [
-      { label: '新建数据集', message: '新建数据集将在后续 Demo 中展开' },
-      { label: '登记数据表', message: '登记数据表将在后续 Demo 中展开' },
+      { label: '新建数据集', message: '新建数据集尚未接入当前工作区' },
+      { label: '登记数据表', message: '登记数据表尚未接入当前工作区' },
     ]
   }
 
   return [
-    { label: '注册模型', message: '注册模型将在后续 Demo 中展开' },
-    { label: '新建 Oracle', message: '新建 Oracle 将在后续 Demo 中展开' },
+    { label: '注册模型', message: '注册模型尚未接入当前工作区' },
+    { label: '新建 Oracle', message: '新建 Oracle 尚未接入当前工作区' },
   ]
 }
 

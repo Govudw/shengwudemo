@@ -72,10 +72,10 @@ const actionLabels: Record<CapabilityEntryKind, string> = {
 }
 
 const actionMessages: Record<CapabilityEntryKind, string> = {
-  pipeline: 'Agent Builder 会在后续演示中连接 Pipeline 创建流程',
-  skill: 'Agent Builder 会在后续演示中连接 Skill 创建流程',
-  'mcp-server': 'MCP 连接向导会在后续演示中展开',
-  plugin: 'Plugin 申请流程会在后续演示中展开',
+  pipeline: 'Pipeline Builder 尚未接入当前工作区',
+  skill: 'Skill Builder 尚未接入当前工作区',
+  'mcp-server': 'MCP 连接向导尚未接入当前工作区',
+  plugin: 'Plugin 申请流程尚未接入当前工作区',
 }
 
 function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
@@ -523,7 +523,7 @@ function DetailPanel({
           className="capabilities-icon-button"
           aria-label={`${entry.name} 的更多操作`}
           onClick={() =>
-            onNotify(`${entry.name} 的更多操作会在后续演示中展开`)
+            onNotify(`${entry.name} 的更多操作尚未接入当前工作区`)
           }
         >
           <MoreHorizontalIcon className="capabilities-icon" />
@@ -623,9 +623,9 @@ function DetailPanel({
         onClick={() =>
           onNotify(
             activeKind === 'pipeline'
-              ? `${entry.name} 的禁用动作会在后续演示中展开`
+              ? `${entry.name} 的禁用动作尚未接入当前工作区`
               : activeKind === 'mcp-server'
-                ? `${entry.name} 的连接设置会在后续演示中展开`
+                ? `${entry.name} 的连接设置尚未接入当前工作区`
                 : `${entry.name} 目前是占位预览`,
           )
         }
@@ -912,7 +912,7 @@ function CapabilityDialog({
               className="capabilities-icon-button"
               aria-label={`${entry.name} 的更多操作`}
               onClick={() =>
-                onNotify(`${entry.name} 的更多操作会在后续演示中展开`)
+                onNotify(`${entry.name} 的更多操作尚未接入当前工作区`)
               }
             >
               <MoreHorizontalIcon className="capabilities-icon" />
@@ -959,7 +959,7 @@ function CapabilityDialog({
               type="button"
               className="capabilities-danger-action"
               onClick={() =>
-                onNotify(`${entry.name} 的移除动作会在后续演示中展开`)
+                onNotify(`${entry.name} 的移除动作尚未接入当前工作区`)
               }
             >
               移除
@@ -1182,14 +1182,14 @@ function getDialogActionLabel(entry: MockCapabilityEntry) {
 
 function getDialogActionMessage(entry: MockCapabilityEntry) {
   if (entry.kind === 'mcp-server') {
-    return `${entry.name} 的连接设置会在后续演示中展开`
+    return `${entry.name} 的连接设置尚未接入当前工作区`
   }
 
   if (entry.kind === 'plugin') {
-    return `${entry.name} 的权限申请会在后续演示中展开`
+    return `${entry.name} 的权限申请尚未接入当前工作区`
   }
 
-  return `${entry.name} 会在后续演示中进入对话试用`
+  return `${entry.name} 尚未接入当前工作区`
 }
 
 export default CapabilitiesPage

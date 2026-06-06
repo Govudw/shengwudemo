@@ -349,7 +349,7 @@ describe('App composer attachment menu', () => {
 
     expect(container.querySelector('.attachment-menu')).toBeNull()
     expect(getStatus(container).textContent).toContain(
-      '从资产添加将在后续 Demo 中展开',
+      '从资产添加尚未接入当前工作区',
     )
 
     root.unmount()
@@ -425,7 +425,7 @@ describe('App use case cards', () => {
     })
 
     expect(getStatus(container).textContent).toContain(
-      '模型与资产将在后续 Demo 中展开',
+      '模型与资产尚未接入当前工作区',
     )
 
     root.unmount()
@@ -753,7 +753,7 @@ describe('xTrimo model assets', () => {
     })
 
     expect(getStatus(container).textContent).toContain(
-      '模型详情将在后续 Demo 中展开',
+      '模型详情尚未接入当前工作区',
     )
 
     act(() => {

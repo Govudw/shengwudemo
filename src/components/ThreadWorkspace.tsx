@@ -32,6 +32,8 @@ type ThreadWorkspaceProps = {
   onNotify: (message: string) => void
   runInspectorOpen: boolean
   onRunInspectorOpenChange: (open: boolean) => void
+  sidebarCollapsed?: boolean
+  onSidebarCollapsedChange?: (collapsed: boolean) => void
 }
 
 function ThreadWorkspace(props: ThreadWorkspaceProps) {
@@ -47,6 +49,8 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
     onNotify,
     runInspectorOpen,
     onRunInspectorOpenChange,
+    sidebarCollapsed = false,
+    onSidebarCollapsedChange,
   } = props
   const [menuOpen, setMenuOpen] = useState(false)
   const [renameOpen, setRenameOpen] = useState(false)
@@ -62,10 +66,13 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
   const cancelDeleteButtonRef = useRef<HTMLButtonElement>(null)
   const [runInspectorDrawer, setRunInspectorDrawer] = useState(false)
   const [sideWindowOpen, setSideWindowOpen] = useState(false)
+  const [sideWindowMaximized, setSideWindowMaximized] = useState(false)
   const [sideWindowStateByThreadId, setSideWindowStateByThreadId] = useState<
     Record<string, WorkspaceSideWindowThreadState>
   >({})
   const previousRunInspectorOpenRef = useRef<boolean | null>(null)
+  const previousSidebarCollapsedRef = useRef<boolean | null>(null)
+  const previousThreadIdRef = useRef(thread.id)
   const statusBadges = getThreadStatusBadges(thread)
   const infoTooltip = `${projectName} · ${thread.transcript.length} 轮对话`
   const sideWindowState =
@@ -82,8 +89,40 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
     }, 0)
   }, [onRunInspectorOpenChange])
 
+  const restoreSidebarCollapsed = useCallback(() => {
+    if (previousSidebarCollapsedRef.current === null) {
+      return
+    }
+
+    onSidebarCollapsedChange?.(previousSidebarCollapsedRef.current)
+    previousSidebarCollapsedRef.current = null
+  }, [onSidebarCollapsedChange])
+
+  const handleSideWindowMaximizedChange = useCallback(
+    (maximized: boolean) => {
+      setSideWindowMaximized(maximized)
+
+      if (maximized) {
+        if (previousSidebarCollapsedRef.current === null) {
+          previousSidebarCollapsedRef.current = sidebarCollapsed
+        }
+
+        if (!sidebarCollapsed) {
+          onSidebarCollapsedChange?.(true)
+        }
+
+        return
+      }
+
+      restoreSidebarCollapsed()
+    },
+    [onSidebarCollapsedChange, restoreSidebarCollapsed, sidebarCollapsed],
+  )
+
   const closeSideWindow = useCallback(() => {
     setSideWindowOpen(false)
+    setSideWindowMaximized(false)
+    restoreSidebarCollapsed()
 
     if (previousRunInspectorOpenRef.current) {
       onRunInspectorOpenChange(true)
@@ -94,11 +133,18 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
     window.setTimeout(() => {
       sideWindowButtonRef.current?.focus()
     }, 0)
-  }, [onRunInspectorOpenChange])
+  }, [onRunInspectorOpenChange, restoreSidebarCollapsed])
 
   useEffect(() => {
+    if (previousThreadIdRef.current === thread.id) {
+      return
+    }
+
+    previousThreadIdRef.current = thread.id
     previousRunInspectorOpenRef.current = null
-  }, [thread.id])
+    setSideWindowMaximized(false)
+    restoreSidebarCollapsed()
+  }, [restoreSidebarCollapsed, thread.id])
 
   useEffect(() => {
     if (!menuOpen) {
@@ -227,6 +273,8 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
   function openSideWindow() {
     previousRunInspectorOpenRef.current = runInspectorOpen
     onRunInspectorOpenChange(false)
+    setSideWindowMaximized(false)
+    restoreSidebarCollapsed()
     setSideWindowOpen(true)
   }
 
@@ -243,6 +291,8 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
     if (sideWindowOpen) {
       previousRunInspectorOpenRef.current = null
       setSideWindowOpen(false)
+      setSideWindowMaximized(false)
+      restoreSidebarCollapsed()
       onRunInspectorOpenChange(true)
       return
     }
@@ -289,6 +339,10 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
       className={`thread-workspace${
         runInspectorOpen ? ' thread-workspace--run-inspector-open' : ''
       }${sideWindowOpen ? ' thread-workspace--side-window-open' : ''
+      }${
+        sideWindowOpen && sideWindowMaximized
+          ? ' thread-workspace--side-window-maximized'
+          : ''
       }`}
       aria-label={thread.title}
     >
@@ -483,8 +537,9 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
               projectName={projectName}
               state={sideWindowState}
               files={sideWindowFiles}
+              maximized={sideWindowMaximized}
               onStateChange={updateSideWindowState}
-              onClose={closeSideWindow}
+              onMaximizedChange={handleSideWindowMaximizedChange}
             />
           </aside>
         </>

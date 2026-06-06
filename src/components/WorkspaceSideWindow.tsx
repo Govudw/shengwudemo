@@ -7,11 +7,11 @@ import type {
 import { filterSideWindowFiles } from '../data/workspaceSideWindowMockData'
 import {
   ChevronDownIcon,
-  ChevronRightIcon,
   FolderIcon,
+  MaximizeIcon,
   MessageCircleIcon,
+  MinimizeIcon,
   SearchIcon,
-  XIcon,
 } from './icons'
 
 export type WorkspaceSideWindowMode = 'launcher' | 'files' | 'sideChat'
@@ -27,8 +27,9 @@ type WorkspaceSideWindowProps = {
   projectName: string
   state: WorkspaceSideWindowThreadState
   files: SideWindowFileAsset[]
+  maximized: boolean
   onStateChange: (nextState: WorkspaceSideWindowThreadState) => void
-  onClose: () => void
+  onMaximizedChange: (maximized: boolean) => void
 }
 
 const preferredDirectories: SideWindowFileDirectory[] = [
@@ -54,8 +55,9 @@ function WorkspaceSideWindow({
   projectName,
   state,
   files,
+  maximized,
   onStateChange,
-  onClose,
+  onMaximizedChange,
 }: WorkspaceSideWindowProps) {
   const mode = state.mode
   const selectedFile =
@@ -68,7 +70,12 @@ function WorkspaceSideWindow({
   }
 
   return (
-    <section className="workspace-side-window" aria-label="Workspace 侧窗">
+    <section
+      className={`workspace-side-window${
+        mode === 'files' ? '' : ' workspace-side-window--pathless'
+      }${maximized ? ' workspace-side-window--maximized' : ''}`}
+      aria-label="Workspace 侧窗"
+    >
       <header className="workspace-side-window__header">
         <div className="workspace-side-window__modes" aria-label="侧窗模式">
           <button
@@ -96,31 +103,38 @@ function WorkspaceSideWindow({
         </div>
         <button
           type="button"
-          className="workspace-side-window__close"
-          aria-label="关闭侧窗"
-          title="关闭侧窗"
-          onClick={onClose}
+          className="workspace-side-window__maximize"
+          aria-label={maximized ? '还原侧窗' : '最大化侧窗'}
+          aria-pressed={maximized}
+          title={maximized ? '还原侧窗' : '最大化侧窗'}
+          onClick={() => onMaximizedChange(!maximized)}
         >
-          <XIcon className="workspace-side-window__close-icon" />
+          {maximized ? (
+            <MinimizeIcon className="workspace-side-window__maximize-icon" />
+          ) : (
+            <MaximizeIcon className="workspace-side-window__maximize-icon" />
+          )}
         </button>
       </header>
 
-      <div className="workspace-side-window__path">
-        <span className="workspace-side-window__path-text">
-          {projectName} /{selectedFile ? ` ${selectedFile.fileName}` : ''}
-        </span>
-        {mode === 'files' && state.fileTreeCollapsed ? (
+      {mode === 'files' ? (
+        <div className="workspace-side-window__path">
+          <span className="workspace-side-window__path-text">
+            {projectName} /{selectedFile ? ` ${selectedFile.fileName}` : ''}
+          </span>
           <button
             type="button"
             className="workspace-side-window__path-action"
-            aria-label="展开文件树"
-            title="展开文件树"
-            onClick={() => updateState({ fileTreeCollapsed: false })}
+            aria-label={state.fileTreeCollapsed ? '展开文件树' : '收起文件树'}
+            title={state.fileTreeCollapsed ? '展开文件树' : '收起文件树'}
+            onClick={() =>
+              updateState({ fileTreeCollapsed: !state.fileTreeCollapsed })
+            }
           >
             <FolderIcon className="workspace-side-window__path-action-icon" />
           </button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {mode === 'launcher' ? (
         <WorkspaceSideWindowLauncher
@@ -213,15 +227,6 @@ function WorkspaceFileBrowser({
                 }
               />
             </label>
-            <button
-              type="button"
-              className="workspace-file-tree__collapse-button"
-              aria-label="收起文件树"
-              title="收起文件树"
-              onClick={() => updateState({ fileTreeCollapsed: true })}
-            >
-              <ChevronRightIcon className="workspace-file-tree__collapse-icon" />
-            </button>
           </div>
           {filteredFiles.length > 0 ? (
             <div className="workspace-file-tree__groups">

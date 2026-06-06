@@ -2929,7 +2929,7 @@ export const her2PostExperimentAnalysisTranscript: ConversationTurn[] = [
     id: 'her2-analysis-turn-010',
     role: 'mainAgent',
     markdown:
-      '我会在报告里把“模型解释”和“实验事实”分开写：\n\n| Layer | 可以写 | 不能写 |\n| --- | --- | --- |\n| Raw result | 文件完整、QC 状态、曲线拟合质量 | 推断真实作用机制 |\n| Model result | 模型一致性、置信区间、分歧来源 | 单一模型决定项目走向 |\n| Structural hypothesis | 哪些 readout 与结构假设相容 | 证明 HER2 表位或机制变化 |\n| Human judgment | outlier policy、解释边界、归档确认 | 把人工判断伪装成模型自动结论 |\n\n这会让 Demo 更真实：Agent 做复杂分析，但关键边界仍需要人确认。',
+      '我会在报告里把“模型解释”和“实验事实”分开写：\n\n| Layer | 可以写 | 不能写 |\n| --- | --- | --- |\n| Raw result | 文件完整、QC 状态、曲线拟合质量 | 推断真实作用机制 |\n| Model result | 模型一致性、置信区间、分歧来源 | 单一模型决定项目走向 |\n| Structural hypothesis | 哪些 readout 与结构假设相容 | 证明 HER2 表位或机制变化 |\n| Human judgment | outlier policy、解释边界、归档确认 | 把人工判断伪装成模型自动结论 |\n\nAgent 可以完成复杂分析，但关键边界仍需要人确认。',
   },
   {
     id: 'her2-analysis-turn-011',

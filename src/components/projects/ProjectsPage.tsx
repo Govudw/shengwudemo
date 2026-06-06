@@ -186,7 +186,7 @@ function ProjectsPage({
             <button
               type="button"
               className="projects-action-button"
-              onClick={() => onNotify('项目视图导出将在后续 Demo 中展开')}
+              onClick={() => onNotify('项目视图导出尚未接入当前工作区')}
             >
               <ShareIcon className="projects-action-button__icon" />
               导出
@@ -194,7 +194,7 @@ function ProjectsPage({
             <button
               type="button"
               className="projects-action-button projects-action-button--primary"
-              onClick={() => onNotify('新建项目将在后续 Demo 中展开')}
+              onClick={() => onNotify('新建项目尚未接入当前工作区')}
             >
               <PlusIcon className="projects-action-button__icon" />
               新建项目
@@ -388,7 +388,7 @@ function ProjectRecordsTable({
                   type="button"
                   className="projects-row-more"
                   aria-label={`更多项目操作 ${record.name}`}
-                  onClick={() => onNotify('更多项目操作将在后续 Demo 中展开')}
+                  onClick={() => onNotify('更多项目操作尚未接入当前工作区')}
                 >
                   <MoreHorizontalIcon className="projects-row-more__icon" />
                 </button>
@@ -445,7 +445,7 @@ function ProjectDetailPage({
             <button
               type="button"
               className="projects-action-button"
-              onClick={() => onNotify('项目收藏状态将在后续 Demo 中展开')}
+              onClick={() => onNotify('项目收藏状态尚未接入当前工作区')}
             >
               {record.favoritedByCurrentUser ? '已收藏' : '收藏'}
             </button>
@@ -462,7 +462,7 @@ function ProjectDetailPage({
               type="button"
               className="projects-icon-button"
               aria-label={`更多项目操作 ${record.name}`}
-              onClick={() => onNotify('更多项目操作将在后续 Demo 中展开')}
+              onClick={() => onNotify('更多项目操作尚未接入当前工作区')}
             >
               <MoreHorizontalIcon className="projects-icon-button__icon" />
             </button>
@@ -741,19 +741,19 @@ function ProjectSettingsPanel({
     <div className="projects-detail-content">
       <section className="projects-detail-section">
         <h2>设置</h2>
-        <p>项目设置操作暂时以 Demo 通知展示，不修改真实数据。</p>
+        <p>项目设置操作当前仅做工作区内提示，不修改真实数据。</p>
         <div className="projects-chip-list">
           <button
             type="button"
             className="projects-setting-button"
-            onClick={() => onNotify(`${record.name} 的权限设置将在后续 Demo 中展开`)}
+            onClick={() => onNotify(`${record.name} 的权限设置尚未接入当前工作区`)}
           >
             管理权限
           </button>
           <button
             type="button"
             className="projects-setting-button"
-            onClick={() => onNotify(`${record.name} 的归档设置将在后续 Demo 中展开`)}
+            onClick={() => onNotify(`${record.name} 的归档设置尚未接入当前工作区`)}
           >
             归档设置
           </button>

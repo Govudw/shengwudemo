@@ -64,8 +64,8 @@ function ThreadComposer({
     setAttachmentMenuOpen(false)
     onNotify(
       action === 'asset'
-        ? '从资产添加将在后续 Demo 中展开'
-        : '上传文件或图片将在后续 Demo 中展开',
+        ? '从资产添加尚未接入当前工作区'
+        : '上传文件或图片尚未接入当前工作区',
     )
   }
 

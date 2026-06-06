@@ -166,7 +166,7 @@ function App() {
       return
     }
 
-    showStatus('该模块将在后续 Demo 中展开')
+    showStatus('该模块尚未接入当前工作区')
   }
 
   return (
@@ -255,6 +255,8 @@ function App() {
                 onRunInspectorOpenChange={(open) =>
                   toggleRunInspector(selectedThreadEntry.thread.id, open)
                 }
+                sidebarCollapsed={sidebarCollapsed}
+                onSidebarCollapsedChange={toggleSidebarCollapsed}
               />
             ) : (
               <section className="workspace-inner">

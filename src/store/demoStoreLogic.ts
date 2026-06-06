@@ -100,7 +100,7 @@ const assetMenuItemsBySection = {
   model: ['xtrimo', 'public-models', 'project-models', 'oracles'],
 } as const satisfies Record<AssetsSection, readonly AssetMenuItemId[]>
 const selectedThreadAcknowledgement =
-  '已记录到当前对话。第一版 Demo 先把这条输入加入对话历史，不触发真实 BioMap OS 操作。'
+  '已记录到当前对话。本次输入已加入线程历史，当前未触发新的 BioMap OS 操作。'
 
 export function createInitialDemoState(
   seedProjects: Project[],

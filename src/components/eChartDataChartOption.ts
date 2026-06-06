@@ -1,16 +1,17 @@
 import type { EChartsCoreOption } from 'echarts/core'
 import type { DataChartBlock } from '../data/conversationTypes'
 
-const chartPalette = ['#2563eb', '#059669', '#d97706', '#7c3aed', '#dc2626']
+const chartPalette = ['#256fd4', '#13945f', '#c56f02', '#7a4bd8', '#c93737']
 
 export function getChartOption(block: DataChartBlock): EChartsCoreOption {
   const colors = getChartColors(block)
   const textColor = '#10213a'
   const mutedColor = '#708195'
-  const lineColor = '#d9e3ee'
+  const lineColor = '#dce7ef'
+  const axisColor = '#8a9bae'
   const commonOption: EChartsCoreOption = {
-    animationDuration: 420,
-    backgroundColor: '#f8fafc',
+    animationDuration: 460,
+    backgroundColor: 'transparent',
     color: colors,
     textStyle: {
       color: textColor,
@@ -21,15 +22,17 @@ export function getChartOption(block: DataChartBlock): EChartsCoreOption {
     tooltip: {
       confine: true,
       trigger: block.chartType === 'pie' ? 'item' : 'axis',
-      backgroundColor: 'rgba(255, 255, 255, 0.96)',
-      borderColor: '#d8e2ec',
+      backgroundColor: 'rgba(255, 255, 255, 0.98)',
+      borderColor: '#d8e4ec',
       borderWidth: 1,
       padding: [8, 10],
       textStyle: {
         color: textColor,
         fontSize: 12,
-        fontWeight: 700,
+        fontWeight: 760,
       },
+      extraCssText:
+        'box-shadow: 0 12px 28px rgba(16,35,63,0.12); border-radius: 8px;',
     },
   }
 
@@ -47,11 +50,11 @@ export function getChartOption(block: DataChartBlock): EChartsCoreOption {
             nameLocation: 'middle',
             nameGap: 30,
             min: 0,
-            nameTextStyle: { color: mutedColor, fontWeight: 800 },
+            nameTextStyle: { color: axisColor, fontWeight: 800 },
             axisTick: { show: false },
             axisLine: { lineStyle: { color: lineColor } },
-            axisLabel: { color: mutedColor, fontWeight: 800 },
-            splitLine: { lineStyle: { color: '#e8eef5' } },
+            axisLabel: { color: axisColor, fontWeight: 780 },
+            splitLine: { lineStyle: { color: '#eef3f7' } },
           }
         : {
             type: 'category',
@@ -62,14 +65,14 @@ export function getChartOption(block: DataChartBlock): EChartsCoreOption {
             data: getCategoryLabels(block),
             axisTick: { show: false },
             axisLine: { lineStyle: { color: lineColor } },
-            axisLabel: { color: mutedColor, fontWeight: 800 },
+            axisLabel: { color: axisColor, fontWeight: 780 },
           },
       yAxis: {
         type: 'value',
         name: block.yLabel,
-        nameTextStyle: { color: mutedColor, fontWeight: 800 },
+        nameTextStyle: { color: axisColor, fontWeight: 800 },
         splitLine: { lineStyle: { color: lineColor, type: 'dashed' } },
-        axisLabel: { color: mutedColor, fontWeight: 800 },
+        axisLabel: { color: axisColor, fontWeight: 780 },
       },
       series: block.series.map((serie, index) => ({
         name: serie.label,
@@ -80,14 +83,16 @@ export function getChartOption(block: DataChartBlock): EChartsCoreOption {
         lineStyle: {
           width: index === 0 ? 4 : 3,
           type: serie.label.includes('最近') ? 'dashed' : 'solid',
+          cap: 'round',
+          join: 'round',
         },
-        areaStyle: index === 0 ? { opacity: 0.08 } : undefined,
+        areaStyle: index === 0 ? { opacity: 0.1 } : undefined,
         label: {
           show: true,
           position: 'top',
           color: textColor,
           fontSize: 11,
-          fontWeight: 800,
+          fontWeight: 850,
           formatter: (params: { value?: unknown; dataIndex?: number }) =>
             formatLineDataLabel(params, serie.points.length, index),
         },
@@ -109,20 +114,24 @@ export function getChartOption(block: DataChartBlock): EChartsCoreOption {
         data: getCategoryLabels(block),
         axisTick: { show: false },
         axisLine: { lineStyle: { color: lineColor } },
-        axisLabel: { color: mutedColor, fontWeight: 800 },
+        axisLabel: { color: axisColor, fontWeight: 780 },
       },
       yAxis: {
         type: 'value',
         name: block.yLabel,
-        nameTextStyle: { color: mutedColor, fontWeight: 800 },
+        nameTextStyle: { color: axisColor, fontWeight: 800 },
         splitLine: { lineStyle: { color: lineColor, type: 'dashed' } },
-        axisLabel: { color: mutedColor, fontWeight: 800 },
+        axisLabel: { color: axisColor, fontWeight: 780 },
       },
       series: block.series.map((serie) => ({
         name: serie.label,
         type: 'bar',
         barMaxWidth: 34,
-        itemStyle: { borderRadius: [7, 7, 0, 0] },
+        itemStyle: {
+          borderRadius: [7, 7, 0, 0],
+          shadowBlur: 8,
+          shadowColor: 'rgba(16,35,63,0.08)',
+        },
         label: {
           show: true,
           position: 'top',
@@ -153,7 +162,7 @@ export function getChartOption(block: DataChartBlock): EChartsCoreOption {
         fontWeight: 900,
       },
       subtextStyle: {
-        color: textColor,
+        color: mutedColor,
         fontSize: 13,
         fontWeight: 800,
       },
@@ -168,7 +177,7 @@ export function getChartOption(block: DataChartBlock): EChartsCoreOption {
       textStyle: {
         color: mutedColor,
         fontSize: 12,
-        fontWeight: 800,
+        fontWeight: 780,
       },
       formatter: (name: string) => {
         const point = points.find((candidate) => candidate.label === name)
@@ -189,7 +198,7 @@ export function getChartOption(block: DataChartBlock): EChartsCoreOption {
         minAngle: 8,
         avoidLabelOverlap: true,
         itemStyle: {
-          borderColor: '#f8fafc',
+          borderColor: '#ffffff',
           borderRadius: 4,
           borderWidth: 2,
         },

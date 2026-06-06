@@ -28,7 +28,7 @@ function UseCaseGrid({
               if (chip.prompt) {
                 onCapabilitySelect(chip)
               } else {
-                onNotify('模型与资产将在后续 Demo 中展开')
+                onNotify('模型与资产尚未接入当前工作区')
               }
             }}
           >

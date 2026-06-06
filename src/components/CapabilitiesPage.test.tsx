@@ -143,9 +143,7 @@ describe('CapabilitiesPage', () => {
       getButtonContaining(container, '用 Agent 构建 Pipeline').click()
     })
 
-    expect(onNotify).toHaveBeenCalledWith(
-      'Agent Builder 会在后续演示中连接 Pipeline 创建流程',
-    )
+    expect(onNotify).toHaveBeenCalledWith('Pipeline Builder 尚未接入当前工作区')
 
     root.unmount()
   })

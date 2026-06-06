@@ -1176,7 +1176,7 @@ describe('demo store logic', () => {
         id: `turn-${now + 1000}-main-agent`,
         role: 'mainAgent',
         markdown:
-          '已记录到当前对话。第一版 Demo 先把这条输入加入对话历史，不触发真实 BioMap OS 操作。',
+          '已记录到当前对话。本次输入已加入线程历史，当前未触发新的 BioMap OS 操作。',
       },
     ])
     expect(next.selectedThreadId).toBe('thread-new')
@@ -1213,7 +1213,7 @@ describe('demo store logic', () => {
     expect(next.projects[1].threads[0].transcript.at(-1)).toMatchObject({
       role: 'mainAgent',
       markdown:
-        '已记录到当前对话。第一版 Demo 先把这条输入加入对话历史，不触发真实 BioMap OS 操作。',
+        '已记录到当前对话。本次输入已加入线程历史，当前未触发新的 BioMap OS 操作。',
     })
   })
 
