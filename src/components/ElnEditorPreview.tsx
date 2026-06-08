@@ -8,7 +8,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SideWindowFileAsset } from '../data/workspaceSideWindowMockData'
 import { createElnEditorExtensions } from './eln/ElnEditorExtensions'
 import {
-  buildDefaultAttachmentNode,
   buildDefaultChartNode,
   buildDefaultImageNode,
   buildDefaultSignatureNode,
@@ -354,12 +353,6 @@ function ElnEditorPreviewInner({
         label: '图片块',
         group: '实验记录',
         run: () => insertNode(buildDefaultImageNode()),
-      },
-      {
-        id: 'attachment',
-        label: '附件引用块',
-        group: '实验记录',
-        run: () => insertNode(buildDefaultAttachmentNode()),
       },
       {
         id: 'callout',

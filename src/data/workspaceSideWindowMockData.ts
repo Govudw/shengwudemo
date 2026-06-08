@@ -564,11 +564,6 @@ const elnSignatureBlock = (attrs: Record<string, unknown>): ElnDocumentNode => (
   attrs,
 })
 
-const elnAttachmentBlock = (attrs: Record<string, unknown>): ElnDocumentNode => ({
-  type: 'elnAttachmentBlock',
-  attrs,
-})
-
 const limsExperimentRecordEln: SideWindowElnDocument = {
   formatVersion: 'bmeln.v1',
   revision: 1,
@@ -647,7 +642,7 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
       id: 'exceptions-and-deviations',
       title: '异常与偏差记录',
       state: 'flagged',
-      summary: '构建返工、低收率、边缘孔波动和附件补录均保留原始记录。',
+      summary: '构建返工、低收率、边缘孔波动和结果包补录均保留原始记录。',
     },
     {
       id: 'result-package-links',
@@ -673,7 +668,7 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
     content: [
       elnHeading(1, '酶合成实验记录'),
       elnParagraph(
-        '本记录覆盖 RUN-ENZ-SYN-20260604-001 的酶合成执行、样本登记、工单回调、QC 判定、结构化读数、异常保留、结果释放和后续复核建议。记录仅引用当前 mock 已存在的样本、设备、批次、工单和结果资产，不新增宿主菌株、质粒或载体信息。',
+        '本记录覆盖 RUN-ENZ-SYN-20260604-001 的酶合成执行事实、样本登记、实验条件、QC 判定、结构化读数、异常保留、结果释放和后续复核建议。记录仅引用当前 mock 已存在的样本、设备、批次、执行记录和结果资产，不新增宿主菌株、质粒或载体信息。',
       ),
       elnHeading(2, '实验基本信息'),
       elnTable([
@@ -689,7 +684,7 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
         ['结果状态', '结果包已发布，异常 flag 保留', 'result_release approval'],
       ]),
       elnParagraph(
-        '本记录由 ProteinOps Agent 根据 LIMS 执行流程、工单回调、QC 摘要和结果数据自动维护，并保留人工补充与复核空间。',
+        '本记录由 ProteinOps Agent 根据 LIMS 执行流程、实验回调、QC 摘要和结果数据自动维护，并保留人工补充与复核空间。',
       ),
       elnSignatureBlock({
         role: 'Lab Owner',
@@ -711,15 +706,16 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
         ['异常策略', '原始读数保留，不自动剔除', '异常只作为 flag 或 resolved 状态'],
         ['不包含', '自动触发下一轮设计或扩大样本范围', '结果释放后只给出复核建议'],
       ]),
-      elnAttachmentBlock({
-        fileName: 'RUN-ENZ-SYN-20260604-001_input_package.md',
-        objectPath:
-          'Runs/RUN-ENZ-SYN-20260604-001/inputs/RUN-ENZ-SYN-20260604-001_input_package.md',
-        fileType: 'md',
-        status: 'locked',
-        summary: '启动审批前锁定的样本、SOP、设备窗口和交付边界。',
-        sourceRef: 'run_start input package',
-      }),
+      elnParagraph(
+        '启动输入包内容已直接写入本记录：本轮样本范围、SOP、设备窗口、审批人和交付边界均在 run_start 前锁定。原始记录名为 RUN-ENZ-SYN-20260604-001_input_package.md，作为本节追溯来源。',
+      ),
+      elnTable([
+        ['输入项', '本轮锁定内容', 'ELN 中的呈现位置'],
+        ['样本范围', 'ENZ-SYN-001 至 ENZ-SYN-048，外加 4 个对照', '实验目的与边界、样本登记与板图'],
+        ['执行约束', 'SOP v4、LCQ-03、PR-3107、Tech_A / Tech_B 交接', '材料、设备与执行条件'],
+        ['交付边界', '结构化读数、QC 摘要、异常清单、图表和效率复盘', '结果包与数据追溯、效率复盘与下一步计划'],
+        ['审批边界', 'run_start 通过后允许 Agent 自动派发本轮工单', '审核与签名'],
+      ]),
       elnHeading(2, '材料、设备与执行条件'),
       elnTable([
         ['类别', '记录值', '状态', '限制/备注'],
@@ -732,8 +728,29 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
         ['交接记录', 'Tech_A / Tech_B', '已记录', '表达与纯化跨午间班次'],
       ]),
       elnParagraph(
-        '当前 mock 未提供具体宿主菌株、质粒编号或载体编号；本 ELN 不补编这些实体。后续如果 LIMS/Registry 提供，可作为实验对象引用块补充。',
+        '本轮 mock 未提供宿主菌株、质粒载体、克隆序列和表达宿主信息。因此，本记录不描述菌株构建、质粒图谱、转化条件或序列验证细节；相关字段标记为“本轮 mock 未提供，待上游设计记录补充”。本 ELN 仅记录已进入 LIMS 流程的候选酶样本、执行条件、检测读数、QC 判定、异常处理和结果释放结论。',
       ),
+      elnHeading(3, '方法条件与判定阈值'),
+      elnTable([
+        ['方法项', '本轮记录值', '单位/阈值', '追溯来源'],
+        ['SOP 版本', 'SOP v4', '本轮锁定版本', 'resource readiness'],
+        ['反应体积', '200', 'uL / well', 'assay panel'],
+        ['底物', 'SUB-LOT-202606-A', '2.0 mM', '库存记录'],
+        ['缓冲液', 'BUF-PH7-202606 / BUF-PH9-202606', '50 mM Tris-HCl，pH 8.0 主检测；pH 5.5-9.0 窗口评估', '缓冲液批次记录'],
+        ['反应温度', '25.0', 'C', 'PR-3107 环境日志'],
+        ['孵育时间', '5', 'min / activity endpoint', 'assay panel'],
+        ['检测波长', '405', 'nm / Abs405', 'PR-3107 读板方法'],
+        ['重复孔', '候选样本按重复读数入库', '板内 CV 按 SOP v4 判定', 'structured_readouts.json'],
+      ]),
+      elnTable([
+        ['QC 判定阈值', '阈值/规则', '本轮结论', '处理'],
+        ['阳性对照活性', 'parent control Abs405 均值 >= 1.200', '1.284 ± 0.062', '通过'],
+        ['空白背景', 'blank buffer Abs405 均值 <= 0.050', '0.032 ± 0.006', '通过'],
+        ['阴性酶背景', 'inactive enzyme Abs405 均值 <= 0.150', '0.118 ± 0.014', '通过'],
+        ['板内 CV', '重复孔 CV <= 15%', '候选样本中位 CV 7.8%；最大复核项 14.2%', '通过'],
+        ['读数完整率', 'activity、kcat/Km proxy、Tm、pH window、expression 必填字段 100%', '612 条结构化读数字段完整', '通过'],
+        ['低收率 flag', '纯化回收量低于同批候选中位值 40% 或 QC 标记 low_yield', 'ENZ-SYN-006 / ENZ-SYN-041', '保留 flag，进入人工复核'],
+      ]),
       elnTable([
         ['设备窗口', '用途', '占用时间', '状态'],
         ['LCQ-03', '质控队列', '10:00-11:40', '已锁定并完成回调'],
@@ -752,6 +769,9 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
           series: [{ type: 'bar', data: [100, 170, 173, 79] }],
         },
       }),
+      elnParagraph(
+        '图表结论：PR-3107 读板窗口覆盖活性检测和数据入库阶段，AKTA small-column 纯化窗口在低收率 flag 样本出现后仍完成放行；设备占用未造成结果释放延迟。',
+      ),
       elnHeading(2, '样本登记与板图'),
       elnTable([
         ['对象', '数量', '记录', '追溯对象'],
@@ -782,6 +802,9 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
           series: [{ type: 'bar', data: [48, 1, 1, 1, 1] }],
         },
       }),
+      elnParagraph(
+        '图表结论：两块 96-well 板共登记 48 个候选和 4 个对照，对照分散在中心孔与边缘孔，能够支持背景扣除、边缘效应观察和流程一致性判断。',
+      ),
       elnHeading(2, '实验流程与时间线'),
       elnTable([
         ['阶段', '开始', '结束', '关键输出'],
@@ -808,6 +831,9 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
           ],
         },
       }),
+      elnParagraph(
+        '图表结论：构建、表达、纯化、检测和入库节点均完成；唯一阶段性 flag 来自纯化低收率，不阻断 PR-3107 活性检测。',
+      ),
       elnChartBlock({
         title: '实验阶段时间线',
         chartType: 'bar',
@@ -822,6 +848,9 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
           series: [{ type: 'bar', data: [18, 168, 173, 84, 28] }],
         },
       }),
+      elnParagraph(
+        '图表结论：本轮最长阶段为构建与质检等待，检测与入库阶段一次通过；结果释放耗时 28 min，未因异常 flag 追加等待。',
+      ),
       elnChartBlock({
         title: '样本角色分布',
         chartType: 'pie',
@@ -860,24 +889,22 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
           series: [{ type: 'bar', data: [50, 2, 0] }],
         },
       }),
-      elnAttachmentBlock({
-        fileName: 'WO-CONSTRUCT-20260604-101.md',
-        objectPath:
-          'Runs/RUN-ENZ-SYN-20260604-001/work_orders/WO-CONSTRUCT-20260604-101.md',
-        fileType: 'md',
-        status: 'completed',
-        summary: '构建工单说明、负责人、设备和回调端点。',
-        sourceRef: 'construct work order',
-      }),
-      elnAttachmentBlock({
-        fileName: 'construction_qc_summary.md',
-        objectPath:
-          'Runs/RUN-ENZ-SYN-20260604-001/qc/construction_qc_summary.md',
-        fileType: 'md',
-        status: 'resolved',
-        summary: '构建 QC 结论、返工样本和 resolved 状态。',
-        sourceRef: 'construction QC',
-      }),
+      elnParagraph(
+        '图表结论：50 个样本构建 QC 直接通过，ENZ-SYN-017 与 ENZ-SYN-032 返工后通过；构建阶段没有遗留未解决异常。',
+      ),
+      elnParagraph(
+        '构建工单内容已直接并入本节：WO-CONSTRUCT-20260604-101 由 Tech_A 在 Lab B 执行，任务范围为 DNA assembly / clone verification，回调端点为 CALLBACK-CONSTRUCT-101。',
+      ),
+      elnTable([
+        ['构建记录项', '直接记录内容'],
+        ['负责人', 'Tech_A / Lab B'],
+        ['执行范围', '52 个样本进入构建流程；50 个直接通过，ENZ-SYN-017 与 ENZ-SYN-032 覆盖不足'],
+        ['回调结论', 'CALLBACK-CONSTRUCT-101 返回覆盖不足 flag；返工工单 WO-REWORK-CONSTRUCT-20260604-201 仅处理 2 个样本'],
+        ['QC 结论', '返工后 2 个样本重新通过构建 QC，状态记为 resolved，原始异常链路保留'],
+      ]),
+      elnParagraph(
+        'construction_qc_summary.md 的关键结论已写入上表和构建 QC 状态图：构建覆盖不足样本已返工并完成复查，未形成新的阻断项。',
+      ),
       elnHeading(2, '表达记录'),
       elnTable([
         ['项目', '记录值', '说明'],
@@ -885,7 +912,7 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
         ['输入样本', '52', '含返工后通过样本和 4 个 controls'],
         ['表达记录', '52 个 expression records', '作为输出指标入库'],
         ['主 QC gate', '无独立表达 QC gate', '表达状态作为结果上下文'],
-        ['条件展开', '详见表达工单附件', '当前 mock 未展开培养温度或诱导条件'],
+        ['条件展开', '详见表达工单记录', '当前 mock 未展开培养温度或诱导条件'],
       ]),
       elnChartBlock({
         title: '表达记录分布',
@@ -898,15 +925,19 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
           series: [{ type: 'bar', data: [52, 0, 0] }],
         },
       }),
-      elnAttachmentBlock({
-        fileName: 'WO-EXPRESS-20260604-102.md',
-        objectPath:
-          'Runs/RUN-ENZ-SYN-20260604-001/work_orders/WO-EXPRESS-20260604-102.md',
-        fileType: 'md',
-        status: 'completed',
-        summary: '表达工单、样本输入、交接记录和表达记录提交状态。',
-        sourceRef: 'expression work order',
-      }),
+      elnParagraph(
+        '图表结论：52 个样本均形成 expression records，表达阶段没有 missing 或 flagged 记录；表达信息作为后续活性与低收率复核上下文使用。',
+      ),
+      elnParagraph(
+        '表达工单内容已直接写入本节：WO-EXPRESS-20260604-102 接收 52 个 verified samples including controls，返回 52 条 expression records。表达状态作为结果上下文入库，不设置独立主 QC gate。',
+      ),
+      elnTable([
+        ['表达记录项', '记录内容'],
+        ['输入', '构建 QC 通过后的 52 个样本，含 4 个 controls'],
+        ['输出', '52 条 expression records returned'],
+        ['交接', 'Tech_B 接续表达与纯化阶段，交接记录完整'],
+        ['ELN 处理', '表达信息作为 activity、Tm 和低收率复核的上下文，不单独阻断主流程'],
+      ]),
       elnHeading(2, '纯化记录'),
       elnTable([
         ['项目', '记录值', '处理'],
@@ -927,15 +958,19 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
           series: [{ type: 'bar', data: [50, 2, 0] }],
         },
       }),
-      elnAttachmentBlock({
-        fileName: 'purification_qc_summary.json',
-        objectPath:
-          'Runs/RUN-ENZ-SYN-20260604-001/qc/purification_qc_summary.json',
-        fileType: 'json',
-        status: 'completed',
-        summary: '纯化收率、纯度、低收率 flag 和放行结论。',
-        sourceRef: 'purification QC',
-      }),
+      elnParagraph(
+        '图表结论：50 个样本纯化收率正常，ENZ-SYN-006 与 ENZ-SYN-041 被标记为低收率；两者继续进入活性检测，但结果解释需附带 flag。',
+      ),
+      elnParagraph(
+        '纯化 QC 摘要已直接写入本节：WO-PURIFY-20260604-103 完成 AKTA small-column purification，52 个 assay inputs released；ENZ-SYN-006 与 ENZ-SYN-041 标记为低收率 flag，但不阻断 PR-3107 活性检测。',
+      ),
+      elnTable([
+        ['纯化 QC 项', '结论', '处理'],
+        ['正常收率样本', '50 个', '进入活性检测'],
+        ['低收率样本', 'ENZ-SYN-006 / ENZ-SYN-041', '保留 flag，不自动剔除'],
+        ['纯化曲线', '已回传', '作为结果包 QC 资料保留'],
+        ['放行结论', '通过', '低收率样本进入人工复核清单'],
+      ]),
       elnHeading(2, '质量分析与表征'),
       elnTable([
         ['QC / 指标', '样本数', '来源', '结论'],
@@ -953,8 +988,8 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
         ['样本 ID 与条码一致性', '52 个样本记录', '通过', '进入结果包'],
         ['必填读数字段', '612 条结构化读数', '通过', 'activity、kcat/Km proxy、Tm、pH window、expression 均可追溯'],
         ['重复孔与对照一致性', '4 个 controls 与候选重复读数', '通过', '无自动剔除'],
-        ['权限与对象路径', '结果、QC、异常和审批附件', '通过', '交付前校验 object path'],
-        ['异常 flag 保留', '6 条异常记录', '通过', '低收率、返工、边缘孔和附件补录均保留链路'],
+        ['权限与对象路径', '结果、QC、异常和审批对象', '通过', '交付前校验 object path'],
+        ['异常 flag 保留', '6 条异常记录', '通过', '低收率、返工、边缘孔和结果包补录均保留链路'],
       ]),
       elnChartBlock({
         title: 'QC 门控结果',
@@ -967,6 +1002,9 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
           series: [{ type: 'bar', data: [5, 2, 3, 1] }],
         },
       }),
+      elnParagraph(
+        '图表结论：QC 门控显示主要项目通过，返工样本已 resolved，低收率和边缘孔波动保留为 flagged reads；结果可释放但需人工复核 flagged 样本。',
+      ),
       elnChartBlock({
         title: 'PR-3107 活性读数时间线',
         chartType: 'line',
@@ -981,15 +1019,19 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
           ],
         },
       }),
-      elnAttachmentBlock({
-        fileName: 'CALLBACK-QC-204_summary.json',
-        objectPath:
-          'Runs/RUN-ENZ-SYN-20260604-001/qc/CALLBACK-QC-204_summary.json',
-        fileType: 'json',
-        status: 'completed',
-        summary: '构建、纯化、读数完整性和异常 flag 的汇总回调。',
-        sourceRef: 'QC callback',
-      }),
+      elnParagraph(
+        '图表结论：候选样本中位相对活性随检测窗口稳定上升并高于 parent control 基线，parent control 保持在 50-52 区间，说明读板漂移未主导候选差异。',
+      ),
+      elnParagraph(
+        'CALLBACK-QC-204 的摘要已直接写入本节：构建 QC、纯化 QC、读数完整性、结果对象路径和异常 flag 均已完成校验；612 条读数可追溯，结果包可进入生成阶段。',
+      ),
+      elnTable([
+        ['回调段', '直接记录结论'],
+        ['构建 QC', '2 个返工样本 resolved，其余样本通过'],
+        ['纯化 QC', '2 个低收率 flag 保留，不阻断检测'],
+        ['读数完整性', 'activity、kcat/Km proxy、Tm、pH window、expression 字段完整'],
+        ['结果对象路径', '审批、结果包和异常记录路径完整；正文保留结论、时间点和复核状态'],
+      ]),
       elnHeading(2, '结果与原始数据'),
       elnParagraph(
         '612 条结构化读数不在正文全文展开；正文只展示统计摘要、代表性读数和图表，完整数据通过 structured_readouts.json 与结果包追溯。',
@@ -1002,15 +1044,23 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
         ['pH window', '48', 'pH 5.5-9.0', '结果包字段'],
         ['expression', '52', 'expression workflow', '结果上下文'],
       ]),
+      elnHeading(3, '代表性读数摘要'),
       elnTable([
-        ['代表性读数', '样本/分组', '角色', 'activity 趋势', 'Tm 趋势', 'QC 状态', '复核含义'],
-        ['parent control', 'ENZ-P0', 'control', '基线', '基线', 'passed', '基线对照'],
-        ['高活性候选', 'Active-site group', '候选分组', '高于 parent control 中位趋势', '低于 Stability group', 'passed / resolved mixed', '下一轮关注 activity-Tm tradeoff'],
-        ['返工样本', 'ENZ-SYN-017 / ENZ-SYN-032', '返工样本', '读数保留在数据集中', '详见 structured_readouts.json', 'resolved', '构建返工后仍进入结果表'],
-        ['稳定性候选', 'Stability group', '候选分组', 'activity 中等', 'Tm 趋势更高', 'passed', '可作为稳定性方向参考'],
-        ['低收率 flag 样本', 'ENZ-SYN-006 / ENZ-SYN-041', 'candidate', '原始读数保留', '详见 structured_readouts.json', 'flagged', '需确认是否复测'],
-        ['process control', 'process control', 'control', '流程背景读数', 'NA', 'passed', '流程背景读数'],
+        ['样本/对象', '角色', 'Abs405 均值 ± SD', 'CV', '相对活性', 'Tm', 'QC 状态', '复核含义'],
+        ['ENZ-P0', 'parent control', '1.284 ± 0.062', '4.8%', '100%', '65.8 C', 'passed', '阳性对照活性达到阈值'],
+        ['blank buffer', 'blank control', '0.032 ± 0.006', '18.8%', 'NA', 'NA', 'passed', '空白背景低于 0.050'],
+        ['inactive enzyme', 'negative control', '0.118 ± 0.014', '11.9%', '9%', 'NA', 'passed', '阴性酶背景低于 0.150'],
+        ['process control', 'process control', '0.912 ± 0.048', '5.3%', '71%', '64.9 C', 'passed', '流程一致性在历史窗口内'],
+        ['ENZ-SYN-014', '高活性候选', '1.624 ± 0.091', '5.6%', '127%', '62.1 C', 'passed', '活性高但稳定性需复核'],
+        ['ENZ-SYN-027', '稳定性候选', '1.142 ± 0.074', '6.5%', '89%', '76.4 C', 'passed', '稳定性较好，可作为下一轮稳定性方向'],
+        ['ENZ-SYN-006', '低收率 flag 样本', '0.742 ± 0.105', '14.2%', '58%', '60.8 C', 'flagged', '低收率可能影响活性解释，建议复测纯化'],
+        ['ENZ-SYN-041', '低收率 flag 样本', '0.694 ± 0.098', '14.1%', '54%', '59.7 C', 'flagged', '低收率可能影响活性解释，建议复测纯化'],
+        ['ENZ-SYN-017', '返工样本', '1.218 ± 0.082', '6.7%', '95%', '64.5 C', 'resolved', '构建返工后读数保留'],
+        ['ENZ-SYN-032', '返工样本', '1.084 ± 0.071', '6.5%', '84%', '66.2 C', 'resolved', '构建返工后读数保留'],
       ]),
+      elnParagraph(
+        '代表性读数摘要覆盖阳性对照、空白对照、阴性对照、流程对照、高活性候选、稳定性候选、低收率 flag 样本和返工样本。完整 612 条读数仍以结构化数据对象追溯；正文仅保留可支持结论和复核决策的代表性值。',
+      ),
       elnChartBlock({
         title: '候选分组表现',
         chartType: 'bar',
@@ -1026,6 +1076,9 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
           ],
         },
       }),
+      elnParagraph(
+        '图表结论：Active-site 分组相对活性最高，Stability 分组 Tm 表现更好；下一轮不宜只按活性排序，应同时复核活性-Tm tradeoff。',
+      ),
       elnChartBlock({
         title: 'Activity 与 Tm 关系',
         chartType: 'scatter',
@@ -1047,15 +1100,28 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
           ],
         },
       }),
-      elnAttachmentBlock({
-        fileName: 'structured_readouts.json',
-        objectPath:
-          'Runs/RUN-ENZ-SYN-20260604-001/results/structured_readouts.json',
-        fileType: 'json',
-        status: 'saved',
-        summary: '612 条结构化读数，包含 activity、kcat/Km proxy、Tm、pH window、expression 和 QC flag。',
-        sourceRef: 'data ingest service',
-      }),
+      elnParagraph(
+        '图表结论：高活性样本集中在较低 Tm 区间，稳定性候选活性中等但 Tm 更高；ENZ-SYN-006 和 ENZ-SYN-041 因低收率 flag 不参与自动排序结论。',
+      ),
+      elnParagraph(
+        'structured_readouts.json 的核心内容已在正文中摘要呈现：本轮共 612 条结构化读数，覆盖 activity、kcat/Km proxy、Tm、pH window、expression 和 QC flag。完整数据仍由结果包追溯，ELN 正文保留统计摘要、代表性读数和复核指向。',
+      ),
+      elnTable([
+        ['结构化字段', '正文摘要', '复核用途'],
+        ['activity', '候选分组表现与 PR-3107 时间线图', '筛选高活性候选'],
+        ['Tm', 'Activity 与 Tm 关系图', '评估稳定性 tradeoff'],
+        ['QC flag', '低收率、返工、边缘孔波动均保留', '决定是否复测或人工排除'],
+        ['expression', '52 条表达记录作为上下文', '解释低收率和活性差异'],
+      ]),
+      elnHeading(3, '原始数据索引'),
+      elnTable([
+        ['数据对象', '内容摘要', '关键字段/单位', '校验状态', '责任人'],
+        ['structured_readouts.json', '612 条结构化读数', 'sample_id、well、Abs405、relative_activity、Tm C、QC flag', '字段完整率 100%', 'Data Steward'],
+        ['PR-3107_activity_export.csv', '读板原始导出', 'Abs405、read_time、plate_id、well', '与结构化读数行数一致', 'Tech_B'],
+        ['purification_qc_summary.json', '纯化收率和低收率 flag', 'yield class、low_yield flag、release decision', '2 个 flag 保留', 'Tech_B'],
+        ['construction_qc_summary.md', '构建覆盖和返工结论', 'coverage status、rework status', '2 个返工样本 resolved', 'Tech_A'],
+        ['RESULT-RELEASE-MANIFEST-20260604.json', '结果释放清单', 'release status、approval time、included objects', '审批链完整', 'Project Owner'],
+      ]),
       elnHeading(2, '异常与偏差记录'),
       elnTable([
         ['样本/对象', '位置/来源', '异常', '状态', '处理'],
@@ -1064,7 +1130,7 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
         ['ENZ-SYN-032', 'F10', '构建覆盖不足', 'resolved', '返工后通过，保留原始异常链路'],
         ['ENZ-SYN-041', '待复核孔位', '低收率', 'flagged', '保留 flag 待复核'],
         ['边缘孔波动', 'plate edge wells', '读数波动', 'flagged', '不作为自动剔除依据'],
-        ['附件补录', 'result package attachment', '补录记录', 'completed', '追溯至结果包附件'],
+        ['结果包补录', 'result package object', '补录记录', 'completed', '追溯至结果包对象'],
       ]),
       elnParagraph(
         '异常处理原则：原始读数保留，不自动剔除；不由系统自动扩大下一轮样本范围；低收率和高活性低 Tm 候选均进入人工复核清单。',
@@ -1074,7 +1140,16 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
         ['低收率 flag', 'ENZ-SYN-006 / ENZ-SYN-041', '保留读数并进入人工复核', '确认是否补做纯化或复测'],
         ['构建覆盖不足', 'ENZ-SYN-017 / ENZ-SYN-032', '返工后 resolved', '保留原始异常链路'],
         ['边缘孔波动', 'plate edge wells', '作为 flag 保留', '人工判断是否影响候选排序'],
-        ['附件补录', 'result package attachment', '已 completed', '确认审批包和结果包一致'],
+        ['结果包补录', 'result package object', '已 completed', '确认审批包和结果包一致'],
+      ]),
+      elnHeading(3, '异常影响评估'),
+      elnTable([
+        ['异常项', '发生时间', '影响范围', '即时处理', '结果释放判断', '复测建议'],
+        ['ENZ-SYN-017 构建覆盖不足', '2026-06-04 10:30', '单一样本构建 QC', '返工并复查覆盖', 'resolved 后允许进入结果表', '无强制复测，保留返工链路'],
+        ['ENZ-SYN-032 构建覆盖不足', '2026-06-04 10:30', '单一样本构建 QC', '返工并复查覆盖', 'resolved 后允许进入结果表', '无强制复测，保留返工链路'],
+        ['ENZ-SYN-006 低收率', '2026-06-04 14:24', '纯化回收量和活性解释', '保留原始读数并标记 low_yield', '可释放但不进入自动 Top 排序', '下一轮小规模重复纯化并复测 activity'],
+        ['ENZ-SYN-041 低收率', '2026-06-04 14:24', '纯化回收量和活性解释', '保留原始读数并标记 low_yield', '可释放但不进入自动 Top 排序', '下一轮小规模重复纯化并复测 activity'],
+        ['边缘孔波动', '2026-06-04 15:30', '边缘孔相关读数解释', '保留 flag 并对照中心孔样本', '不阻断结果释放', '下一轮板图优先分散关键候选'],
       ]),
       elnChartBlock({
         title: '异常处理状态',
@@ -1087,6 +1162,9 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
           series: [{ type: 'bar', data: [2, 3, 1] }],
         },
       }),
+      elnParagraph(
+        '图表结论：异常中 2 项已 resolved，3 项保留为 flagged，1 项补录完成；保留 flag 的样本不作为自动剔除对象，但进入人工复核清单。',
+      ),
       elnChartBlock({
         title: '异常类型分布',
         chartType: 'pie',
@@ -1100,21 +1178,25 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
                 { name: '构建返工', value: 2 },
                 { name: '低收率', value: 2 },
                 { name: '边缘孔波动', value: 1 },
-                { name: '附件补录', value: 1 },
+                { name: '结果包补录', value: 1 },
               ],
             },
           ],
         },
       }),
-      elnAttachmentBlock({
-        fileName: 'ANOMALY-ENZ-SYN-20260604-001.md',
-        objectPath:
-          'Runs/RUN-ENZ-SYN-20260604-001/exceptions/ANOMALY-ENZ-SYN-20260604-001.md',
-        fileType: 'md',
-        status: 'saved',
-        summary: '构建返工、低收率、边缘孔波动和附件补录的异常记录。',
-        sourceRef: 'anomaly log',
-      }),
+      elnParagraph(
+        '图表结论：异常主要来自构建返工和纯化低收率；构建异常已关闭，低收率异常对活性解释影响最大，下一轮优先复测 ENZ-SYN-006 和 ENZ-SYN-041。',
+      ),
+      elnParagraph(
+        'ANOMALY-ENZ-SYN-20260604-001 的内容已直接写入本节：异常不作为自动剔除依据，所有原始读数保留；构建返工样本标记为 resolved，低收率和边缘孔波动进入人工复核。',
+      ),
+      elnTable([
+        ['异常来源', '记录方式', '当前状态'],
+        ['构建返工', 'ENZ-SYN-017 / ENZ-SYN-032 保留原始覆盖不足记录', 'resolved'],
+        ['低收率', 'ENZ-SYN-006 / ENZ-SYN-041 保留低收率 flag', 'flagged'],
+        ['边缘孔波动', '记录 plate edge wells 读数波动', 'flagged'],
+        ['结果包补录', '结果包对象一致性已完成补录', 'completed'],
+      ]),
       elnHeading(2, '结果包与数据追溯'),
       elnTable([
         ['交付物', '状态', '说明'],
@@ -1125,24 +1207,19 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
         ['RESULT-RELEASE-MANIFEST-20260604.json', '已保存', '结果释放清单'],
         ['APPROVAL-result_release-20260604-1710.pdf', '已批准', 'Project Owner 审批'],
       ]),
-      elnAttachmentBlock({
-        fileName: 'Enzyme_Synthesis_Result_Package.xlsx',
-        objectPath:
-          'Runs/RUN-ENZ-SYN-20260604-001/results/Enzyme_Synthesis_Result_Package.xlsx',
-        fileType: 'xlsx',
-        status: 'released',
-        summary: '结构化读数、QC 摘要、异常清单、图表和效率复盘。',
-        sourceRef: 'result package',
-      }),
-      elnAttachmentBlock({
-        fileName: 'APPROVAL-result_release-20260604-1710.pdf',
-        objectPath:
-          'Runs/RUN-ENZ-SYN-20260604-001/approvals/APPROVAL-result_release-20260604-1710.pdf',
-        fileType: 'pdf',
-        status: 'approved',
-        summary: '结果包发布审批记录，审批通过时间 2026-06-04 17:10。',
-        sourceRef: 'approval artifact',
-      }),
+      elnParagraph(
+        '结果包发布结论：Enzyme_Synthesis_Result_Package.xlsx 已释放，包含结构化读数、QC 摘要、异常清单、图表和效率复盘。ELN 正文记录发布范围、审批结论和后续复核要求。',
+      ),
+      elnTable([
+        ['结果包组成', '正文结论', '追溯名'],
+        ['结构化读数', '612 条读数字段完整，低收率 flag 保留', 'structured_readouts.json'],
+        ['QC 摘要', '构建、纯化和数据完整性检查通过', 'CALLBACK-QC-204_summary.json'],
+        ['异常清单', '构建返工、低收率、边缘孔波动和补录记录保留', 'ANOMALY-ENZ-SYN-20260604-001.md'],
+        ['发布审批', 'Project Owner 于 2026-06-04 17:10 批准结果释放', 'APPROVAL-result_release-20260604-1710.pdf'],
+      ]),
+      elnParagraph(
+        'result_release 审批意见：允许发布初版结果包；异常 flag 不作为剔除依据，下一轮由负责人复核。审批记录保留在结果包追溯链中，并在本节保留发布结论。',
+      ),
       elnHeading(2, '效率复盘与下一步计划'),
       elnTable([
         ['阶段', '本轮实际', '上一轮', '最近 5 轮均值', '备注'],
@@ -1170,17 +1247,21 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
         },
       }),
       elnParagraph(
+        '图表结论：本轮在输入确认、构建与质检等待、检测与入库、结果释放四个阶段均短于上一轮；主要效率收益来自数据入库一次通过和结果释放前置校验。',
+      ),
+      elnParagraph(
         '下一轮建议优先复核 ENZ-SYN-006 和 ENZ-SYN-041 的低收率原因，并评估高活性但 Tm 较低候选的稳定性 tradeoff。不建议直接扩大到新一轮 96 样本，除非低收率样本复测和高活性候选稳定性复核完成。',
       ),
-      elnAttachmentBlock({
-        fileName: 'RUN-ENZ-SYN-20260604-001_efficiency_review.md',
-        objectPath:
-          'Runs/RUN-ENZ-SYN-20260604-001/analysis/RUN-ENZ-SYN-20260604-001_efficiency_review.md',
-        fileType: 'md',
-        status: 'saved',
-        summary: '节点耗时、返工等待、设备占用和下一轮流程建议。',
-        sourceRef: 'efficiency review',
-      }),
+      elnParagraph(
+        '效率复盘内容已直接写入本节：本轮总耗时 471 min，比最近 5 轮均值快 74 min，比上一轮快 141 min。主要改进来自构建质检等待缩短、PR-3107 回调一次通过和结果释放前置 schema 检查。',
+      ),
+      elnTable([
+        ['复盘结论', '直接记录内容'],
+        ['主要卡点', '构建与质检等待仍是最大耗时段，质检审批占 6 min 但未阻塞主线'],
+        ['本轮改善', '检测与入库一次通过，表达与纯化交接记录完整'],
+        ['下一轮建议', '样本注册后提前做构建 QC 条码复核；给质检未通过样本预留小设备窗口'],
+        ['扩样判断', '不建议直接扩大到 96 样本，先复核低收率和高活性低 Tm 候选'],
+      ]),
       elnHeading(2, '审核与签名'),
       elnTable([
         ['节点', '审批人/复核人', '决策', '时间', '关联文件'],
@@ -1189,6 +1270,13 @@ const limsExperimentRecordEln: SideWindowElnDocument = {
         ['result_release', 'Project Owner', '通过', '2026-06-04 17:10', 'APPROVAL-result_release-20260604-1710.pdf'],
         ['data stewardship', 'Data Steward', '待复核', '待签署', 'structured_readouts.json'],
         ['experiment owner review', 'Experiment Owner', '待确认', '待签署', 'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln'],
+      ]),
+      elnTable([
+        ['签名类型', '签名对象', '签署含义', '是否阻断结果释放'],
+        ['实验记录确认', 'Lab Owner', '确认输入范围、执行边界和返工范围', 'run_start 阶段阻断；返工阶段阻断返工执行'],
+        ['异常接受', 'Lab Owner / Experiment Owner', '接受 resolved 与 flagged 状态进入结果记录，但不代表异常被删除', '不阻断已批准的结果释放'],
+        ['结果释放审批', 'Project Owner', '确认结果包可发布至项目交付区', '未签署时阻断结果释放'],
+        ['数据复核', 'Data Steward', '复核结构化读数字段、单位、QC flag 和追溯对象', '当前为发布后复核项'],
       ]),
       elnSignatureBlock({
         role: 'Lab Owner',

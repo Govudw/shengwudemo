@@ -93,7 +93,6 @@ export function getInsertableBlockTemplates(): ElnInsertableBlockTemplate[] {
     { id: 'image', label: '图片块', node: buildDefaultImageNode() },
     { id: 'chart', label: 'Chart Block', node: buildDefaultChartNode() },
     { id: 'signature', label: 'Signature Block', node: buildDefaultSignatureNode() },
-    { id: 'attachment', label: '附件引用块', node: buildDefaultAttachmentNode() },
   ]
 }
 
@@ -160,20 +159,6 @@ export function buildDefaultImageNode(): JSONContent {
       alt: 'ELN 图片',
       caption: '图：待补充说明。',
       assetRef: '',
-      sourceRef: 'object-storage',
-    },
-  }
-}
-
-export function buildDefaultAttachmentNode(): JSONContent {
-  return {
-    type: 'elnAttachmentBlock',
-    attrs: {
-      fileName: 'attachment.json',
-      fileType: 'json',
-      objectPath: 'Runs/example/attachment.json',
-      status: 'linked',
-      summary: '待补充附件摘要。',
       sourceRef: 'object-storage',
     },
   }

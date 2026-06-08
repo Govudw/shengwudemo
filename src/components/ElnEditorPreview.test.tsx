@@ -322,19 +322,12 @@ describe('ElnEditorPreview', () => {
     expect(signatureBlock?.textContent).toContain('signed')
     expect(signatureBlock?.textContent).toContain('2026-06-04 09:18')
 
-    const attachmentBlock = container.querySelector(
-      '.workspace-file-preview__eln-attachment-block',
-    )
-    expect(attachmentBlock).not.toBeNull()
-    expect(attachmentBlock?.textContent).toContain(
-      'RUN-ENZ-SYN-20260604-001_input_package.md',
-    )
-    expect(attachmentBlock?.textContent).toContain(
-      'Runs/RUN-ENZ-SYN-20260604-001/inputs/RUN-ENZ-SYN-20260604-001_input_package.md',
-    )
-    expect(attachmentBlock?.textContent).toContain(
-      '启动审批前锁定的样本、SOP、设备窗口和交付边界。',
-    )
+    expect(
+      container.querySelector('.workspace-file-preview__eln-attachment-block'),
+    ).toBeNull()
+    expect(container.textContent).toContain('启动输入包内容已直接写入本记录')
+    expect(container.textContent).toContain('构建工单内容已直接并入本节')
+    expect(container.textContent).toContain('结果包发布结论')
 
     expect(container.querySelector('.workspace-file-preview__eln-table-scroll')).toBeNull()
     expect(container.querySelector('.workspace-file-preview__eln-prosemirror table'))
@@ -465,13 +458,13 @@ describe('ElnEditorPreview', () => {
       '分割线',
       '普通表格',
       '图片块',
-      '附件引用块',
       '提示块',
       'Chart Block',
       'Signature Block',
     ].forEach((label) => {
       expect(menu?.textContent).toContain(label)
     })
+    expect(menu?.textContent).not.toContain('附件引用块')
 
     await pressKey(editorElement!, 'ArrowDown')
     await pressKey(editorElement!, 'Enter')
@@ -546,7 +539,7 @@ describe('ElnEditorPreview', () => {
       ),
     ).toBe(true)
 
-    for (const label of ['Chart Block', '图片块', 'Signature Block', '附件引用块']) {
+    for (const label of ['Chart Block', '图片块', 'Signature Block']) {
       await hoverFirstBodyBlock(container)
       await clickElement(getButton(container, '插入内容'))
       await clickElement(getButton(container, label))
@@ -555,7 +548,7 @@ describe('ElnEditorPreview', () => {
     expect(container.textContent).toContain('预设数据图表')
     expect(container.textContent).toContain('图：待补充说明。')
     expect(container.textContent).toContain('预留复核签名位。')
-    expect(container.textContent).toContain('attachment.json')
+    expect(container.textContent).not.toContain('attachment.json')
   })
 
   it('closes the insert menu when clicking outside it', async () => {

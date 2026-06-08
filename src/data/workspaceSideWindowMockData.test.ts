@@ -189,14 +189,25 @@ describe('workspace side window file data', () => {
             .join('')
         : '',
     )
-    const attachmentPaths = (nodesByType.get('elnAttachmentBlock') ?? []).map((node) => {
-      const attrs = node.attrs
-      if (typeof attrs !== 'object' || attrs === null || !('objectPath' in attrs)) {
-        return ''
-      }
-      const objectPath = (attrs as { objectPath?: unknown }).objectPath
-      return typeof objectPath === 'string' ? objectPath : ''
-    })
+    const collectText = (node: unknown): string => {
+      if (typeof node === 'string') return node
+      if (typeof node !== 'object' || node === null) return ''
+      const record = node as Record<string, unknown>
+      const ownText = typeof record.text === 'string' ? record.text : ''
+      const contentText = Array.isArray(record.content)
+        ? record.content.map(collectText).join(' ')
+        : ''
+      const attrsText =
+        typeof record.attrs === 'object' && record.attrs !== null
+          ? Object.values(record.attrs as Record<string, unknown>)
+              .map((value) =>
+                typeof value === 'string' || typeof value === 'number' ? String(value) : '',
+              )
+              .join(' ')
+          : ''
+      return [ownText, attrsText, contentText].filter(Boolean).join(' ')
+    }
+    const documentText = documentContent.map(collectText).join('\n')
 
     expect(eln).toMatchObject({
       previewKind: 'eln',
@@ -227,15 +238,16 @@ describe('workspace side window file data', () => {
     expect((nodesByType.get('elnImageBlock') ?? []).length).toBe(0)
     expect((nodesByType.get('elnChartBlock') ?? []).length).toBeGreaterThanOrEqual(14)
     expect((nodesByType.get('elnSignatureBlock') ?? []).length).toBeGreaterThanOrEqual(4)
-    expect((nodesByType.get('elnAttachmentBlock') ?? []).length).toBeGreaterThanOrEqual(4)
-    expect(attachmentPaths).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining('/work_orders/'),
-        expect.stringContaining('/qc/'),
-        expect.stringContaining('/results/'),
-        expect.stringContaining('/approvals/'),
-      ]),
-    )
+    expect((nodesByType.get('elnAttachmentBlock') ?? []).length).toBe(0)
+    expect(documentText).toContain('启动输入包内容已直接写入本记录')
+    expect(documentText).toContain('WO-CONSTRUCT-20260604-101')
+    expect(documentText).toContain('CALLBACK-QC-204 的摘要已直接写入本节')
+    expect(documentText).toContain('结果包发布结论')
+    expect(documentText).toContain('方法条件与判定阈值')
+    expect(documentText).toContain('QC 判定阈值')
+    expect(documentText).toContain('代表性读数摘要')
+    expect(documentText).toContain('异常影响评估')
+    expect(documentText).toContain('原始数据索引')
   })
 
   it('builds the LIMS ELN as an evidence-dense v2 experiment record', () => {
@@ -346,7 +358,12 @@ describe('workspace side window file data', () => {
     expect(documentText).toContain('612 条结构化读数不在正文全文展开')
     expect(documentText).toContain('原始读数保留，不自动剔除')
     expect(documentText).toContain('不建议直接扩大到新一轮 96 样本')
-    expect(documentText).toContain('当前 mock 未提供具体宿主菌株、质粒编号或载体编号')
+    expect(documentText).toContain('本轮 mock 未提供宿主菌株、质粒载体、克隆序列和表达宿主信息')
+    expect(documentText).toContain('反应体积')
+    expect(documentText).toContain('检测波长')
+    expect(documentText).toContain('阳性对照活性')
+    expect(documentText).toContain('均值 ± SD')
+    expect(documentText).toContain('图表结论')
     expect(documentText).not.toMatch(/BL21|DH5α|pET|宿主菌株：|质粒编号：|载体编号：/)
     expect(signatureMeanings).toEqual(
       expect.arrayContaining([
