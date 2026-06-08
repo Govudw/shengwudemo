@@ -104,6 +104,7 @@ export type ProjectFileBlock = {
     | 'jpg'
     | 'fasta'
     | 'pdb'
+    | 'bmeln'
     | 'md'
     | 'json'
   location: string

@@ -8,6 +8,14 @@ This context defines the product language for the BioMap Agent workspace. It kee
 A conversation unit inside a Project. A Thread contains the user and Agent dialogue for one workflow or workflow slice.
 _Avoid_: Chat, session, ticket
 
+**Agent**:
+The AI actor that helps operate a Thread, orchestrate Runs, and produce Project Files. An Agent can maintain an ELN Document, but the ELN Document should record experiment facts rather than the Agent conversation.
+_Avoid_: Human operator, lab technician
+
+**Experiment Owner**:
+The human responsible for the experiment being orchestrated in a Run. The Experiment Owner may make decisions in the Thread and review the resulting ELN Document.
+_Avoid_: Agent, generic user
+
 **Project**:
 A workspace-level container for related Threads, assets, capabilities, and project context. A Project may contain multiple Threads that describe different parts of the same scientific workflow.
 _Avoid_: Folder, account, workspace
@@ -28,6 +36,50 @@ _Avoid_: Attachment when it refers to durable project storage
 A Project File presented through a structured object path. It groups assets by project storage purpose rather than by the Thread that mentioned them.
 _Avoid_: Chat attachment, local file
 
+**Run**:
+A concrete execution instance orchestrated by an Agent inside a Thread. A Run may produce Project Files such as result packages and ELN Documents.
+_Avoid_: Experiment when referring to the orchestration instance
+
+**Work Order**:
+An operational task issued during a Run for a specific experimental stage, such as construction, expression, purification, assay, or data ingest. A Work Order can be referenced by an ELN Document but is not itself the ELN Document.
+_Avoid_: Chat task, checklist item
+
+**Approval**:
+An Agent subsystem for requesting, recording, and displaying human decisions during a Run. Approval artifacts may be referenced by ELN Documents, but the Approval workflow is not part of the ELN Document body.
+_Avoid_: Signature Block, electronic signature system
+
+**ELN Document**:
+A structured electronic lab notebook document produced during an experimental workflow. It is a BioMap Agent-specific document type that only this Agent project knows how to render, a Project File when stored as `.bmeln`, and may appear as an Object Storage Asset when shown by object path.
+_Avoid_: Chat summary, transcript, plain Markdown file, generic `.eln` file
+
+**ELN Format Version**:
+The schema version of a `.bmeln` ELN Document. It defines how Document Blocks in the file should be interpreted and migrated, and is separate from document history or saved revisions.
+_Avoid_: History version, autosave checkpoint
+
+**ELN Revision**:
+The saved revision number of a `.bmeln` ELN Document inside the standard file framework. It records which saved state is current, but does not imply a browsable version-history UI.
+_Avoid_: Format version, Feishu-style history
+
+**Document Block**:
+A structured block inside an ELN Document, such as a paragraph, table, image, chart, signature, or attachment reference. Document Blocks are ELN-specific and do not define a general document model for other Project Files.
+_Avoid_: Plugin, widget, external app, generic document block
+
+**Chart Block**:
+An interactive Document Block inside an ELN Document for visualizing experimental data summaries. Chart Blocks are rendered with ECharts in the current BioMap Agent ELN experience.
+_Avoid_: Static image when interaction is expected, chart plugin
+
+**Signature Block**:
+A Document Block inside an ELN Document that represents a signature, confirmation, or approval record in the document body. It may reference an Approval artifact, but it is not the Approval workflow itself.
+_Avoid_: Approval workflow, electronic signature system
+
+**Document Outline**:
+A collapsible navigation surface generated from H1-H6 headings in an ELN Document. It is part of the ELN editor UI, not a Document Block and not persisted in the `.bmeln` body.
+_Avoid_: Document Block, table of contents stored in the document
+
+**ELN Editing Experience**:
+The user-facing editing behavior for `.bmeln` ELN Documents. It may borrow Feishu-like inline document cues, but it is scoped to ELN Documents and does not imply a general collaborative document platform.
+_Avoid_: Feishu clone, complete collaboration suite, generic rich-text product
+
 **Side Chat**:
 An auxiliary conversation surface attached to the current Thread context. It is separate from the main Thread transcript.
 _Avoid_: New Thread, comment, support chat
@@ -45,3 +97,35 @@ Domain expert: Treat them as Object Storage Assets. Some may have been introduce
 Developer: Should Side Chat create a new Thread?
 
 Domain expert: No. Side Chat stays attached to the current Thread context and does not replace the main Thread transcript.
+
+Developer: Is the `.bmeln` asset just the Agent transcript exported as Markdown?
+
+Domain expert: No. Treat it as an ELN Document. It may be stored as a Project File and displayed as an Object Storage Asset, but its domain purpose is to record the experiment, not to summarize the conversation.
+
+Developer: Does a `.bmeln` version mean users can browse and restore historical document versions?
+
+Domain expert: No. A `.bmeln` file has an ELN Format Version for schema interpretation and may have an ELN Revision for the saved file state. Browsable history, restore, and diff are separate product capabilities.
+
+Developer: Is `RUN-ENZ-SYN-20260604-001` the experiment ID?
+
+Domain expert: No. That is the Run ID for the Agent-orchestrated execution instance. The ELN Document records the experiment content produced during that Run.
+
+Developer: Should Work Orders become ELN sections?
+
+Domain expert: No. A Work Order is a traceable operational source for a stage of the Run. The ELN Document can reference it, but the ELN structure should still read like an experimental notebook.
+
+Developer: Is a signature inside the ELN an Approval?
+
+Domain expert: No. Approval is an Agent subsystem. A Signature Block is only a Document Block inside the ELN Document, even when it references an Approval artifact.
+
+Developer: Should the interactive chart inside the ELN be called a plugin?
+
+Domain expert: No. Call it a Chart Block. It may be interactive, but it lives inside the ELN Document body like a Feishu document block and is rendered with ECharts in this product.
+
+Developer: Is the left navigation in the ELN a Document Block?
+
+Domain expert: No. It is a Document Outline generated from H1-H6 headings. It is editor UI and is not stored in the `.bmeln` body.
+
+Developer: Does Feishu-like editing mean rebuilding the full Feishu document product?
+
+Domain expert: No. It means the ELN Editing Experience should borrow inline document cues for `.bmeln` editing, such as document-like inline editing, insertion controls, block affordances, and heading navigation. Collaboration, comments, sharing, permissioning, and full document platform features are out of scope.

@@ -1,10 +1,12 @@
-import type { ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type {
   SideWindowFileAsset,
   SideWindowFileDirectory,
   SideWindowSpreadsheetPreview,
 } from '../data/workspaceSideWindowMockData'
 import { filterSideWindowFiles } from '../data/workspaceSideWindowMockData'
+import ElnEditorPreview, { type ElnHeadingScrollRequest } from './ElnEditorPreview'
+import type { ElnDocumentOutlineItem } from './eln/elnDocumentModel'
 import {
   ChevronDownIcon,
   FolderIcon,
@@ -21,6 +23,8 @@ export type WorkspaceSideWindowThreadState = {
   selectedFileId: string | null
   searchQuery: string
   fileTreeCollapsed: boolean
+  documentOutlineCollapsed?: boolean
+  fileStatusOverrides?: Record<string, string>
 }
 
 type WorkspaceSideWindowProps = {
@@ -45,6 +49,7 @@ const preferredDirectories: SideWindowFileDirectory[] = [
   'Runs/RUN-ENZ-SYN-20260604-001/callbacks',
   'Runs/RUN-ENZ-SYN-20260604-001/qc',
   'Runs/RUN-ENZ-SYN-20260604-001/exceptions',
+  'Runs/RUN-ENZ-SYN-20260604-001/eln',
   'Runs/RUN-ENZ-SYN-20260604-001/results',
   'Runs/RUN-ENZ-SYN-20260604-001/analysis',
 ]
@@ -64,9 +69,53 @@ function WorkspaceSideWindow({
     mode === 'files'
       ? files.find((file) => file.id === state.selectedFileId) ?? null
       : null
+  const selectedFileStatus = selectedFile
+    ? getFileStatusLabel(selectedFile, state)
+    : null
+  const selectedFileIsEln = selectedFile?.previewKind === 'eln'
+  const documentOutlineCollapsed = selectedFileIsEln
+    ? state.documentOutlineCollapsed ?? !maximized
+    : true
+  const previousMaximizedRef = useRef(maximized)
 
   function updateState(patch: Partial<WorkspaceSideWindowThreadState>) {
     onStateChange({ ...state, ...patch })
+  }
+
+  useEffect(() => {
+    if (previousMaximizedRef.current === maximized) {
+      return
+    }
+
+    previousMaximizedRef.current = maximized
+
+    if (!selectedFileIsEln) {
+      return
+    }
+
+    onStateChange({
+      ...state,
+      fileTreeCollapsed: maximized ? true : state.fileTreeCollapsed,
+      documentOutlineCollapsed: !maximized,
+    })
+  }, [maximized, onStateChange, selectedFileIsEln, state])
+
+  function toggleFileTree() {
+    const nextFileTreeCollapsed = !state.fileTreeCollapsed
+
+    updateState({
+      fileTreeCollapsed: nextFileTreeCollapsed,
+      ...(selectedFileIsEln && !nextFileTreeCollapsed
+        ? { documentOutlineCollapsed: true }
+        : {}),
+    })
+  }
+
+  function updateDocumentOutlineCollapsed(collapsed: boolean) {
+    updateState({
+      documentOutlineCollapsed: collapsed,
+      ...(selectedFileIsEln && !collapsed ? { fileTreeCollapsed: true } : {}),
+    })
   }
 
   return (
@@ -122,14 +171,17 @@ function WorkspaceSideWindow({
           <span className="workspace-side-window__path-text">
             {projectName} /{selectedFile ? ` ${selectedFile.fileName}` : ''}
           </span>
+          {selectedFileStatus ? (
+            <span className="workspace-side-window__path-status">
+              {selectedFileStatus}
+            </span>
+          ) : null}
           <button
             type="button"
             className="workspace-side-window__path-action"
             aria-label={state.fileTreeCollapsed ? '展开文件树' : '收起文件树'}
             title={state.fileTreeCollapsed ? '展开文件树' : '收起文件树'}
-            onClick={() =>
-              updateState({ fileTreeCollapsed: !state.fileTreeCollapsed })
-            }
+            onClick={toggleFileTree}
           >
             <FolderIcon className="workspace-side-window__path-action-icon" />
           </button>
@@ -147,6 +199,9 @@ function WorkspaceSideWindow({
         <WorkspaceFileBrowser
           files={files}
           state={state}
+          maximized={maximized}
+          documentOutlineCollapsed={documentOutlineCollapsed}
+          onDocumentOutlineCollapsedChange={updateDocumentOutlineCollapsed}
           onStateChange={onStateChange}
         />
       ) : null}
@@ -190,28 +245,95 @@ function WorkspaceSideWindowLauncher({
 function WorkspaceFileBrowser({
   files,
   state,
+  maximized,
+  documentOutlineCollapsed,
+  onDocumentOutlineCollapsedChange,
   onStateChange,
 }: {
   files: SideWindowFileAsset[]
   state: WorkspaceSideWindowThreadState
+  maximized: boolean
+  documentOutlineCollapsed: boolean
+  onDocumentOutlineCollapsedChange: (collapsed: boolean) => void
   onStateChange: (nextState: WorkspaceSideWindowThreadState) => void
 }) {
   const filteredFiles = filterSideWindowFiles(files, state.searchQuery)
   const directories = getOrderedFileDirectories(filteredFiles)
   const selectedFile =
     files.find((file) => file.id === state.selectedFileId) ?? null
+  const selectedFileIsEln = selectedFile?.previewKind === 'eln'
+  const [documentOutline, setDocumentOutline] = useState<ElnDocumentOutlineItem[]>([])
+  const [headingScrollRequest, setHeadingScrollRequest] =
+    useState<ElnHeadingScrollRequest | null>(null)
+  const previousSelectedFileIdRef = useRef<string | null>(selectedFile?.id ?? null)
+  const browserClassName = [
+    'workspace-file-browser',
+    state.fileTreeCollapsed ? 'workspace-file-browser--tree-collapsed' : '',
+    selectedFileIsEln ? 'workspace-file-browser--with-outline' : '',
+    selectedFileIsEln && documentOutlineCollapsed
+      ? 'workspace-file-browser--outline-collapsed'
+      : '',
+    selectedFileIsEln && !documentOutlineCollapsed
+      ? 'workspace-file-browser--outline-expanded'
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   function updateState(patch: Partial<WorkspaceSideWindowThreadState>) {
     onStateChange({ ...state, ...patch })
   }
 
+  function updateFileStatus(fileId: string, statusLabel: string) {
+    updateState({
+      fileStatusOverrides: {
+        ...(state.fileStatusOverrides ?? {}),
+        [fileId]: statusLabel,
+      },
+    })
+  }
+
+  const handleDocumentOutlineChange = useCallback(
+    (nextOutline: ElnDocumentOutlineItem[]) => {
+      setDocumentOutline(nextOutline)
+    },
+    [],
+  )
+
+  function handleDocumentHeadingSelect(id: string) {
+    setHeadingScrollRequest((current) => ({
+      id,
+      requestId: (current?.requestId ?? 0) + 1,
+    }))
+  }
+
+  useEffect(() => {
+    if (previousSelectedFileIdRef.current === (selectedFile?.id ?? null)) {
+      return
+    }
+
+    previousSelectedFileIdRef.current = selectedFile?.id ?? null
+    setDocumentOutline([])
+    setHeadingScrollRequest(null)
+  }, [selectedFile?.id])
+
   return (
-    <div
-      className={`workspace-file-browser${
-        state.fileTreeCollapsed ? ' workspace-file-browser--tree-collapsed' : ''
-      }`}
-    >
-      <WorkspaceFilePreview file={selectedFile} />
+    <div className={browserClassName}>
+      {selectedFileIsEln ? (
+        <ElnDocumentOutline
+          collapsed={documentOutlineCollapsed}
+          outline={documentOutline}
+          onCollapsedChange={onDocumentOutlineCollapsedChange}
+          onHeadingSelect={handleDocumentHeadingSelect}
+        />
+      ) : null}
+      <WorkspaceFilePreview
+        file={selectedFile}
+        statusLabel={selectedFile ? getFileStatusLabel(selectedFile, state) : null}
+        onFileStatusChange={updateFileStatus}
+        onDocumentOutlineChange={handleDocumentOutlineChange}
+        headingScrollRequest={headingScrollRequest}
+      />
       {!state.fileTreeCollapsed ? (
         <aside className="workspace-file-tree" aria-label="对象存储文件树">
           <div className="workspace-file-tree__toolbar">
@@ -262,7 +384,15 @@ function WorkspaceFileBrowser({
                             aria-label={file.fileName}
                             aria-pressed={file.id === state.selectedFileId}
                             onClick={() =>
-                              updateState({ selectedFileId: file.id })
+                              updateState({
+                                selectedFileId: file.id,
+                                ...(file.previewKind === 'eln'
+                                  ? {
+                                      fileTreeCollapsed: true,
+                                      documentOutlineCollapsed: !maximized,
+                                    }
+                                  : {}),
+                              })
                             }
                           >
                             <span className="workspace-file-tree__file-extension">
@@ -290,6 +420,73 @@ function WorkspaceFileBrowser({
   )
 }
 
+function ElnDocumentOutline({
+  collapsed,
+  outline,
+  onCollapsedChange,
+  onHeadingSelect,
+}: {
+  collapsed: boolean
+  outline: ElnDocumentOutlineItem[]
+  onCollapsedChange: (collapsed: boolean) => void
+  onHeadingSelect: (id: string) => void
+}) {
+  return (
+    <aside
+      className={`workspace-file-outline${
+        collapsed
+          ? ' workspace-file-outline--collapsed'
+          : ' workspace-file-outline--expanded'
+      }`}
+      aria-label="文档导航"
+    >
+      <button
+        type="button"
+        className="workspace-file-outline__toggle"
+        aria-label={collapsed ? '展开文档导航' : '收起文档导航'}
+        title={collapsed ? '展开文档导航' : '收起文档导航'}
+        aria-expanded={!collapsed}
+        onClick={() => onCollapsedChange(!collapsed)}
+      >
+        {collapsed ? (
+          <span className="workspace-file-outline__toggle-mark" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+        ) : (
+          <span className="workspace-file-outline__collapse-mark" aria-hidden="true">
+            &lt;&lt;
+          </span>
+        )}
+      </button>
+      {!collapsed ? (
+        outline.length > 0 ? (
+          <nav className="workspace-file-outline__nav" aria-label="文档标题">
+            <ol>
+              {outline.map((item) => (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    className="workspace-file-outline__item"
+                    aria-label={item.title}
+                    data-outline-level={item.level}
+                    onClick={() => onHeadingSelect(item.id)}
+                  >
+                    {item.title}
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        ) : (
+          <p className="workspace-file-outline__empty">暂无标题</p>
+        )
+      ) : null}
+    </aside>
+  )
+}
+
 function getOrderedFileDirectories(files: SideWindowFileAsset[]) {
   const fileDirectorySet = new Set(files.map((file) => file.directory))
   const orderedDirectories = preferredDirectories.filter((directory) =>
@@ -302,7 +499,26 @@ function getOrderedFileDirectories(files: SideWindowFileAsset[]) {
   return [...orderedDirectories, ...remainingDirectories]
 }
 
-function WorkspaceFilePreview({ file }: { file: SideWindowFileAsset | null }) {
+function getFileStatusLabel(
+  file: SideWindowFileAsset,
+  state: WorkspaceSideWindowThreadState,
+) {
+  return state.fileStatusOverrides?.[file.id] ?? file.statusLabel
+}
+
+function WorkspaceFilePreview({
+  file,
+  statusLabel,
+  onFileStatusChange,
+  onDocumentOutlineChange,
+  headingScrollRequest,
+}: {
+  file: SideWindowFileAsset | null
+  statusLabel: string | null
+  onFileStatusChange: (fileId: string, statusLabel: string) => void
+  onDocumentOutlineChange: (outline: ElnDocumentOutlineItem[]) => void
+  headingScrollRequest: ElnHeadingScrollRequest | null
+}) {
   if (!file) {
     return (
       <section className="workspace-file-preview" aria-label="文件预览">
@@ -316,7 +532,10 @@ function WorkspaceFilePreview({ file }: { file: SideWindowFileAsset | null }) {
   }
 
   return (
-    <section className="workspace-file-preview" aria-label={`${file.fileName} 预览`}>
+    <section
+      className={`workspace-file-preview workspace-file-preview--${file.previewKind}`}
+      aria-label={`${file.fileName} 预览`}
+    >
       {file.previewKind === 'markdown' ? (
         <div className="workspace-file-preview__markdown">
           {renderMarkdownContent(file.content)}
@@ -327,22 +546,38 @@ function WorkspaceFilePreview({ file }: { file: SideWindowFileAsset | null }) {
           {renderJsonContent(file.content)}
         </pre>
       ) : null}
+      {file.previewKind === 'eln' ? (
+        <ElnEditorPreview
+          file={file}
+          onDirtyStateChange={(nextStatusLabel) =>
+            onFileStatusChange(file.id, nextStatusLabel)
+          }
+          onDocumentOutlineChange={onDocumentOutlineChange}
+          headingScrollRequest={headingScrollRequest}
+        />
+      ) : null}
       {file.previewKind === 'image' && file.imageSrc ? (
         <figure className="workspace-file-preview__figure">
           <img src={file.imageSrc} alt={file.fileName} />
         </figure>
       ) : null}
       {file.previewKind === 'spreadsheet' ? (
-        <SpreadsheetFilePreview file={file} />
+        <SpreadsheetFilePreview file={file} statusLabel={statusLabel ?? file.statusLabel} />
       ) : null}
       {file.previewKind === 'unsupported' ? (
-        <UnsupportedFilePreview file={file} />
+        <UnsupportedFilePreview file={file} statusLabel={statusLabel ?? file.statusLabel} />
       ) : null}
     </section>
   )
 }
 
-function SpreadsheetFilePreview({ file }: { file: SideWindowFileAsset }) {
+function SpreadsheetFilePreview({
+  file,
+  statusLabel,
+}: {
+  file: SideWindowFileAsset
+  statusLabel: string
+}) {
   const preview =
     file.spreadsheetPreview ?? getFallbackSpreadsheetPreview(file.fileName)
 
@@ -364,7 +599,7 @@ function SpreadsheetFilePreview({ file }: { file: SideWindowFileAsset }) {
         <span>{preview.totalRows} 行记录</span>
         <span>{preview.columns.length} 列</span>
         <span>{file.sourceLabel}</span>
-        <span>{file.statusLabel}</span>
+        <span>{statusLabel}</span>
       </div>
       <div className="workspace-file-preview__sheet-table-scroll">
         <table className="workspace-file-preview__sheet-table">
@@ -400,7 +635,13 @@ function getFallbackSpreadsheetPreview(fileName: string): SideWindowSpreadsheetP
   }
 }
 
-function UnsupportedFilePreview({ file }: { file: SideWindowFileAsset }) {
+function UnsupportedFilePreview({
+  file,
+  statusLabel,
+}: {
+  file: SideWindowFileAsset
+  statusLabel: string
+}) {
   return (
     <div className="workspace-file-preview__unsupported">
       <h3>当前版本暂不支持内嵌预览</h3>
@@ -427,7 +668,7 @@ function UnsupportedFilePreview({ file }: { file: SideWindowFileAsset }) {
         </div>
         <div>
           <dt>状态</dt>
-          <dd>{file.statusLabel}</dd>
+          <dd>{statusLabel}</dd>
         </div>
       </dl>
     </div>

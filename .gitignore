@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+vendor/
 *.local
 tmp/
 .worktrees/
@@ -28,7 +29,11 @@ docs/
 
 # Project specs are versioned with implementation work.
 !docs/
+!docs/adr/
+!docs/adr/*.md
 !docs/superpowers/
+!docs/superpowers/plans/
+!docs/superpowers/plans/*.md
 !docs/superpowers/specs/
 !docs/superpowers/specs/*.md
 

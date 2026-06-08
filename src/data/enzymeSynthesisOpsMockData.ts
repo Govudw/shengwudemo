@@ -578,7 +578,7 @@ const limsRunInspector: RunInspectorData = {
     status: 'completed',
     completedSteps: 15,
     totalSteps: 15,
-    outputCount: 6,
+    outputCount: 7,
     pendingCount: 0,
   },
   progress: [
@@ -723,6 +723,13 @@ const limsRunInspector: RunInspectorData = {
       kind: 'report',
       location: 'Runs/RUN-ENZ-SYN-20260604-001/results',
       status: 'completed',
+    },
+    {
+      id: 'experiment-record-eln',
+      name: 'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln',
+      kind: 'projectFile',
+      location: 'Runs/RUN-ENZ-SYN-20260604-001/eln',
+      status: 'saved',
     },
     {
       id: 'efficiency',
@@ -943,6 +950,12 @@ const limsFlowRunTranscript: ConversationTurn[] = [
         'json',
         'approvals',
         'JSON · run_start 审批结果、审批建议和授权边界。',
+      ),
+      limsProjectFile(
+        'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln',
+        'bmeln',
+        'eln',
+        'ELN · 可编辑实验记录，实验过程中持续写入样本、工单、QC 和结果交接。',
       ),
       {
         type: 'pipelineDag',

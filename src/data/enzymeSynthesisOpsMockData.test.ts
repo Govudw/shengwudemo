@@ -19,6 +19,14 @@ describe('Enzyme Synthesis Ops mock demo', () => {
       completedSteps: 15,
       totalSteps: 15,
     })
+    expect(thread?.runInspector?.outputs.map((item) => item.name)).toEqual(
+      expect.arrayContaining([
+        'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln',
+      ]),
+    )
+    expect(thread?.runInspector?.outputs.map((item) => item.name)).not.toContain(
+      'RUN-ENZ-SYN-20260604-001_experiment_record.eln',
+    )
     expect(thread?.runInspector?.progress.map((item) => item.title)).toEqual(
       expect.arrayContaining([
         '输入表单补齐',
@@ -203,17 +211,65 @@ describe('Enzyme Synthesis Ops mock demo', () => {
         'data_integrity_qc.png',
         'anomaly_distribution.png',
         'Enzyme_Synthesis_Result_Package.xlsx',
+        'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln',
         'structured_readouts.json',
         'ops_efficiency_breakdown.png',
         'RUN-ENZ-SYN-20260604-001_efficiency_review.md',
       ]),
     )
+    expect(fileNames).not.toContain('RUN-ENZ-SYN-20260604-001_experiment_record.eln')
     expect(fileBlocks?.length).toBeGreaterThanOrEqual(10)
     expect(
       fileBlocks?.every((block) =>
         block.location.startsWith('Enzyme Synthesis Ops / Runs / RUN-ENZ-SYN-20260604-001 /'),
       ),
     ).toBe(true)
+  })
+
+  it('creates the editable ELN file immediately after the LIMS run starts', () => {
+    const thread = projects
+      .find((project) => project.id === 'enzyme-synthesis-ops')
+      ?.threads.find((item) => item.id === 'lims-flow-run')
+    const runStartedTurn = thread?.transcript?.find((turn) =>
+      turn.markdown?.includes('run_start 审批已经通过'),
+    )
+    const resultPackageTurn = thread?.transcript?.find((turn) =>
+      turn.markdown?.includes('结果包已经生成'),
+    )
+    const runStartedFiles =
+      runStartedTurn?.contentBlocks?.filter((block) => block.type === 'projectFile') ??
+      []
+    const resultPackageFileNames =
+      resultPackageTurn?.contentBlocks
+        ?.filter((block) => block.type === 'projectFile')
+        .map((block) => block.fileName) ?? []
+
+    expect(runStartedTurn?.markdown).toBe(
+      'run_start 审批已经通过，这是审批结果卡。接下来我会读取 Pipeline DAG，并开始创建本轮执行任务。',
+    )
+    expect(runStartedFiles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fileName: 'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln',
+          fileKind: 'bmeln',
+        }),
+      ]),
+    )
+    expect(runStartedTurn?.markdown).not.toContain(
+      'RUN-ENZ-SYN-20260604-001_experiment_record.eln',
+    )
+    expect(resultPackageTurn?.markdown).toBe(
+      '结果包已经生成。这个包不是只有文件名，里面包含结构化数据、QC 摘要、异常清单、图表和效率复盘。',
+    )
+    expect(resultPackageTurn?.markdown).not.toContain(
+      'RUN-ENZ-SYN-20260604-001_experiment_record.eln',
+    )
+    expect(resultPackageTurn?.markdown).not.toContain(
+      'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln',
+    )
+    expect(resultPackageFileNames).not.toContain(
+      'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln',
+    )
   })
 
   it('exposes run-scoped object storage assets for the side window', () => {
@@ -229,6 +285,7 @@ describe('Enzyme Synthesis Ops mock demo', () => {
         'Runs/RUN-ENZ-SYN-20260604-001/callbacks',
         'Runs/RUN-ENZ-SYN-20260604-001/qc',
         'Runs/RUN-ENZ-SYN-20260604-001/exceptions',
+        'Runs/RUN-ENZ-SYN-20260604-001/eln',
         'Runs/RUN-ENZ-SYN-20260604-001/results',
         'Runs/RUN-ENZ-SYN-20260604-001/analysis',
       ]),
@@ -245,11 +302,16 @@ describe('Enzyme Synthesis Ops mock demo', () => {
         'WO-INGEST-20260604-105.md',
         'CALLBACK-ASSAY-104.json',
         'CALLBACK-INGEST-105.json',
+        'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln',
         'RESULT-RELEASE-MANIFEST-20260604.json',
       ]),
     )
+    expect(files.map((file) => file.fileName)).not.toContain(
+      'RUN-ENZ-SYN-20260604-001_experiment_record.eln',
+    )
     expect(files.some((file) => file.previewKind === 'markdown')).toBe(true)
     expect(files.some((file) => file.previewKind === 'json')).toBe(true)
+    expect(files.some((file) => file.previewKind === 'eln')).toBe(true)
     expect(files.some((file) => file.previewKind === 'image')).toBe(true)
     expect(files.some((file) => file.previewKind === 'unsupported')).toBe(true)
   })

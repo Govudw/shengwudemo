@@ -311,6 +311,8 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
       selectedFileId: matchedFile?.id ?? null,
       searchQuery: '',
       fileTreeCollapsed: true,
+      documentOutlineCollapsed:
+        matchedFile?.previewKind === 'eln' ? !sideWindowMaximized : true,
     })
     openSideWindow()
   }

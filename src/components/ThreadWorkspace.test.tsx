@@ -719,7 +719,7 @@ describe('ThreadWorkspace', () => {
       getButton(container, 'BM-LAB-ENZ-20260602-001_order_summary.md').click()
     })
 
-    expect(container.querySelector('.workspace-side-window__path')?.textContent).toBe(
+    expect(container.querySelector('.workspace-side-window__path-text')?.textContent).toBe(
       'Industrial Enzyme Design / BM-LAB-ENZ-20260602-001_order_summary.md',
     )
     expect(container.querySelector('.workspace-file-preview__header')).toBeNull()
@@ -742,7 +742,7 @@ describe('ThreadWorkspace', () => {
     expect(container.querySelector('.workspace-file-preview__json-string')?.textContent).toContain(
       '"BM-LAB-ENZ-20260602-001"',
     )
-    expect(container.querySelector('.workspace-side-window__path')?.textContent).toBe(
+    expect(container.querySelector('.workspace-side-window__path-text')?.textContent).toBe(
       'Industrial Enzyme Design / BM-LAB-ENZ-20260602-001_order_payload.json',
     )
 
@@ -752,7 +752,7 @@ describe('ThreadWorkspace', () => {
 
     expect(container.querySelector('.workspace-file-preview img')).not.toBeNull()
     expect(container.querySelector('.workspace-file-preview figcaption')).toBeNull()
-    expect(container.querySelector('.workspace-side-window__path')?.textContent).toBe(
+    expect(container.querySelector('.workspace-side-window__path-text')?.textContent).toBe(
       'Industrial Enzyme Design / enzyme-experiment-record-summary.png',
     )
 
@@ -878,7 +878,7 @@ describe('ThreadWorkspace', () => {
     expect(container.querySelector('.workspace-file-browser')).not.toBeNull()
     expect(container.querySelector('.workspace-file-browser--tree-collapsed')).not.toBeNull()
     expect(container.querySelector('.workspace-file-tree')).toBeNull()
-    expect(container.querySelector('.workspace-side-window__path')?.textContent).toBe(
+    expect(container.querySelector('.workspace-side-window__path-text')?.textContent).toBe(
       'Enzyme Synthesis Ops / RUN-ENZ-SYN-20260604-001_input_package.md',
     )
     expect(
@@ -887,6 +887,270 @@ describe('ThreadWorkspace', () => {
     expect(container.querySelector('.workspace-file-preview')?.textContent).toContain(
       'RUN-ENZ-SYN-20260604-001 Input Package',
     )
+
+    root.unmount()
+  })
+
+  it('opens the generated ELN transcript file in an editable ELN editor', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace({
+      threadOverride: getProjectThreadFixture(
+        'enzyme-synthesis-ops',
+        'lims-flow-run',
+      ),
+      projectName: 'Enzyme Synthesis Ops',
+    })
+
+    await act(async () => {
+      getButton(container, 'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln').click()
+    })
+
+    const editor = container.querySelector('.workspace-file-preview__eln-editor')
+    const editable = container.querySelector<HTMLElement>(
+      '.workspace-file-preview__eln-editor [contenteditable="true"]',
+    )
+
+    expect(container.querySelector('.workspace-side-window')).not.toBeNull()
+    expect(container.querySelector('.workspace-file-browser--tree-collapsed')).not.toBeNull()
+    expect(container.querySelector('.workspace-side-window__path-text')?.textContent).toBe(
+      'Enzyme Synthesis Ops / RUN-ENZ-SYN-20260604-001_experiment_record.bmeln',
+    )
+    expect(editor).not.toBeNull()
+    expect(editor?.textContent).toContain('样本登记')
+    expect(editor?.textContent).toContain('质量分析与表征')
+    expect(editor?.textContent).not.toContain('RUN-ENZ-SYN-20260604-001_experiment_record.eln')
+    expect(editor?.textContent).not.toContain('Run Setup Snapshot')
+    expect(editor?.textContent).not.toContain('Audit Trail')
+    expect(editable).not.toBeNull()
+
+    root.unmount()
+  })
+
+  it('opens a non-maximized bmeln file with the object tree and document outline collapsed', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace({
+      threadOverride: getProjectThreadFixture(
+        'enzyme-synthesis-ops',
+        'lims-flow-run',
+      ),
+      projectName: 'Enzyme Synthesis Ops',
+    })
+
+    await act(async () => {
+      getButton(container, 'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln').click()
+    })
+
+    expect(container.querySelector('.workspace-side-window')).not.toBeNull()
+    expect(container.querySelector('.workspace-file-browser--tree-collapsed')).not.toBeNull()
+    expect(container.querySelector('.workspace-file-tree')).toBeNull()
+    expect(container.querySelector('.workspace-file-outline--collapsed')).not.toBeNull()
+    expect(container.querySelector('.workspace-file-outline--expanded')).toBeNull()
+    expect(getButton(container, '展开文档导航')).toBeTruthy()
+    expect(container.querySelector('.workspace-side-window__path-text')?.textContent).toBe(
+      'Enzyme Synthesis Ops / RUN-ENZ-SYN-20260604-001_experiment_record.bmeln',
+    )
+
+    root.unmount()
+  })
+
+  it('resets non-maximized bmeln transcript opens to a collapsed document outline', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace({
+      threadOverride: getProjectThreadFixture(
+        'enzyme-synthesis-ops',
+        'lims-flow-run',
+      ),
+      projectName: 'Enzyme Synthesis Ops',
+    })
+
+    await act(async () => {
+      getButton(container, 'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln').click()
+    })
+    await act(async () => {
+      getButton(container, '展开文档导航').click()
+    })
+
+    expect(container.querySelector('.workspace-file-outline--expanded')).not.toBeNull()
+
+    await act(async () => {
+      getButton(container, 'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln').click()
+    })
+
+    expect(container.querySelector('.workspace-file-outline--collapsed')).not.toBeNull()
+    expect(container.querySelector('.workspace-file-outline--expanded')).toBeNull()
+
+    root.unmount()
+  })
+
+  it('expands the bmeln document outline by default when maximized and keeps it heading-only', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace({
+      threadOverride: getProjectThreadFixture(
+        'enzyme-synthesis-ops',
+        'lims-flow-run',
+      ),
+      projectName: 'Enzyme Synthesis Ops',
+    })
+
+    await act(async () => {
+      getButton(container, 'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln').click()
+    })
+    await act(async () => {
+      getButton(container, '最大化侧窗').click()
+    })
+
+    const outline = container.querySelector('.workspace-file-outline--expanded')
+    expect(outline).not.toBeNull()
+    expect(container.querySelector('.workspace-file-tree')).toBeNull()
+    expect(outline?.textContent).toContain('酶合成实验记录')
+    expect(outline?.textContent).toContain('样本登记与板图')
+    expect(outline?.textContent).toContain('审核与签名')
+    expect(outline?.textContent).not.toContain('文档导航')
+    expect(outline?.textContent).not.toContain(
+      '图 1：样本登记、板图和结果记录摘要，显示本轮样本范围与记录状态。',
+    )
+    expect(outline?.textContent).not.toContain('工单节点完成状态')
+    expect(outline?.textContent).not.toContain('Lab Owner')
+    expect(
+      outline?.querySelector('[data-outline-level="1"]'),
+    ).not.toBeNull()
+    expect(
+      outline?.querySelector('[data-outline-level="2"]'),
+    ).not.toBeNull()
+    expect(getButton(container, '收起文档导航').textContent).toBe('<<')
+
+    root.unmount()
+  })
+
+  it('keeps the bmeln document outline and object storage tree mutually exclusive', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace({
+      threadOverride: getProjectThreadFixture(
+        'enzyme-synthesis-ops',
+        'lims-flow-run',
+      ),
+      projectName: 'Enzyme Synthesis Ops',
+    })
+
+    await act(async () => {
+      getButton(container, 'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln').click()
+    })
+    await act(async () => {
+      getButton(container, '最大化侧窗').click()
+    })
+
+    expect(container.querySelector('.workspace-file-outline--expanded')).not.toBeNull()
+    expect(container.querySelector('.workspace-file-tree')).toBeNull()
+
+    await act(async () => {
+      getButton(container, '展开文件树').click()
+    })
+
+    expect(container.querySelector('.workspace-file-tree')).not.toBeNull()
+    expect(container.querySelector('.workspace-file-outline--expanded')).toBeNull()
+    expect(container.querySelector('.workspace-file-outline--collapsed')).not.toBeNull()
+
+    await act(async () => {
+      getButton(container, '展开文档导航').click()
+    })
+
+    expect(container.querySelector('.workspace-file-tree')).toBeNull()
+    expect(container.querySelector('.workspace-file-outline--expanded')).not.toBeNull()
+    expect(
+      container.querySelector('.workspace-side-window__path button[aria-label="展开文件树"]'),
+    ).not.toBeNull()
+
+    root.unmount()
+  })
+
+  it('scrolls to the selected bmeln heading from the document outline', async () => {
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    })
+    const { container, root } = renderInteractiveThreadWorkspace({
+      threadOverride: getProjectThreadFixture(
+        'enzyme-synthesis-ops',
+        'lims-flow-run',
+      ),
+      projectName: 'Enzyme Synthesis Ops',
+    })
+
+    await act(async () => {
+      getButton(container, 'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln').click()
+    })
+    await act(async () => {
+      getButton(container, '最大化侧窗').click()
+    })
+    await act(async () => {
+      getButton(container, '样本登记与板图').click()
+    })
+
+    const sampleHeading = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-eln-heading-id]'),
+    ).find((element) => element.textContent === '样本登记与板图')
+
+    expect(sampleHeading).toBeDefined()
+    expect(scrollIntoView).toHaveBeenCalled()
+
+    root.unmount()
+  })
+
+  it('syncs ELN dirty state to the standard side window file frame without dirtying read-only block details', async () => {
+    const { container, root } = renderInteractiveThreadWorkspace({
+      threadOverride: getProjectThreadFixture(
+        'enzyme-synthesis-ops',
+        'lims-flow-run',
+      ),
+      projectName: 'Enzyme Synthesis Ops',
+    })
+
+    await act(async () => {
+      getButton(container, 'RUN-ENZ-SYN-20260604-001_experiment_record.bmeln').click()
+    })
+
+    const status = container.querySelector('.workspace-side-window__path-status')
+    const editorElement = container.querySelector('.workspace-file-preview__eln-prosemirror')
+    const initialStatus = status?.textContent
+    expect(initialStatus).toBeTruthy()
+    expect(initialStatus).not.toBe('有未保存编辑')
+    expect(editorElement).not.toBeNull()
+
+    const signature = container.querySelector('.workspace-file-preview__eln-signature-block')
+    expect(signature).not.toBeNull()
+
+    await act(async () => {
+      signature!
+        .querySelector('[aria-label="块操作"]')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      getButton(container, '查看详情').click()
+    })
+
+    expect(signature?.textContent).toContain('状态')
+    expect(signature?.textContent).toContain('签署人')
+    expect(status?.textContent).toBe(initialStatus)
+
+    await act(async () => {
+      editorElement!.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          bubbles: true,
+          cancelable: true,
+          key: '/',
+        }),
+      )
+    })
+    await act(async () => {
+      editorElement!.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          bubbles: true,
+          cancelable: true,
+          key: 'Enter',
+        }),
+      )
+    })
+
+    expect(container.querySelector('.workspace-side-window__path-text')?.textContent).toBe(
+      'Enzyme Synthesis Ops / RUN-ENZ-SYN-20260604-001_experiment_record.bmeln',
+    )
+    expect(status?.textContent).toBe('有未保存编辑')
 
     root.unmount()
   })

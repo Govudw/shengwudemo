@@ -1,0 +1,3 @@
+# Use .bmeln for BioMap Agent ELN Documents
+
+BioMap Agent ELN Documents use the `.bmeln` Project File extension instead of the generic `.eln` extension. A `.bmeln` file is a BioMap Agent-specific structured rich document interpreted through ELN-only Document Blocks, including Chart Blocks rendered with ECharts, Signature Blocks that can reference Approval artifacts without becoming the Approval workflow, images, tables, and Object Storage references. Markdown is only a future export format, not the primary document format; this avoids implying compatibility with external ELN standards or plain Markdown records.
