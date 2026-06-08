@@ -397,13 +397,15 @@ export const enzymeSynthesisLimsDag: PipelineDag = {
       subtype: 'data',
       title: '数据完整性检查',
       shortTitle: '完整性检查',
-      description: '检查缺失字段、重复孔一致性、异常 flag 和权限边界。',
-      inputs: ['结构化数据集', '对象存储清单', '权限策略'],
+      description:
+        '检查 ELN 回调、仪器读数回调和工单状态记录是否三方一致，再检查缺失字段、重复孔一致性、异常 flag 和权限边界。',
+      inputs: ['ELN 回调数据', '仪器读数回调', '工单状态记录', '结构化数据集', '对象存储清单', '权限策略'],
       outputs: ['数据完整性结论', '质检摘要回调', '完整性检查执行记录'],
-      prerequisites: ['数据入库完成'],
+      prerequisites: ['ELN 回调完成', '仪器读数回调完成', '工单状态已同步', '数据入库完成'],
       control: {
         kind: 'preset-qc-check',
-        summary: '数据完整性通过后允许生成结果包；缺失项触发补充回调。',
+        summary:
+          'ELN、仪器读数和工单状态三方一致后才允许生成结果包；缺失项触发补充回调。',
       },
       resources: [{ kind: 'data-system', name: 'Data QC Rules' }],
       layout: { row: 2, column: 4 },

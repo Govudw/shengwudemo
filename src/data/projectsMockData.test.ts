@@ -61,14 +61,17 @@ describe('Projects management data', () => {
     expect(pipelineBuild).toMatchObject({
       name: 'Pipeline Build',
       status: 'active',
-      threadCount: 1,
+      threadCount: 2,
       assetSummary: {
         files: 3,
       },
-      recentActivityThreadTitle: 'ENZ-P0 实验流程编排',
+      recentActivityThreadTitle: 'LIMS 酶合成执行编排',
     })
-    expect(pipelineBuild?.threads).toHaveLength(1)
-    expect(pipelineBuild?.threads[0].title).toBe('ENZ-P0 实验流程编排')
+    expect(pipelineBuild?.threads).toHaveLength(2)
+    expect(pipelineBuild?.threads.map((thread) => thread.title)).toEqual([
+      'LIMS 酶合成执行编排',
+      'ENZ-P0 实验流程编排',
+    ])
     expect(getProjectFileFolderId('pipeline-build')).toBeNull()
   })
 

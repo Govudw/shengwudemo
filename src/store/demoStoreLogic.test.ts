@@ -763,12 +763,14 @@ describe('demo store logic', () => {
     }
   })
 
-  it('seeds Pipeline Build as one completed Pipeline Builder replay without changing the draft default', () => {
+  it('seeds Pipeline Build with the ENZ-P0 completed Pipeline Builder replay without changing the draft default', () => {
     const state = createInitialDemoState(seedProjects, now)
     const pipelineProject = state.projects.find(
       (project) => project.id === 'pipeline-build',
     )
-    const pipelineThread = pipelineProject?.threads[0]
+    const pipelineThread = pipelineProject?.threads.find(
+      (thread) => thread.id === 'pipeline-build-enz-p0-flow',
+    )
     const blocks = pipelineThread?.transcript.flatMap((turn) => turn.contentBlocks ?? []) ?? []
     const pipelineDagBlocks = blocks.filter((block) => block.type === 'pipelineDag')
     const v01DagBlock = pipelineDagBlocks.find((block) => block.version === 'v0.1')
@@ -821,7 +823,7 @@ describe('demo store logic', () => {
     expect(state.selectedThreadId).toBeNull()
     expect(state.isDraftingNewThread).toBe(true)
     expect(pipelineProject?.name).toBe('Pipeline Build')
-    expect(pipelineProject?.threads).toHaveLength(1)
+    expect(pipelineProject?.threads.length).toBeGreaterThanOrEqual(2)
     expect(pipelineThread?.title).toBe('ENZ-P0 实验流程编排')
     expect(pipelineThread?.transcript).toHaveLength(25)
     expect(pipelineThread?.transcript.filter((turn) => turn.role === 'user')).toHaveLength(11)
@@ -916,6 +918,124 @@ describe('demo store logic', () => {
     expect(runInspector?.approvals.every((approval) => approval.kind === 'humanConfirmation')).toBe(
       true,
     )
+  })
+
+  it('seeds the LIMS enzyme synthesis Pipeline Build Thread from real-run evidence into the existing LIMS Pipeline', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const pipelineProject = state.projects.find(
+      (project) => project.id === 'pipeline-build',
+    )
+    const limsThread = pipelineProject?.threads.find(
+      (thread) => thread.id === 'pipeline-build-lims-enzyme-synthesis',
+    )
+    const blocks = limsThread?.transcript.flatMap((turn) => turn.contentBlocks ?? []) ?? []
+    const projectFiles = blocks.filter((block) => block.type === 'projectFile')
+    const capabilityRuns = blocks.filter((block) => block.type === 'capabilityRunReplay')
+    const pipelineDagBlocks = blocks.filter((block) => block.type === 'pipelineDag')
+    const firstDag = pipelineDagBlocks.find((block) => block.version === 'v0.1')
+    const finalDag = pipelineDagBlocks.find((block) => block.version === 'v1.0')
+    const visibleText = collectStringValues(limsThread?.transcript ?? []).join('\n')
+    const firstDagTurnIndex = limsThread?.transcript.findIndex((turn) =>
+      turn.contentBlocks?.some(
+        (block) => block.type === 'pipelineDag' && block.version === 'v0.1',
+      ),
+    )
+    const turnsBeforeFirstDag =
+      firstDagTurnIndex === undefined || firstDagTurnIndex < 0
+        ? []
+        : limsThread?.transcript.slice(0, firstDagTurnIndex) ?? []
+    const agentConfirmationTurns = turnsBeforeFirstDag.filter(
+      (turn) =>
+        turn.role === 'mainAgent' &&
+        (turn.markdown ?? '').includes('推荐 A') &&
+        (turn.markdown ?? '').includes('B：') &&
+        (turn.markdown ?? '').includes('C：'),
+    )
+    const dataIntegrityNode = finalDag?.dag.nodes.find(
+      (node) => node.title === '数据完整性检查',
+    )
+    const runInspector = limsThread?.runInspector
+    const finalTurn = limsThread?.transcript.at(-1)
+
+    expect(pipelineProject?.name).toBe('Pipeline Build')
+    expect(limsThread?.title).toBe('LIMS 酶合成执行编排')
+    expect(limsThread?.transcript.length).toBeGreaterThanOrEqual(22)
+    expect(limsThread?.transcript.length).toBeLessThanOrEqual(30)
+    expect(projectFiles.map((block) => block.fileName)).toEqual(
+      expect.arrayContaining([
+        'RUN-ENZ-SYN-20260604_experiment_retro.md',
+        'LIMS_work_orders_export.csv',
+        'ELN_callback_records.json',
+        'QC_gate_summary.xlsx',
+        'approval_events.json',
+        'asset_object_manifest.json',
+      ]),
+    )
+    expect(visibleText).toContain('可以直接固化的事实')
+    expect(visibleText).toContain('需要你确认的缺口')
+    expect(agentConfirmationTurns).toHaveLength(6)
+    expect(visibleText).toContain('完整 LIMS 执行闭环')
+    expect(visibleText).toContain('审批人、审批类型和资料包')
+    expect(visibleText).toContain('质检审批')
+    expect(visibleText).toContain('发起人默认 owner')
+    expect(visibleText).toContain(
+      'ELN 回调、仪器读数和工单状态三方一致',
+    )
+    expect(pipelineDagBlocks).toHaveLength(3)
+    expect(firstDag).toMatchObject({
+      title: 'LIMS 酶合成执行 Pipeline DAG',
+      version: 'v0.1',
+      status: 'draft',
+    })
+    expect(finalDag).toMatchObject({
+      title: 'LIMS 酶合成执行 Pipeline DAG',
+      version: 'v1.0',
+      status: 'saved',
+    })
+    expect(dataIntegrityNode?.inputs).toEqual(
+      expect.arrayContaining(['ELN 回调数据', '仪器读数回调', '工单状态记录']),
+    )
+    expect(dataIntegrityNode?.description).toContain('三方一致')
+    expect(capabilityRuns.map((block) => block.commandName)).toEqual(
+      expect.arrayContaining([
+        'RealRunEvidenceExtractor.extractLimsFlow',
+        'PipelinePlanner.generateLimsDraftDag',
+        'PipelineDagValidator.validateLimsDag',
+        'PipelineRegistry.savePipeline',
+      ]),
+    )
+    expect(runInspector?.summary).toMatchObject({
+      stage: 'Pipeline 编排',
+      status: 'completed',
+      completedSteps: 12,
+      totalSteps: 12,
+      pendingCount: 0,
+    })
+    expect(runInspector?.progress.map((item) => item.title)).toEqual(
+      expect.arrayContaining([
+        '读取真实运行资料包',
+        '确认工单和回调模型',
+        '修订数据完整性 QC',
+        '保存 Pipeline v1.0',
+      ]),
+    )
+    expect(runInspector?.outputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'LIMS 酶合成执行 Pipeline v1.0',
+        }),
+        expect.objectContaining({
+          name: 'LIMS_Enzyme_Synthesis_Pipeline_v1.0.json',
+        }),
+      ]),
+    )
+    expect(finalTurn?.markdown).toContain('Pipeline Input')
+    expect(finalTurn?.markdown).toContain('Pipeline Output')
+    expect(finalTurn?.markdown).toContain('Pipeline Flow')
+    expect(finalTurn?.markdown).toContain('LIMS 酶合成执行 Pipeline v1.0')
+    expect(visibleText).not.toMatch(/demo/i)
+    expect(visibleText).not.toMatch(/mock/i)
+    expect(visibleText).not.toContain('模拟')
   })
 
   it('seeds enzyme thread-specific human boundaries and candidate evidence blocks', () => {

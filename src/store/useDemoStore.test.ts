@@ -147,12 +147,16 @@ describe('demo store persistence', () => {
       name: 'Pipeline Build',
       threads: [
         expect.objectContaining({
+          id: 'pipeline-build-lims-enzyme-synthesis',
+          title: 'LIMS 酶合成执行编排',
+        }),
+        expect.objectContaining({
           id: 'pipeline-build-enz-p0-flow',
           title: 'ENZ-P0 实验流程编排',
         }),
       ],
     })
-    expect(pipelineProject?.threads).toHaveLength(1)
+    expect(pipelineProject?.threads).toHaveLength(2)
     expect(state.selectedProjectId).not.toBe('pipeline-build')
   })
 
