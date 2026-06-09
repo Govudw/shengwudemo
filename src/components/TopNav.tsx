@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import logoSrc from '../assets/biomap-agent-logo.png'
 import type { ActiveTopNav } from '../store/demoStoreLogic'
 import { BellIcon, ChevronDownIcon } from './icons'
@@ -6,11 +7,17 @@ type TopNavProps = {
   activeItem: ActiveTopNav
   onNavigate: (item: TopNavItem) => void
   onNotify: (message: string) => void
+  onAccountMenuSelect: (item: AccountMenuItem) => void
 }
 
 const navItems = ['Workspace', 'Projects', 'Assets', 'Capabilities'] as const
 export type TopNavItem = (typeof navItems)[number]
 export type PrimaryNavItem = TopNavItem
+export type AccountMenuItem =
+  | 'system-settings'
+  | 'billing-center'
+  | 'permissions-security'
+  | 'product-management-platform'
 
 const navItemLabels: Record<TopNavItem, string> = {
   Workspace: 'Workspace',
@@ -19,7 +26,56 @@ const navItemLabels: Record<TopNavItem, string> = {
   Capabilities: 'Capabilities',
 }
 
-function TopNav({ activeItem, onNavigate, onNotify }: TopNavProps) {
+const accountMenuOptions: { id: AccountMenuItem; label: string }[] = [
+  { id: 'system-settings', label: '系统设置' },
+  { id: 'billing-center', label: '费用中心' },
+  { id: 'permissions-security', label: '权限与安全' },
+  { id: 'product-management-platform', label: '产品管理平台' },
+]
+
+function TopNav({
+  activeItem,
+  onNavigate,
+  onNotify,
+  onAccountMenuSelect,
+}: TopNavProps) {
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false)
+  const accountMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!accountMenuOpen) {
+      return undefined
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (
+        event.target instanceof Node &&
+        !accountMenuRef.current?.contains(event.target)
+      ) {
+        setAccountMenuOpen(false)
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setAccountMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [accountMenuOpen])
+
+  function handleAccountMenuSelect(item: AccountMenuItem) {
+    setAccountMenuOpen(false)
+    onAccountMenuSelect(item)
+  }
+
   return (
     <header className="top-nav">
       <div className="top-nav__brand" role="img" aria-label="BioMap Agent">
@@ -57,17 +113,36 @@ function TopNav({ activeItem, onNavigate, onNotify }: TopNavProps) {
           <span className="top-nav__badge">3</span>
         </button>
 
-        <button
-          type="button"
-          className="top-nav__user"
-          onClick={() => onNotify('账户菜单尚未接入当前工作区')}
-        >
-          <span className="top-nav__avatar" aria-hidden="true">
-            Z
-          </span>
-          <span className="top-nav__username">zhengjun</span>
-          <ChevronDownIcon className="top-nav__chevron" />
-        </button>
+        <div className="top-nav__account" ref={accountMenuRef}>
+          <button
+            type="button"
+            className="top-nav__user"
+            aria-haspopup="menu"
+            aria-expanded={accountMenuOpen}
+            onClick={() => setAccountMenuOpen((isOpen) => !isOpen)}
+          >
+            <span className="top-nav__avatar" aria-hidden="true">
+              Z
+            </span>
+            <span className="top-nav__username">zhengjun</span>
+            <ChevronDownIcon className="top-nav__chevron" />
+          </button>
+          {accountMenuOpen ? (
+            <div className="top-nav__account-menu" role="menu">
+              {accountMenuOptions.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="menuitem"
+                  className="top-nav__account-menu-item"
+                  onClick={() => handleAccountMenuSelect(option.id)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
     </header>
   )

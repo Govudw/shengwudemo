@@ -70,6 +70,32 @@ describe('TopNav', () => {
 
     root.unmount()
   })
+
+  it('opens account menu options and reports selected account menu actions', () => {
+    const onAccountMenuSelect = vi.fn()
+    const { container, root } = renderTopNav({ onAccountMenuSelect })
+    const accountButton = container.querySelector<HTMLButtonElement>('.top-nav__user')
+
+    act(() => {
+      accountButton?.click()
+    })
+
+    expect(getButton(container, '系统设置')).not.toBeNull()
+    expect(getButton(container, '费用中心')).not.toBeNull()
+    expect(getButton(container, '权限与安全')).not.toBeNull()
+    expect(getButton(container, '产品管理平台')).not.toBeNull()
+
+    act(() => {
+      getButton(container, '产品管理平台').click()
+    })
+
+    expect(onAccountMenuSelect).toHaveBeenCalledWith(
+      'product-management-platform',
+    )
+    expect(container.textContent).not.toContain('产品管理平台')
+
+    root.unmount()
+  })
 })
 
 function renderTopNav(
@@ -85,6 +111,7 @@ function renderTopNav(
         activeItem="Workspace"
         onNavigate={() => undefined}
         onNotify={() => undefined}
+        onAccountMenuSelect={() => undefined}
         {...props}
       />,
     )

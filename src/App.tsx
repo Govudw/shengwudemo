@@ -3,11 +3,12 @@ import './App.css'
 import AssetsPage from './components/assets/AssetsPage'
 import Composer from './components/Composer'
 import CapabilitiesPage from './components/CapabilitiesPage'
+import ProductManagementPlatformPage from './components/product-management/ProductManagementPlatformPage'
 import ProjectsPage from './components/projects/ProjectsPage'
 import Sidebar from './components/Sidebar'
 import ThreadWorkspace from './components/ThreadWorkspace'
 import TopNav from './components/TopNav'
-import type { TopNavItem } from './components/TopNav'
+import type { AccountMenuItem, TopNavItem } from './components/TopNav'
 import UseCaseGrid from './components/UseCaseGrid'
 import { capabilityChips, useCases } from './data/mockData'
 import type { CapabilityChip } from './data/mockData'
@@ -21,7 +22,13 @@ import type {
   DemoProject,
 } from './store/demoStoreLogic'
 
+const productManagementPlatformPath = '/product-management-platform'
+const productManagementProductPathPrefix = `${productManagementPlatformPath}/products/`
+const productManagementCommodityListPath = `${productManagementPlatformPath}/commodities`
+const productManagementCommodityPathPrefix = `${productManagementCommodityListPath}/`
+
 function App() {
+  const [pathname, setPathname] = useState(() => window.location.pathname)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [projectMenuOpen, setProjectMenuOpen] = useState(false)
@@ -83,6 +90,18 @@ function App() {
 
     return () => {
       delete window.reset
+    }
+  }, [])
+
+  useEffect(() => {
+    function handlePopState() {
+      setPathname(window.location.pathname)
+    }
+
+    window.addEventListener('popstate', handlePopState)
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
     }
   }, [])
 
@@ -155,6 +174,14 @@ function App() {
     selectTopNav('Assets')
   }
 
+  function navigateToPath(path: string) {
+    if (window.location.pathname !== path) {
+      window.history.pushState(null, '', path)
+    }
+
+    setPathname(path)
+  }
+
   function handlePrimaryNav(item: TopNavItem) {
     if (
       item === 'Workspace' ||
@@ -169,12 +196,77 @@ function App() {
     showStatus('该模块尚未接入当前工作区')
   }
 
+  function handleAccountMenuSelect(item: AccountMenuItem) {
+    if (item === 'product-management-platform') {
+      navigateToPath(productManagementPlatformPath)
+      return
+    }
+
+    const unavailableMessages: Record<Exclude<AccountMenuItem, 'product-management-platform'>, string> = {
+      'system-settings': '系统设置尚未接入当前工作区',
+      'billing-center': '费用中心尚未接入当前工作区',
+      'permissions-security': '权限与安全尚未接入当前工作区',
+    }
+
+    showStatus(unavailableMessages[item])
+  }
+
+  const isProductManagementCommodityListRoute =
+    pathname === productManagementCommodityListPath
+  const productManagementProductId = getProductManagementProductId(pathname)
+  const productManagementCommodityId = getProductManagementCommodityId(pathname)
+  const isProductManagementPlatformRoute =
+    pathname === productManagementPlatformPath ||
+    productManagementProductId !== null ||
+    isProductManagementCommodityListRoute ||
+    productManagementCommodityId !== null
+
+  if (isProductManagementPlatformRoute) {
+    return (
+      <div className="agent-app">
+        {statusMessage ? (
+          <div className="status-toast" role="status" aria-live="polite">
+            {statusMessage}
+          </div>
+        ) : null}
+        <ProductManagementPlatformPage
+          key={
+            productManagementProductId ??
+            productManagementCommodityId ??
+            (isProductManagementCommodityListRoute
+              ? 'product-management-commodities'
+              : 'product-management-platform')
+          }
+          initialProductId={productManagementProductId}
+          initialCommodityId={productManagementCommodityId}
+          initialTab={
+            isProductManagementCommodityListRoute || productManagementCommodityId
+              ? 'commodity'
+              : 'product'
+          }
+          onNotify={showStatus}
+          onOpenProductList={() => navigateToPath(productManagementPlatformPath)}
+          onOpenProduct={(productId) =>
+            navigateToPath(`${productManagementProductPathPrefix}${productId}`)
+          }
+          onCloseProduct={() => navigateToPath(productManagementPlatformPath)}
+          onOpenCommodityList={() => navigateToPath(productManagementCommodityListPath)}
+          onOpenCommodity={(commodityId) =>
+            navigateToPath(`${productManagementCommodityPathPrefix}${commodityId}`)
+          }
+          onCloseCommodity={() => navigateToPath(productManagementCommodityListPath)}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="agent-app">
       <TopNav
         activeItem={activeTopNav}
         onNavigate={handlePrimaryNav}
         onNotify={showStatus}
+        onAccountMenuSelect={handleAccountMenuSelect}
       />
       {statusMessage ? (
         <div className="status-toast" role="status" aria-live="polite">
@@ -290,6 +382,26 @@ function App() {
       )}
     </div>
   )
+}
+
+function getProductManagementProductId(pathname: string) {
+  if (!pathname.startsWith(productManagementProductPathPrefix)) {
+    return null
+  }
+
+  const productId = pathname.slice(productManagementProductPathPrefix.length)
+
+  return productId ? decodeURIComponent(productId) : null
+}
+
+function getProductManagementCommodityId(pathname: string) {
+  if (!pathname.startsWith(productManagementCommodityPathPrefix)) {
+    return null
+  }
+
+  const commodityId = pathname.slice(productManagementCommodityPathPrefix.length)
+
+  return commodityId ? decodeURIComponent(commodityId) : null
 }
 
 function getSelectedThreadEntry(

@@ -14,12 +14,167 @@ beforeEach(() => {
   ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
     .IS_REACT_ACT_ENVIRONMENT = true
   localStorage.clear()
+  window.history.replaceState(null, '', '/')
   useDemoStore.getState().resetDemoState()
 })
 
 afterEach(() => {
   document.body.replaceChildren()
   vi.restoreAllMocks()
+})
+
+describe('App Product Management Platform route', () => {
+  it('opens Product Management Platform from the account dropdown with a URL route', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getAccountButton(container).click()
+    })
+    act(() => {
+      getButton(container, '产品管理平台').click()
+    })
+
+    expect(window.location.pathname).toBe('/product-management-platform')
+    expect(container.querySelector('.product-platform-page')).not.toBeNull()
+    expect(container.querySelector('.agent-shell')).toBeNull()
+
+    root.unmount()
+  })
+
+  it('renders Product Management Platform on direct route visits', () => {
+    window.history.replaceState(null, '', '/product-management-platform')
+    const { container, root } = renderApp()
+
+    expect(container.querySelector('.product-platform-page')).not.toBeNull()
+    expect(container.textContent).toContain('产品管理')
+
+    root.unmount()
+  })
+
+  it('renders a product detail page on direct product detail route visits', () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/product-management-platform/products/product-virtual-cell',
+    )
+    const { container, root } = renderApp()
+
+    expect(container.querySelector('.product-platform-page')).not.toBeNull()
+    expect(container.querySelector('.agent-shell')).toBeNull()
+    expect(container.querySelector('.commodity-detail')).not.toBeNull()
+    expect(container.textContent).toContain('虚拟细胞')
+    expect(container.textContent).toContain('产品概览')
+    expect(container.textContent).toContain('产品版本记录')
+
+    root.unmount()
+  })
+
+  it('returns from product detail to the persisted product list route', () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/product-management-platform/products/product-virtual-cell',
+    )
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, '返回产品列表').click()
+    })
+
+    expect(window.location.pathname).toBe('/product-management-platform')
+    expect(getButton(container, '产品管理').getAttribute('aria-selected')).toBe('true')
+    expect(container.querySelector('.commodity-detail')).toBeNull()
+    expect(container.textContent).toContain('PROD-VCELL')
+    expect(container.textContent).toContain('+ 新建产品')
+
+    root.unmount()
+  })
+
+  it('persists the commodity list with a direct commodity route', () => {
+    window.history.replaceState(null, '', '/product-management-platform/commodities')
+    const { container, root } = renderApp()
+
+    expect(container.querySelector('.product-platform-page')).not.toBeNull()
+    expect(getButton(container, '商品管理').getAttribute('aria-selected')).toBe('true')
+    expect(container.textContent).toContain('虚拟细胞平台-SaaS')
+    expect(container.textContent).toContain('+ 新建商品')
+
+    root.unmount()
+  })
+
+  it('renders a commodity detail page on direct detail route visits', () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/product-management-platform/commodities/commodity-virtual-cell-saas',
+    )
+    const { container, root } = renderApp()
+
+    expect(container.querySelector('.product-platform-page')).not.toBeNull()
+    expect(container.querySelector('.agent-shell')).toBeNull()
+    expect(container.querySelector('.commodity-detail')).not.toBeNull()
+    expect(container.textContent).toContain('虚拟细胞平台-SaaS')
+    expect(container.textContent).toContain('商品概览')
+
+    root.unmount()
+  })
+
+  it('returns from commodity detail to the persisted commodity list route', () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/product-management-platform/commodities/commodity-virtual-cell-saas',
+    )
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, '返回商品列表').click()
+    })
+
+    expect(window.location.pathname).toBe('/product-management-platform/commodities')
+    expect(getButton(container, '商品管理').getAttribute('aria-selected')).toBe('true')
+    expect(container.querySelector('.commodity-detail')).toBeNull()
+    expect(container.textContent).toContain('虚拟细胞平台-SaaS')
+    expect(container.textContent).toContain('+ 新建商品')
+
+    root.unmount()
+  })
+
+  it('persists the commodity list URL when opening 商品管理 from the platform shell', () => {
+    window.history.replaceState(null, '', '/product-management-platform')
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, '商品管理').click()
+    })
+
+    expect(window.location.pathname).toBe('/product-management-platform/commodities')
+    expect(getButton(container, '商品管理').getAttribute('aria-selected')).toBe('true')
+    expect(container.textContent).toContain('虚拟细胞平台-SaaS')
+
+    root.unmount()
+  })
+
+  it('returns to the main app when browser history goes back from Product Management Platform', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getAccountButton(container).click()
+    })
+    act(() => {
+      getButton(container, '产品管理平台').click()
+    })
+    act(() => {
+      window.history.back()
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+
+    expect(window.location.pathname).toBe('/')
+    expect(container.querySelector('.product-platform-page')).toBeNull()
+    expect(container.querySelector('.agent-shell')).not.toBeNull()
+
+    root.unmount()
+  })
 })
 
 describe('App Projects management', () => {
@@ -963,6 +1118,16 @@ function getComposerProjectButton(container: HTMLElement) {
 
   if (!button) {
     throw new Error('Composer project button not found')
+  }
+
+  return button
+}
+
+function getAccountButton(container: HTMLElement) {
+  const button = container.querySelector<HTMLButtonElement>('.top-nav__user')
+
+  if (!button) {
+    throw new Error('Account button not found')
   }
 
   return button

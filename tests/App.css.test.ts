@@ -84,3 +84,24 @@ describe('ELN document layout CSS', () => {
     expect(recentPopoverRule).toContain('pointer-events: auto;')
   })
 })
+
+describe('Top navigation layering CSS', () => {
+  it('keeps account dropdown above workspace chrome', () => {
+    const topNavRule = getRule('.top-nav')
+    const accountMenuRule = getRule('.top-nav__account-menu')
+
+    expect(topNavRule).toContain('position: relative;')
+    expect(topNavRule).toContain('z-index: 90;')
+    expect(accountMenuRule).toContain('z-index: 91;')
+  })
+})
+
+describe('Commodity detail CSS', () => {
+  it('allows the cost and discount table to scroll horizontally', () => {
+    const wideTableWrapRule = getRule('.commodity-detail__wide-table-wrap')
+    const costTableRule = getRule('.commodity-detail__cost-table')
+
+    expect(wideTableWrapRule).toContain('overflow-x: auto;')
+    expect(costTableRule).toContain('min-width: 1680px;')
+  })
+})
