@@ -276,6 +276,24 @@ export const productRecords: ProductRecord[] = [
   },
 ]
 
+export const productTypeByProductId: Record<string, ProductType> = {
+  'product-virtual-cell': '虚拟细胞',
+  'product-protein-drug': '蛋白药物',
+  'product-synbio': '合成生物',
+  'product-agriculture': '农业智能',
+  'product-biomap-agent': '通用产品',
+}
+
+export function getProductTypeByProductId(productId: string): ProductType {
+  const productType = productTypeByProductId[productId]
+
+  if (!productType) {
+    throw new Error(`Product type not found for product ${productId}`)
+  }
+
+  return productType
+}
+
 export const commodityRecords: CommodityRecord[] = [
   {
     id: 'commodity-virtual-cell-saas',
@@ -760,11 +778,7 @@ function createProductVersionRecords(record: ProductRecord): ProductVersionRecor
 }
 
 function getProductTypeForRecord(record: ProductRecord): ProductType {
-  if (record.name === 'BioMap Agent') {
-    return '通用产品'
-  }
-
-  return record.name as ProductType
+  return getProductTypeByProductId(record.id)
 }
 
 function getProductBusinessLine(productType: ProductType) {

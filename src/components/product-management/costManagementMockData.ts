@@ -1,6 +1,7 @@
 import {
   commodityRecords,
   getCommodityDetail,
+  getProductTypeByProductId,
   productRecords,
   type BillingItemRecord,
   type CommodityRecord,
@@ -420,11 +421,48 @@ function createBreakdown(
   sharedAmount: number,
   index: number,
 ): CostBreakdownRecord[] {
-  const resourceItem = costItemRecords[index % 6]
-  const laborItem = costItemRecords[6 + (index % 4)]
-  const deliveryItem = costItemRecords[10 + (index % 4)]
-  const opsItem = costItemRecords[14 + (index % 4)]
-  const sharedItem = costItemRecords[21 + (index % 3)]
+  const resourceItem = pickCostItem(
+    [
+      'COST-RES-GPU-001',
+      'COST-RES-CPU-002',
+      'COST-RES-INF-003',
+      'COST-RES-STO-004',
+      'COST-RES-VEC-005',
+      'COST-RES-ENV-006',
+    ],
+    index,
+  )
+  const laborItem = pickCostItem(
+    [
+      'COST-LAB-L1-001',
+      'COST-LAB-L2-002',
+      'COST-LAB-CSM-003',
+      'COST-LAB-SCI-004',
+    ],
+    index,
+  )
+  const deliveryItem = pickCostItem(
+    [
+      'COST-DEL-IMP-001',
+      'COST-DEL-DATA-002',
+      'COST-DEL-ACC-003',
+      'COST-DEL-MODEL-004',
+    ],
+    index,
+  )
+  const opsItem = pickCostItem(
+    [
+      'COST-OPS-SRE-001',
+      'COST-OPS-MON-002',
+      'COST-OPS-SEC-003',
+      'COST-OPS-UPG-004',
+    ],
+    index,
+  )
+  const sharedItem = pickCostItem(
+    ['COST-SHARED-OPS-001', 'COST-SHARED-MODEL-002', 'COST-SHARED-PMO-003'],
+    index,
+  )
 
   return [
     createBreakdownLine(resourceItem, `${120 + index * 8} 标准单位`, resourceAmount, '直接资源消耗'),
@@ -433,6 +471,17 @@ function createBreakdown(
     createBreakdownLine(opsItem, `${1 + (index % 2)} 环境/月`, opsAmount, '运行维护与审计摊销'),
     createBreakdownLine(sharedItem, '按本期分摊规则', sharedAmount, '平台共享成本分摊'),
   ]
+}
+
+function pickCostItem(codes: string[], index: number): CostItemRecord {
+  const code = codes[index % codes.length]
+  const item = costItemRecords.find((record) => record.code === code)
+
+  if (!item) {
+    throw new Error(`Cost item not found for code ${code}`)
+  }
+
+  return item
 }
 
 function createBreakdownLine(
@@ -564,7 +613,7 @@ function getProductForCommodity(commodity: CommodityRecord): ProductRecord {
 }
 
 function getProductType(product: ProductRecord): ProductType {
-  return product.name === 'BioMap Agent' ? '通用产品' : (product.name as ProductType)
+  return getProductTypeByProductId(product.id)
 }
 
 function getCostChargeType(

@@ -1,6 +1,7 @@
 import {
   commodityRecords,
   getCommodityDetail,
+  getProductTypeByProductId,
   productRecords,
   type BillingItemRecord,
   type CommodityRecord,
@@ -161,6 +162,27 @@ export type TargetVersionRecord = {
   description: string
 }
 
+export type TargetOverviewRecord = {
+  targetId: string
+  productId: string
+  productName: string
+  productOwner: string
+  quarter: 'Q2' | 'Q3'
+  revenueTarget: string
+  achievedRevenue: string
+  attainmentRate: string
+  costBudget: string
+  confirmedCost: string
+  costUsageRate: string
+  targetGrossProfit: string
+  actualGrossProfit: string
+  targetGrossMargin: string
+  actualGrossMargin: string
+  forecastAttainmentRate: string
+  riskStatus: TargetRiskStatus
+  updatedAt: string
+}
+
 export const targetSections: { id: TargetSection; label: string }[] = [
   { id: 'overview', label: '目标总览' },
   { id: 'quarterly', label: '季度目标' },
@@ -231,11 +253,22 @@ export const targetCommodityContributionRecords: TargetCommodityContributionReco
     }
   })
 
-const marginVarianceModelIndexes = [0, 1, 2, 3, 4, 5, 11, 16, 20, 22]
+const marginVarianceModelKeys = [
+  'VCELL-COMM-001-BI-001',
+  'VCELL-COMM-001-BI-002',
+  'VCELL-COMM-001-BI-003',
+  'VCELL-COMM-001-BI-004',
+  'VCELL-COMM-001-BI-005',
+  'VCELL-COMM-001-BI-006',
+  'SYNBIO-COMM-006-BI-001',
+  'PDRUG-COMM-011-BI-001',
+  'AGRI-COMM-015-BI-001',
+  'GEN-COMM-017-BI-001',
+]
 
 export const targetMarginVarianceRecords: TargetMarginVarianceRecord[] =
-  marginVarianceModelIndexes.map((modelIndex, index) => {
-    const model = costModelRecords[modelIndex]
+  marginVarianceModelKeys.map((billingItemCode, index) => {
+    const model = getCostModelByBillingItemCode(billingItemCode)
     const target = getQuarterlyTargetForProduct(model.productId, 'Q2')
     const targetCost = 72000 + index * 18000
     const actualCost =
@@ -300,7 +333,7 @@ export const targetVersionRecords: TargetVersionRecord[] = costModelRecords
     }
   })
 
-export const targetOverviewRecords = quarterlyTargetRecords.map((target) => ({
+export const targetOverviewRecords: TargetOverviewRecord[] = quarterlyTargetRecords.map((target) => ({
   targetId: target.targetId,
   productId: target.productId,
   productName: target.productName,
@@ -312,10 +345,13 @@ export const targetOverviewRecords = quarterlyTargetRecords.map((target) => ({
   costBudget: target.costBudget,
   confirmedCost: target.confirmedCost,
   costUsageRate: target.costUsageRate,
+  targetGrossProfit: target.targetGrossProfit,
   actualGrossProfit: target.actualGrossProfit,
+  targetGrossMargin: target.targetGrossMargin,
   actualGrossMargin: target.actualGrossMargin,
   forecastAttainmentRate: target.forecastAttainmentRate,
   riskStatus: target.riskStatus,
+  updatedAt: target.updatedAt,
 }))
 
 function createQuarterlyTarget(
@@ -582,13 +618,7 @@ function getCommoditiesForTarget(target: QuarterlyTargetRecord) {
 }
 
 function getProductTypeForTarget(target: QuarterlyTargetRecord): ProductType {
-  const product = productRecords.find((record) => record.id === target.productId)
-
-  if (!product) {
-    throw new Error(`Product not found for target ${target.targetId}`)
-  }
-
-  return product.name === 'BioMap Agent' ? '通用产品' : (product.name as ProductType)
+  return getProductTypeByProductId(target.productId)
 }
 
 function getTargetSequence(target: QuarterlyTargetRecord) {
@@ -647,6 +677,18 @@ function getPrimaryModelForCommodity(commodityId: string): CostModelRecord {
 
   if (!model) {
     throw new Error(`Cost model not found for commodity ${commodityId}`)
+  }
+
+  return model
+}
+
+function getCostModelByBillingItemCode(billingItemCode: string): CostModelRecord {
+  const model = costModelRecords.find(
+    (record) => record.billingItemCode === billingItemCode,
+  )
+
+  if (!model) {
+    throw new Error(`Cost model not found for billing item ${billingItemCode}`)
   }
 
   return model
