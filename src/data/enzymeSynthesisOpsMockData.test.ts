@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { enzymeSynthesisLimsDag } from './enzymeSynthesisOpsMockData'
 import { projects } from './mockData'
 import { capabilityEntries } from './mockCapabilities'
 import { buildThreadObjectStorageFiles } from './workspaceSideWindowMockData'
@@ -16,8 +17,8 @@ describe('Enzyme Synthesis Ops mock demo', () => {
     expect(thread?.runInspector?.summary).toMatchObject({
       stage: 'LIMS Pipeline 运行',
       status: 'completed',
-      completedSteps: 15,
-      totalSteps: 15,
+      completedSteps: enzymeSynthesisLimsDag.nodes.length,
+      totalSteps: enzymeSynthesisLimsDag.nodes.length,
     })
     expect(thread?.runInspector?.outputs.map((item) => item.name)).toEqual(
       expect.arrayContaining([
@@ -27,12 +28,15 @@ describe('Enzyme Synthesis Ops mock demo', () => {
     expect(thread?.runInspector?.outputs.map((item) => item.name)).not.toContain(
       'RUN-ENZ-SYN-20260604-001_experiment_record.eln',
     )
+    expect(thread?.runInspector?.progress.map((item) => item.id)).toEqual(
+      enzymeSynthesisLimsDag.nodes.map((node) => node.id),
+    )
     expect(thread?.runInspector?.progress.map((item) => item.title)).toEqual(
       expect.arrayContaining([
-        '输入表单补齐',
-        '质检审批与回退',
-        '质检摘要回调',
-        '结果释放审批与效率分析',
+        '运行输入包',
+        '质检审批',
+        '数据完整性检查',
+        '效率分析与复盘',
       ]),
     )
   })

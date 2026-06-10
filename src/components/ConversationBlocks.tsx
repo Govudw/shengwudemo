@@ -6,6 +6,10 @@ import PipelineDagBlock from './PipelineDagBlock'
 type ConversationBlocksProps = {
   blocks: ConversationBlock[]
   onProjectFileOpen?: (block: BlockOf<'projectFile'>) => void
+  replayStepMetadata?: {
+    turnId: string
+    activeReplayStepId?: string | null
+  }
 }
 
 type BlockOf<T extends ConversationBlock['type']> = Extract<ConversationBlock, { type: T }>
@@ -38,16 +42,51 @@ const approvalStatusLabels: Record<
   blocked: 'BLOCKED',
 }
 
-function ConversationBlocks({ blocks, onProjectFileOpen }: ConversationBlocksProps) {
+function ConversationBlocks({
+  blocks,
+  onProjectFileOpen,
+  replayStepMetadata,
+}: ConversationBlocksProps) {
   return (
     <div className="conversation-blocks">
-      {blocks.map((block, index) => (
-        <MemoizedConversationBlockView
-          key={`${block.type}-${index}`}
-          block={block}
-          onProjectFileOpen={onProjectFileOpen}
-        />
-      ))}
+      {blocks.map((block, index) => {
+        const blockView = (
+          <MemoizedConversationBlockView
+            block={block}
+            onProjectFileOpen={onProjectFileOpen}
+          />
+        )
+
+        if (!replayStepMetadata) {
+          return (
+            <MemoizedConversationBlockView
+              key={`${block.type}-${index}`}
+              block={block}
+              onProjectFileOpen={onProjectFileOpen}
+            />
+          )
+        }
+
+        const stepId = `${replayStepMetadata.turnId}:block:${index}`
+        const isActive = stepId === replayStepMetadata.activeReplayStepId
+
+        return (
+          <div
+            key={`${block.type}-${index}`}
+            className={[
+              'conversation-blocks__item',
+              'conversation-replay-step',
+              isActive ? 'conversation-blocks__item--active' : null,
+              isActive ? 'conversation-replay-step--active' : null,
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            data-replay-step-id={stepId}
+          >
+            {blockView}
+          </div>
+        )
+      })}
     </div>
   )
 }

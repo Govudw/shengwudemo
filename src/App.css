@@ -70,6 +70,7 @@
 .composer__project-create-button,
 .composer__project-option,
 .composer__send-button,
+.thread-workspace__replay-button,
 .use-case-grid__chip,
 .use-case-grid__card {
   border: 0;
@@ -4573,6 +4574,108 @@ textarea:focus-visible {
   gap: 4px;
 }
 
+.thread-workspace__replay-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  min-width: 96px;
+  padding: 0 11px 0 9px;
+  border: 1px solid rgba(8, 151, 191, 0.34);
+  border-radius: 9px;
+  color: #096a86;
+  background:
+    linear-gradient(180deg, rgba(246, 252, 254, 0.96), rgba(228, 246, 251, 0.9)),
+    var(--accent-soft);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 6px 14px rgba(8, 113, 148, 0.08);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.thread-workspace__replay-button::before {
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid currentColor;
+  content: "";
+}
+
+.thread-workspace__replay-button::after {
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: #0a5d78;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(8, 151, 191, 0.18);
+  content: "播放";
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.thread-workspace__replay-button:hover:not(:disabled) {
+  border-color: rgba(8, 151, 191, 0.58);
+  color: var(--accent-strong);
+  background:
+    linear-gradient(180deg, #ffffff, rgba(216, 243, 250, 0.96)),
+    var(--accent-soft);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 8px 18px rgba(8, 113, 148, 0.12);
+  transform: translateY(-1px);
+}
+
+.thread-workspace__replay-button--playing {
+  border-color: rgba(6, 128, 164, 0.62);
+  color: #ffffff;
+  background:
+    linear-gradient(180deg, #0c91b3, #08799a),
+    var(--accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 0 0 3px rgba(8, 151, 191, 0.14),
+    0 10px 22px rgba(8, 113, 148, 0.16);
+}
+
+.thread-workspace__replay-button--playing::before {
+  width: 8px;
+  height: 8px;
+  border: 0;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.thread-workspace__replay-button--playing::after {
+  color: #07556c;
+  background: rgba(255, 255, 255, 0.86);
+  content: "播放中";
+}
+
+.thread-workspace__replay-button:disabled {
+  border-color: var(--line);
+  color: var(--faint);
+  background: #f4f7fa;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.76;
+}
+
+.thread-workspace__replay-button:disabled::after {
+  color: var(--faint);
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--line-subtle);
+  content: "暂无";
+}
+
 .thread-workspace__run-info-button {
   display: inline-flex;
   align-items: center;
@@ -4592,6 +4695,13 @@ textarea:focus-visible {
 .thread-workspace__run-info-button[aria-expanded="true"] {
   color: var(--accent-strong);
   background: var(--accent-soft);
+}
+
+.thread-workspace__run-info-button:disabled {
+  color: var(--muted);
+  background: #f4f7fa;
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
 .thread-workspace__run-info-icon {
@@ -6523,6 +6633,60 @@ textarea:focus-visible {
   background: transparent;
 }
 
+.conversation-replay-step--active {
+  position: relative;
+  border-radius: 9px;
+  animation: replay-step-reveal 180ms ease-out;
+}
+
+.conversation-turn__markdown-segment--active {
+  background: rgba(225, 246, 252, 0.62);
+  box-shadow:
+    -10px 0 0 -7px rgba(8, 151, 191, 0.82),
+    0 0 0 1px rgba(8, 151, 191, 0.14),
+    0 8px 20px rgba(8, 113, 148, 0.08);
+}
+
+.conversation-turn__markdown-segment--active::before,
+.conversation-blocks__item--active::before {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: -11px;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #10a8cf, #08799a);
+  box-shadow: 0 0 0 4px rgba(8, 151, 191, 0.1);
+  content: "";
+}
+
+.conversation-blocks__item--active {
+  border-radius: 10px;
+  box-shadow:
+    -10px 0 0 -7px rgba(8, 151, 191, 0.82),
+    0 0 0 1px rgba(8, 151, 191, 0.2),
+    0 12px 28px rgba(8, 113, 148, 0.1);
+}
+
+.conversation-blocks__item--active > * {
+  border-color: rgba(8, 151, 191, 0.36);
+  background:
+    linear-gradient(180deg, rgba(250, 254, 255, 0.98), rgba(240, 250, 253, 0.88)),
+    var(--surface-raised);
+}
+
+@keyframes replay-step-reveal {
+  from {
+    opacity: 0.82;
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .conversation-markdown-table__scroll {
   max-width: 100%;
   contain: layout paint;
@@ -7656,6 +7820,35 @@ textarea:focus-visible {
   background: var(--surface);
 }
 
+.thread-composer:has(.thread-composer__textarea:disabled) {
+  border-top-color: rgba(203, 216, 227, 0.72);
+}
+
+.thread-composer__panel:has(.thread-composer__textarea:disabled) {
+  border-color: rgba(203, 216, 227, 0.78);
+  background:
+    linear-gradient(180deg, rgba(248, 251, 253, 0.96), rgba(241, 246, 249, 0.96)),
+    var(--surface-soft);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+}
+
+.thread-composer__panel:has(.thread-composer__textarea:disabled)::before {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 1;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: #607386;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(203, 216, 227, 0.74);
+  content: "回放锁定";
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
 .thread-composer__textarea {
   display: block;
   width: 100%;
@@ -7673,6 +7866,13 @@ textarea:focus-visible {
 
 .thread-composer__textarea::placeholder {
   color: var(--faint);
+}
+
+.thread-composer__textarea:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 1;
+  -webkit-text-fill-color: var(--muted);
 }
 
 .thread-composer__actions {
@@ -7725,13 +7925,22 @@ textarea:focus-visible {
   background: var(--line);
 }
 
+.thread-composer__context-button:disabled {
+  color: #9aabb9;
+  background: #eef3f6;
+  box-shadow: inset 0 0 0 1px rgba(203, 216, 227, 0.58);
+  cursor: not-allowed;
+}
+
 .thread-composer__send-button:hover:not(:disabled) {
   background: var(--accent-strong);
 }
 
 .thread-composer__send-button:disabled {
+  background: #b9c6d1;
+  box-shadow: inset 0 0 0 1px rgba(145, 160, 174, 0.18);
   cursor: not-allowed;
-  opacity: 0.45;
+  opacity: 0.7;
 }
 
 .thread-composer__icon {
@@ -7955,6 +8164,15 @@ textarea:focus-visible {
   }
 
   .thread-workspace__run-info-button span {
+    display: none;
+  }
+
+  .thread-workspace__replay-button {
+    min-width: 72px;
+    padding-inline: 9px;
+  }
+
+  .thread-workspace__replay-button span {
     display: none;
   }
 

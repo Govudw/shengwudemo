@@ -8,6 +8,7 @@ import { projects } from '../data/mockData'
 import type { PipelineDag } from '../data/mockCapabilities'
 import type { ConversationBlock } from '../data/conversationTypes'
 import type { DemoThread } from '../store/demoStoreLogic'
+import ConversationTranscript from './ConversationTranscript'
 import ThreadWorkspace from './ThreadWorkspace'
 
 const thread: DemoThread = {
@@ -48,6 +49,113 @@ const thread: DemoThread = {
 
 const noop = () => undefined
 
+const transcriptDecorationTurns: DemoThread['transcript'] = [
+  {
+    id: 'decorated-turn',
+    role: 'mainAgent',
+    markdown: [
+      'First paragraph.',
+      '',
+      '| Metric | Value |',
+      '| --- | ---: |',
+      '| Kd | 1.2 nM |',
+    ].join('\n'),
+    contentBlocks: [
+      {
+        type: 'projectFile',
+        fileName: 'affinity_report.csv',
+        fileKind: 'csv',
+        location: 'Project Files / Reports',
+        note: 'Affinity report.',
+      },
+    ],
+  },
+]
+
+const replayThread: DemoThread = {
+  ...thread,
+  id: 'replay-thread',
+  title: 'Replayable seeded thread',
+  transcript: [
+    {
+      id: 'replay-turn',
+      role: 'mainAgent',
+      contentBlocks: [
+        {
+          type: 'capabilityRunReplay',
+          commandName: 'Replay.RunStepOne',
+          status: 'success',
+          summary: 'Parsed replay input.',
+          defaultCollapsed: true,
+          input: { threadId: 'replay-thread' },
+          output: { parsed: true },
+          duration: '2s',
+        },
+        {
+          type: 'projectFile',
+          fileName: 'replay-output.md',
+          fileKind: 'md',
+          location: 'Project Files / Replay',
+          note: 'Replay output file.',
+        },
+      ],
+    },
+    {
+      id: 'replay-summary',
+      role: 'mainAgent',
+      markdown: 'Replay complete summary.',
+    },
+  ],
+  runInspector: {
+    summary: {
+      stage: 'Replay fixture run',
+      status: 'completed',
+      completedSteps: 3,
+      totalSteps: 3,
+      outputCount: 1,
+      pendingCount: 0,
+    },
+    progress: [
+      {
+        id: 'load-input',
+        title: 'Load input',
+        status: 'done',
+      },
+      {
+        id: 'publish-output',
+        title: 'Publish output',
+        status: 'done',
+      },
+      {
+        id: 'summarize-run',
+        title: 'Summarize run',
+        status: 'done',
+      },
+    ],
+    outputs: [
+      {
+        id: 'replay-output',
+        name: 'replay-output.md',
+        kind: 'projectFile',
+        location: 'Project Files / Replay',
+        status: 'saved',
+      },
+    ],
+    approvals: [],
+    capabilityRuns: [
+      {
+        id: 'step-one',
+        commandName: 'Replay.RunStepOne',
+        status: 'success',
+        summary: 'Parsed replay input.',
+        duration: '2s',
+        input: { threadId: 'replay-thread' },
+        output: { parsed: true },
+      },
+    ],
+  },
+}
+
 beforeEach(() => {
   ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
     .IS_REACT_ACT_ENVIRONMENT = true
@@ -69,10 +177,385 @@ beforeEach(() => {
 
 afterEach(() => {
   document.body.replaceChildren()
+  vi.useRealTimers()
   vi.restoreAllMocks()
 })
 
+describe('ConversationTranscript replay decorations', () => {
+  it('keeps normal transcript markdown and blocks free of replay wrappers', () => {
+    const { container, root } = renderTranscriptDecorationFixture()
+
+    expect(container.querySelector('.conversation-blocks__item')).toBeNull()
+    expect(container.querySelector('.conversation-replay-step')).toBeNull()
+    expect(container.querySelector('[data-replay-step-id]')).toBeNull()
+    expect(
+      container.querySelector('.conversation-markdown-table__scroll'),
+    ).not.toBeNull()
+
+    root.unmount()
+  })
+
+  it('adds replay metadata when replay is active before the first visible step', () => {
+    const { container, root } = renderTranscriptDecorationFixture({
+      replayActive: true,
+      activeReplayStepId: null,
+    })
+
+    const markdownStep = container.querySelector(
+      '[data-replay-step-id="decorated-turn:markdown:0"]',
+    )
+    const blockStep = container.querySelector(
+      '[data-replay-step-id="decorated-turn:block:0"]',
+    )
+
+    expect(markdownStep).not.toBeNull()
+    expect(markdownStep?.classList.contains('conversation-replay-step')).toBe(
+      true,
+    )
+    expect(blockStep).not.toBeNull()
+    expect(blockStep?.classList.contains('conversation-blocks__item')).toBe(true)
+    expect(
+      container.querySelector('.conversation-replay-step--active'),
+    ).toBeNull()
+
+    root.unmount()
+  })
+
+  it('scrolls the active replay step into view when replay advances', () => {
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    })
+    const { container, root } = renderTranscriptDecorationFixture({
+      replayActive: true,
+      activeReplayStepId: null,
+    })
+
+    expect(scrollIntoView).not.toHaveBeenCalled()
+
+    act(() => {
+      root.render(
+        <ConversationTranscript
+          turns={transcriptDecorationTurns}
+          replayActive
+          activeReplayStepId="decorated-turn:block:0"
+        />,
+      )
+    })
+
+    expect(
+      container.querySelector('.conversation-replay-step--active')?.textContent,
+    ).toContain('affinity_report.csv')
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      block: 'end',
+      behavior: 'smooth',
+      inline: 'nearest',
+    })
+
+    root.unmount()
+  })
+})
+
 describe('ThreadWorkspace', () => {
+  describe('Replay', () => {
+    it('shows an enabled Replay button for non-empty seeded threads and disables it for empty threads', () => {
+      const { container, root } = renderInteractiveThreadWorkspace({
+        threadOverride: replayThread,
+      })
+
+      const replayButton = getButton(container, '播放线程回放')
+      expect(replayButton.textContent).toContain('Replay')
+      expect(replayButton.disabled).toBe(false)
+
+      root.unmount()
+
+      const emptyFixture = renderInteractiveThreadWorkspace()
+      const emptyReplayButton = getButton(emptyFixture.container, '播放线程回放')
+
+      expect(emptyReplayButton.textContent).toContain('Replay')
+      expect(emptyReplayButton.disabled).toBe(true)
+
+      emptyFixture.root.unmount()
+    })
+
+    it('closes the side window and locally shows Run Inspector when Replay starts', async () => {
+      const runInspectorChanges: boolean[] = []
+      const { container, root } = renderInteractiveThreadWorkspace({
+        threadOverride: replayThread,
+        initialRunInspectorOpen: true,
+        onRunInspectorChange: (open) => runInspectorChanges.push(open),
+      })
+
+      await act(async () => {
+        getButton(container, '打开侧窗').click()
+      })
+      expect(container.querySelector('.workspace-side-window')).not.toBeNull()
+      expect(container.querySelector('#thread-run-inspector')).toBeNull()
+
+      await act(async () => {
+        getButton(container, '播放线程回放').click()
+      })
+
+      expect(container.querySelector('.workspace-side-window')).toBeNull()
+      expect(container.querySelector('#thread-run-inspector')).not.toBeNull()
+      expect(runInspectorChanges).toEqual([false])
+
+      root.unmount()
+    })
+
+    it('locks the Run Inspector button during replay without opening parent state', async () => {
+      const runInspectorChanges: boolean[] = []
+      const { container, root } = renderInteractiveThreadWorkspace({
+        threadOverride: replayThread,
+        onRunInspectorChange: (open) => runInspectorChanges.push(open),
+      })
+
+      await act(async () => {
+        getButton(container, '播放线程回放').click()
+      })
+
+      const runInspectorButton = getButton(container, '回放期间运行信息保持显示')
+
+      expect(runInspectorButton.disabled).toBe(true)
+      expect(runInspectorButton.title).toBe('回放期间运行信息保持显示')
+
+      await act(async () => {
+        runInspectorButton.click()
+      })
+
+      expect(runInspectorChanges).toEqual([])
+
+      root.unmount()
+    })
+
+    it('returns Run Inspector display to the parent state after replay finishes', async () => {
+      vi.useFakeTimers()
+      const runInspectorChanges: boolean[] = []
+      const { container, root } = renderInteractiveThreadWorkspace({
+        threadOverride: replayThread,
+        onRunInspectorChange: (open) => runInspectorChanges.push(open),
+      })
+
+      expect(container.querySelector('#thread-run-inspector')).toBeNull()
+
+      await act(async () => {
+        getButton(container, '播放线程回放').click()
+      })
+
+      expect(container.querySelector('#thread-run-inspector')).not.toBeNull()
+      expect(runInspectorChanges).toEqual([])
+
+      await act(async () => {
+        getButton(container, '完成线程回放').click()
+      })
+
+      expect(container.querySelector('#thread-run-inspector')).toBeNull()
+      expect(runInspectorChanges).toEqual([])
+
+      root.unmount()
+    })
+
+    it('starts with an empty replay view, then reveals the first step and partial running Run Inspector after 1 second', async () => {
+      vi.useFakeTimers()
+      const { container, root } = renderInteractiveThreadWorkspace({
+        threadOverride: replayThread,
+      })
+
+      await act(async () => {
+        getButton(container, '播放线程回放').click()
+      })
+      act(() => {
+        vi.advanceTimersByTime(0)
+      })
+
+      expect(container.querySelector('#thread-run-inspector')).not.toBeNull()
+      expect(container.querySelector('.conversation-transcript')).toBeNull()
+      expect(container.textContent).not.toContain('Replay.RunStepOne')
+      expect(container.textContent).not.toContain('replay-output.md')
+      expect(container.textContent).toContain('运行中')
+      expect(container.textContent).toContain('0 / 3 步')
+
+      act(() => {
+        vi.advanceTimersByTime(999)
+      })
+
+      expect(container.textContent).not.toContain('Replay.RunStepOne')
+
+      act(() => {
+        vi.advanceTimersByTime(1)
+      })
+
+      expect(container.textContent).toContain('Replay.RunStepOne')
+      expect(container.textContent).not.toContain('replay-output.md')
+      expect(container.textContent).toContain('运行中')
+      expect(container.querySelectorAll('.conversation-replay-step--active')).toHaveLength(1)
+      expect(
+        container.querySelector('[data-replay-step-id="replay-turn:block:0"]'),
+      ).not.toBeNull()
+
+      root.unmount()
+    })
+
+    it('clicking Replay while playing finishes immediately, shows the full transcript, and re-enables the composer', async () => {
+      vi.useFakeTimers()
+      const submit = vi.fn()
+      const { container, root } = renderInteractiveThreadWorkspace({
+        threadOverride: replayThread,
+        initialDraft: 'continue',
+        onSubmit: submit,
+      })
+
+      await act(async () => {
+        getButton(container, '播放线程回放').click()
+      })
+      act(() => {
+        vi.advanceTimersByTime(1000)
+      })
+
+      expect(getButton(container, '完成线程回放').disabled).toBe(false)
+      expect(container.querySelector<HTMLTextAreaElement>('textarea')?.disabled).toBe(
+        true,
+      )
+
+      await act(async () => {
+        getButton(container, '完成线程回放').click()
+      })
+
+      expect(container.textContent).toContain('Replay.RunStepOne')
+      expect(container.textContent).toContain('replay-output.md')
+      expect(container.textContent).toContain('Replay complete summary.')
+      expect(getButton(container, '播放线程回放').disabled).toBe(false)
+      expect(container.querySelector<HTMLTextAreaElement>('textarea')?.disabled).toBe(
+        false,
+      )
+
+      await act(async () => {
+        getButton(container, 'Send').click()
+      })
+      expect(submit).toHaveBeenCalledTimes(1)
+
+      root.unmount()
+    })
+
+    it('disables composer submit and attachment actions while replaying', async () => {
+      vi.useFakeTimers()
+      const draftChanges: string[] = []
+      const submit = vi.fn()
+      const notifications: string[] = []
+      const { container, root } = renderInteractiveThreadWorkspace({
+        threadOverride: replayThread,
+        initialDraft: 'blocked',
+        onDraftChange: (draft) => draftChanges.push(draft),
+        onSubmit: submit,
+        onNotify: (message) => notifications.push(message),
+      })
+
+      await act(async () => {
+        getButton(container, '播放线程回放').click()
+      })
+      act(() => {
+        vi.advanceTimersByTime(1000)
+      })
+
+      const textarea = container.querySelector<HTMLTextAreaElement>('textarea')
+      expect(textarea).not.toBeNull()
+      expect(textarea?.disabled).toBe(true)
+
+      await act(async () => {
+        textarea!.value = 'should not change'
+        textarea!.dispatchEvent(new Event('input', { bubbles: true }))
+        textarea!.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key: 'Enter',
+            bubbles: true,
+            cancelable: true,
+          }),
+        )
+        getButton(container, 'Send').click()
+        getButton(container, 'Add context').click()
+      })
+
+      expect(draftChanges).toEqual([])
+      expect(submit).not.toHaveBeenCalled()
+      expect(container.querySelector('.attachment-menu')).toBeNull()
+      expect(notifications).toEqual([])
+
+      root.unmount()
+    })
+
+    it('renders the final replay step before naturally completing', async () => {
+      vi.useFakeTimers()
+      const { container, root } = renderInteractiveThreadWorkspace({
+        threadOverride: replayThread,
+        initialDraft: 'continue',
+      })
+
+      await act(async () => {
+        getButton(container, '播放线程回放').click()
+      })
+
+      act(() => {
+        vi.advanceTimersByTime(1000)
+      })
+      expect(container.textContent).toContain('Replay.RunStepOne')
+      expect(container.textContent).not.toContain('replay-output.md')
+
+      act(() => {
+        vi.advanceTimersByTime(1000)
+      })
+
+      expect(container.textContent).toContain('replay-output.md')
+      expect(
+        container.querySelector('[data-replay-step-id="replay-turn:block:1"]'),
+      ).not.toBeNull()
+      expect(container.querySelectorAll('.conversation-replay-step--active')).toHaveLength(1)
+      expect(getButton(container, '完成线程回放').disabled).toBe(false)
+      expect(container.querySelector<HTMLTextAreaElement>('textarea')?.disabled).toBe(
+        true,
+      )
+
+      act(() => {
+        vi.advanceTimersByTime(1000)
+      })
+
+      expect(container.textContent).toContain('Replay complete summary.')
+      expect(
+        container.querySelector('[data-replay-step-id="replay-summary:markdown:0"]'),
+      ).not.toBeNull()
+      expect(container.querySelectorAll('.conversation-replay-step--active')).toHaveLength(1)
+      expect(getButton(container, '完成线程回放').disabled).toBe(false)
+      expect(container.querySelector<HTMLTextAreaElement>('textarea')?.disabled).toBe(
+        true,
+      )
+
+      act(() => {
+        vi.advanceTimersByTime(0)
+      })
+
+      expect(container.textContent).toContain('Replay.RunStepOne')
+      expect(container.textContent).toContain('replay-output.md')
+      expect(container.textContent).toContain('Replay complete summary.')
+      expect(getButton(container, '播放线程回放').disabled).toBe(false)
+      expect(container.querySelector<HTMLTextAreaElement>('textarea')?.disabled).toBe(
+        false,
+      )
+      expect(
+        container.querySelector('.conversation-replay-step--active'),
+      ).toBeNull()
+
+      act(() => {
+        vi.advanceTimersByTime(3000)
+      })
+
+      expect(
+        container.querySelector('.conversation-replay-step--active'),
+      ).toBeNull()
+
+      root.unmount()
+    })
+  })
+
   it('renders enzyme experiment execution module blocks as atomic transcript cards', () => {
     const experimentThread: DemoThread = {
       ...thread,
@@ -1429,16 +1912,22 @@ function renderInteractiveThreadWorkspace({
   onNotify = noop,
   onRunInspectorChange,
   onSidebarCollapsedChange,
+  onDraftChange,
+  onSubmit = noop,
   initialRunInspectorOpen = false,
   initialSidebarCollapsed = false,
+  initialDraft = '',
   projectName = 'Antibody Optimization',
   threadOverride = thread,
 }: {
   onNotify?: (message: string) => void
   onRunInspectorChange?: (open: boolean) => void
   onSidebarCollapsedChange?: (collapsed: boolean) => void
+  onDraftChange?: (draft: string) => void
+  onSubmit?: () => void
   initialRunInspectorOpen?: boolean
   initialSidebarCollapsed?: boolean
+  initialDraft?: string
   projectName?: string
   threadOverride?: DemoThread
 } = {}) {
@@ -1451,6 +1940,7 @@ function renderInteractiveThreadWorkspace({
     const [sidebarCollapsed, setSidebarCollapsed] = useState(
       initialSidebarCollapsed,
     )
+    const [draft, setDraft] = useState(initialDraft)
 
     function handleRunInspectorChange(nextOpen: boolean) {
       onRunInspectorChange?.(nextOpen)
@@ -1462,13 +1952,18 @@ function renderInteractiveThreadWorkspace({
       setSidebarCollapsed(collapsed)
     }
 
+    function handleDraftChange(nextDraft: string) {
+      onDraftChange?.(nextDraft)
+      setDraft(nextDraft)
+    }
+
     return (
       <ThreadWorkspace
         thread={threadOverride}
         projectName={projectName}
-        draft=""
-        onDraftChange={noop}
-        onSubmit={noop}
+        draft={draft}
+        onDraftChange={handleDraftChange}
+        onSubmit={onSubmit}
         onRenameThread={noop}
         onArchiveThread={noop}
         onDeleteThread={noop}
@@ -1483,6 +1978,30 @@ function renderInteractiveThreadWorkspace({
 
   act(() => {
     root.render(<Harness />)
+  })
+
+  return { container, root }
+}
+
+function renderTranscriptDecorationFixture({
+  replayActive,
+  activeReplayStepId,
+}: {
+  replayActive?: boolean
+  activeReplayStepId?: string | null
+} = {}) {
+  const container = document.createElement('div')
+  document.body.append(container)
+  const root = createRoot(container)
+
+  act(() => {
+    root.render(
+      <ConversationTranscript
+        turns={transcriptDecorationTurns}
+        replayActive={replayActive}
+        activeReplayStepId={activeReplayStepId}
+      />,
+    )
   })
 
   return { container, root }
