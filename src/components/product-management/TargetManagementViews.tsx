@@ -2,7 +2,6 @@ import type { TargetSection } from './targetManagementMockData'
 
 type TargetManagementViewProps = {
   activeSection: TargetSection
-  onNotify: (message: string) => void
 }
 
 export function TargetManagementView({ activeSection }: TargetManagementViewProps) {

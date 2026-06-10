@@ -2,7 +2,6 @@ import type { CostSection } from './costManagementMockData'
 
 type CostManagementViewProps = {
   activeSection: CostSection
-  onNotify: (message: string) => void
 }
 
 export function CostManagementView({ activeSection }: CostManagementViewProps) {

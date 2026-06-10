@@ -356,6 +356,17 @@ describe('ProductManagementPlatformPage', () => {
     expect(getButton(container, '成本总览').getAttribute('aria-current')).toBe(
       'page',
     )
+    expect(container.textContent).toContain('成本总览')
+
+    act(() => {
+      getButton(container, '成本项管理').click()
+    })
+
+    expect(getButton(container, '成本项管理').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(getButton(container, '成本总览').getAttribute('aria-current')).toBeNull()
+    expect(container.textContent).toContain('成本项管理')
 
     root.unmount()
   })
@@ -388,6 +399,17 @@ describe('ProductManagementPlatformPage', () => {
     expect(getButton(container, '目标总览').getAttribute('aria-current')).toBe(
       'page',
     )
+    expect(container.textContent).toContain('目标总览')
+
+    act(() => {
+      getButton(container, '季度目标').click()
+    })
+
+    expect(getButton(container, '季度目标').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(getButton(container, '目标总览').getAttribute('aria-current')).toBeNull()
+    expect(container.textContent).toContain('季度目标')
 
     root.unmount()
   })

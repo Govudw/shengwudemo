@@ -3,7 +3,7 @@ import logoSrc from '../../assets/biomap-agent-logo.png'
 import { SearchIcon } from '../icons'
 import { CostManagementView } from './CostManagementViews'
 import { TargetManagementView } from './TargetManagementViews'
-import type { CostSection } from './costManagementMockData'
+import { costSections, type CostSection } from './costManagementMockData'
 import {
   billRecords,
   billPageSize,
@@ -45,23 +45,7 @@ import {
   type ProductStage,
   type ProductType,
 } from './productManagementMockData'
-import type { TargetSection } from './targetManagementMockData'
-
-const costNavigationItems: { id: CostSection; label: string }[] = [
-  { id: 'overview', label: '成本总览' },
-  { id: 'items', label: '成本项管理' },
-  { id: 'models', label: '成本模型' },
-  { id: 'allocations', label: '成本分摊规则' },
-  { id: 'versions', label: '成本版本记录' },
-]
-
-const targetNavigationItems: { id: TargetSection; label: string }[] = [
-  { id: 'overview', label: '目标总览' },
-  { id: 'quarterly', label: '季度目标' },
-  { id: 'contributions', label: '商品贡献' },
-  { id: 'margins', label: '成本与毛利' },
-  { id: 'versions', label: '目标版本记录' },
-]
+import { targetSections, type TargetSection } from './targetManagementMockData'
 
 type ProductManagementPlatformPageProps = {
   initialCommodityId?: string | null
@@ -588,7 +572,7 @@ function ProductManagementPlatformPage({
               className="product-platform-side-menu"
               aria-label="成本管理左侧导航"
             >
-              {costNavigationItems.map((item) => (
+              {costSections.map((item) => (
                 <button
                   key={item.id}
                   type="button"
@@ -612,7 +596,7 @@ function ProductManagementPlatformPage({
               className="product-platform-side-menu"
               aria-label="目标管理左侧导航"
             >
-              {targetNavigationItems.map((item) => (
+              {targetSections.map((item) => (
                 <button
                   key={item.id}
                   type="button"
@@ -717,16 +701,10 @@ function ProductManagementPlatformPage({
             )
           ) : null}
           {activeTab === 'cost' ? (
-            <CostManagementView
-              activeSection={activeCostSection}
-              onNotify={onNotify}
-            />
+            <CostManagementView activeSection={activeCostSection} />
           ) : null}
           {activeTab === 'target' ? (
-            <TargetManagementView
-              activeSection={activeTargetSection}
-              onNotify={onNotify}
-            />
+            <TargetManagementView activeSection={activeTargetSection} />
           ) : null}
           {activeTab === 'billing' && activeBillingSection === 'instances' ? (
             <BillingInstanceManagementView
