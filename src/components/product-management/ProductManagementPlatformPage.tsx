@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react'
 import logoSrc from '../../assets/biomap-agent-logo.png'
 import { SearchIcon } from '../icons'
+import { CostManagementView } from './CostManagementViews'
+import { TargetManagementView } from './TargetManagementViews'
+import type { CostSection } from './costManagementMockData'
 import {
   billRecords,
   billPageSize,
@@ -42,6 +45,23 @@ import {
   type ProductStage,
   type ProductType,
 } from './productManagementMockData'
+import type { TargetSection } from './targetManagementMockData'
+
+const costNavigationItems: { id: CostSection; label: string }[] = [
+  { id: 'overview', label: '成本总览' },
+  { id: 'items', label: '成本项管理' },
+  { id: 'models', label: '成本模型' },
+  { id: 'allocations', label: '成本分摊规则' },
+  { id: 'versions', label: '成本版本记录' },
+]
+
+const targetNavigationItems: { id: TargetSection; label: string }[] = [
+  { id: 'overview', label: '目标总览' },
+  { id: 'quarterly', label: '季度目标' },
+  { id: 'contributions', label: '商品贡献' },
+  { id: 'margins', label: '成本与毛利' },
+  { id: 'versions', label: '目标版本记录' },
+]
 
 type ProductManagementPlatformPageProps = {
   initialCommodityId?: string | null
@@ -99,6 +119,10 @@ function ProductManagementPlatformPage({
   const [ownerFilter, setOwnerFilter] = useState<string | CommodityFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [activeCostSection, setActiveCostSection] =
+    useState<CostSection>('overview')
+  const [activeTargetSection, setActiveTargetSection] =
+    useState<TargetSection>('overview')
   const [activeBillingSection, setActiveBillingSection] =
     useState<BillingSection>('instances')
   const [billingInstanceAccountFilter, setBillingInstanceAccountFilter] = useState<
@@ -559,12 +583,62 @@ function ProductManagementPlatformPage({
               </button>
             </nav>
           ) : null}
+          {activeTab === 'cost' ? (
+            <nav
+              className="product-platform-side-menu"
+              aria-label="成本管理左侧导航"
+            >
+              {costNavigationItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`product-platform-side-menu__item${
+                    activeCostSection === item.id
+                      ? ' product-platform-side-menu__item--active'
+                      : ''
+                  }`}
+                  aria-current={
+                    activeCostSection === item.id ? 'page' : undefined
+                  }
+                  onClick={() => setActiveCostSection(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+          ) : null}
+          {activeTab === 'target' ? (
+            <nav
+              className="product-platform-side-menu"
+              aria-label="目标管理左侧导航"
+            >
+              {targetNavigationItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`product-platform-side-menu__item${
+                    activeTargetSection === item.id
+                      ? ' product-platform-side-menu__item--active'
+                      : ''
+                  }`}
+                  aria-current={
+                    activeTargetSection === item.id ? 'page' : undefined
+                  }
+                  onClick={() => setActiveTargetSection(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+          ) : null}
         </aside>
         <section
           className={`product-platform-canvas${
             activeTab === 'commodity' ? ' product-platform-canvas--commodity' : ''
           }${activeTab === 'product' ? ' product-platform-canvas--product' : ''}${
             activeTab === 'billing' ? ' product-platform-canvas--billing' : ''
+          }${activeTab === 'cost' ? ' product-platform-canvas--cost' : ''}${
+            activeTab === 'target' ? ' product-platform-canvas--target' : ''
           }`}
           aria-label="产品管理平台内容区"
         >
@@ -641,6 +715,18 @@ function ProductManagementPlatformPage({
                 onRecordAction={handleCommodityAction}
               />
             )
+          ) : null}
+          {activeTab === 'cost' ? (
+            <CostManagementView
+              activeSection={activeCostSection}
+              onNotify={onNotify}
+            />
+          ) : null}
+          {activeTab === 'target' ? (
+            <TargetManagementView
+              activeSection={activeTargetSection}
+              onNotify={onNotify}
+            />
           ) : null}
           {activeTab === 'billing' && activeBillingSection === 'instances' ? (
             <BillingInstanceManagementView

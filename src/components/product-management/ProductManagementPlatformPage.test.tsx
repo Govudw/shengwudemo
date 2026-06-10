@@ -328,7 +328,7 @@ describe('ProductManagementPlatformPage', () => {
     root.unmount()
   })
 
-  it('switches the active top tab without adding left navigation content', () => {
+  it('renders cost management navigation instead of the old empty cost tab', () => {
     const { container, root } = renderProductManagementPlatformPage()
 
     act(() => {
@@ -338,8 +338,55 @@ describe('ProductManagementPlatformPage', () => {
     expect(getTabButton(container, '成本管理').getAttribute('aria-selected')).toBe(
       'true',
     )
-    expect(container.querySelector('.product-platform-sidebar')?.textContent).toBe(
-      '',
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '成本总览',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '成本项管理',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '成本模型',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '成本分摊规则',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '成本版本记录',
+    )
+    expect(getButton(container, '成本总览').getAttribute('aria-current')).toBe(
+      'page',
+    )
+
+    root.unmount()
+  })
+
+  it('renders target management as a top-level tab with its own navigation', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+
+    expect(getTabButton(container, '目标管理').getAttribute('aria-selected')).toBe(
+      'true',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '目标总览',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '季度目标',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '商品贡献',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '成本与毛利',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '目标版本记录',
+    )
+    expect(getButton(container, '目标总览').getAttribute('aria-current')).toBe(
+      'page',
     )
 
     root.unmount()
