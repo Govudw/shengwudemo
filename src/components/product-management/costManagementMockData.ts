@@ -556,6 +556,14 @@ function createModelVersions(
       summary: `${billingItemName} 二季度成本口径锁定。`,
     },
     {
+      costVersion: `${costVersion}-draft`,
+      status: '草稿',
+      createdAt: '2026-06-08 16:40',
+      effectiveAt: '-',
+      creator: owner,
+      summary: `${billingItemName} 三季度资源、人力和分摊口径草稿。`,
+    },
+    {
       costVersion: costVersion.replace('2026Q2', '2026Q1'),
       status: '已归档',
       createdAt: '2026-03-28 15:20',

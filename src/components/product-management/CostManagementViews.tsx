@@ -90,15 +90,69 @@ export function CostManagementView({ activeSection }: CostManagementViewProps) {
 }
 
 function CostOverviewView() {
+  const [yearFilter, setYearFilter] = useState('2026')
+  const [quarterFilter, setQuarterFilter] = useState('Q2')
+  const [productFilter, setProductFilter] = useState('all')
+  const [basisFilter, setBasisFilter] = useState('all')
+  const [riskFilter, setRiskFilter] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const metrics = useMemo(() => createOverviewMetrics(), [])
-  const costStructureRows = useMemo(() => createCostStructureRows(), [])
+  const visibleOverviewRecords = useMemo(
+    () =>
+      costOverviewRecords.filter((record) => {
+        if (productFilter !== 'all' && record.productName !== productFilter) {
+          return false
+        }
+
+        if (riskFilter !== 'all' && record.riskStatus !== riskFilter) {
+          return false
+        }
+
+        return matchesQuery(record, searchQuery, [
+          'productName',
+          'owner',
+          'riskStatus',
+          'marginVariance',
+        ])
+      }),
+    [productFilter, riskFilter, searchQuery],
+  )
+  const costStructureRows = useMemo(
+    () => createCostStructureRows(visibleOverviewRecords),
+    [visibleOverviewRecords],
+  )
   const riskRows = useMemo(
     () =>
       costModelRecords
-        .filter((record) => record.riskStatus !== '正常')
+        .filter((record) => {
+          if (productFilter !== 'all' && record.productName !== productFilter) {
+            return false
+          }
+
+          if (riskFilter !== 'all' && record.riskStatus !== riskFilter) {
+            return false
+          }
+
+          if (basisFilter !== 'all' && !record.costBasis.includes(basisFilter)) {
+            return false
+          }
+
+          if (record.riskStatus === '正常') {
+            return false
+          }
+
+          return matchesQuery(record, searchQuery, [
+            'productName',
+            'commodityName',
+            'billingItemName',
+            'billingItemCode',
+            'riskStatus',
+          ])
+        })
         .slice(0, 8),
-    [],
+    [basisFilter, productFilter, riskFilter, searchQuery],
   )
+  const selectedScope = `${yearFilter} ${quarterFilter}`
 
   return (
     <>
@@ -106,10 +160,55 @@ function CostOverviewView() {
         title="成本总览"
         description="按产品线查看目标成本、已确认成本、成本模型覆盖和毛利风险。"
       />
+      <ManagementToolbar ariaLabel="成本总览筛选工具">
+        <SearchField
+          label="搜索成本总览"
+          value={searchQuery}
+          placeholder="搜索产品、负责人、商品或计费项"
+          onChange={setSearchQuery}
+        />
+        <FilterSelect
+          label="筛选成本年度"
+          value={yearFilter}
+          allLabel="全部年度"
+          options={['2026']}
+          onChange={setYearFilter}
+          includeAll={false}
+        />
+        <FilterSelect
+          label="筛选成本季度"
+          value={quarterFilter}
+          allLabel="全部季度"
+          options={['Q2', 'Q3']}
+          onChange={setQuarterFilter}
+          includeAll={false}
+        />
+        <FilterSelect
+          label="筛选成本产品"
+          value={productFilter}
+          allLabel="全部产品"
+          options={costModelProductNames}
+          onChange={setProductFilter}
+        />
+        <FilterSelect
+          label="筛选成本口径"
+          value={basisFilter}
+          allLabel="全部成本口径"
+          options={['标准用量', '项目交付']}
+          onChange={setBasisFilter}
+        />
+        <FilterSelect
+          label="筛选成本总览风险"
+          value={riskFilter}
+          allLabel="全部风险"
+          options={costRiskStatuses}
+          onChange={setRiskFilter}
+        />
+      </ManagementToolbar>
       <MetricGrid metrics={metrics} />
       <ManagementSection title="产品成本与毛利">
         <ManagementTable<CostOverviewRecord>
-          records={costOverviewRecords}
+          records={visibleOverviewRecords}
           getRowKey={(record) => record.productId}
           minWidth={1200}
           columns={[
@@ -186,6 +285,7 @@ function CostOverviewView() {
           ]}
         />
       </ManagementSection>
+      <p className="management-footnote">当前快照：{selectedScope}，数据来源为费用中心账单汇总、成本模型和共享成本分摊结果。</p>
     </>
   )
 }
@@ -292,7 +392,7 @@ function CostItemsView() {
             resetPage()
           }}
         />
-        <button type="button" className="management-create-button">
+        <button type="button" className="management-create-button" disabled>
           + 新建成本项
         </button>
       </ManagementToolbar>
@@ -752,7 +852,7 @@ function CostAllocationsView() {
             resetPage()
           }}
         />
-        <button type="button" className="management-create-button">
+        <button type="button" className="management-create-button" disabled>
           + 新建分摊规则
         </button>
       </ManagementToolbar>
@@ -1058,12 +1158,14 @@ function FilterSelect({
   allLabel,
   options,
   onChange,
+  includeAll = true,
 }: {
   label: string
   value: string
   allLabel: string
   options: string[]
   onChange: (value: string) => void
+  includeAll?: boolean
 }) {
   return (
     <select
@@ -1072,7 +1174,7 @@ function FilterSelect({
       value={value}
       onChange={(event) => onChange(event.currentTarget.value)}
     >
-      <option value="all">{allLabel}</option>
+      {includeAll ? <option value="all">{allLabel}</option> : null}
       {options.map((option) => (
         <option key={option} value={option}>
           {option}
@@ -1190,7 +1292,7 @@ function actionColumn<TRecord>(): TableColumn<TRecord> {
     key: 'action',
     header: '操作',
     render: () => (
-      <button type="button" className="management-action">
+      <button type="button" className="management-action" disabled>
         查看
       </button>
     ),
@@ -1232,12 +1334,20 @@ function createOverviewMetrics(): MetricRecord[] {
     },
     {
       label: '加权目标毛利率',
-      value: `${averagePercent(costOverviewRecords.map((record) => record.targetGrossMargin))}%`,
+      value: `${weightedAveragePercent(
+        costOverviewRecords,
+        (record) => record.targetGrossMargin,
+        (record) => record.targetRevenue,
+      )}%`,
       note: '按产品目标收入加权近似',
     },
     {
       label: '实际毛利率',
-      value: `${averagePercent(costOverviewRecords.map((record) => record.actualGrossMargin))}%`,
+      value: `${weightedAveragePercent(
+        costOverviewRecords,
+        (record) => record.actualGrossMargin,
+        (record) => record.actualRevenue,
+      )}%`,
       note: '费用中心收入扣除确认成本',
     },
     {
@@ -1260,8 +1370,8 @@ function createOverviewMetrics(): MetricRecord[] {
   ]
 }
 
-function createCostStructureRows(): CostStructureRow[] {
-  return costOverviewRecords.map((overview, index) => {
+function createCostStructureRows(records: CostOverviewRecord[]): CostStructureRow[] {
+  return records.map((overview, index) => {
     const productModels = costModelRecords.filter(
       (record) => record.productId === overview.productId,
     )
@@ -1334,13 +1444,22 @@ function sumCurrency<TRecord>(
   return records.reduce((sum, record) => sum + parseCurrency(getValue(record)), 0)
 }
 
-function averagePercent(values: string[]) {
-  if (values.length === 0) {
+function weightedAveragePercent<TRecord>(
+  records: TRecord[],
+  getPercent: (record: TRecord) => string,
+  getWeight: (record: TRecord) => string,
+) {
+  const totalWeight = sumCurrency(records, getWeight)
+
+  if (totalWeight <= 0) {
     return 0
   }
 
   return Math.round(
-    values.reduce((sum, value) => sum + parsePercent(value), 0) / values.length,
+    records.reduce(
+      (sum, record) => sum + parsePercent(getPercent(record)) * parseCurrency(getWeight(record)),
+      0,
+    ) / totalWeight,
   )
 }
 

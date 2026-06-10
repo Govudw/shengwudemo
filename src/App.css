@@ -842,6 +842,12 @@
   outline: none;
 }
 
+.management-create-button:disabled {
+  background: #9fb2c0;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 .management-table-wrap {
   min-width: 0;
   overflow: auto;
@@ -931,6 +937,12 @@
 .management-action:focus-visible {
   background: #eef8fb;
   outline: none;
+}
+
+.management-action:disabled {
+  color: #9aa8b5;
+  background: #f5f8fa;
+  cursor: not-allowed;
 }
 
 .management-pagination {
@@ -9301,6 +9313,10 @@ textarea:focus-visible {
 
   .management-toolbar {
     grid-template-columns: repeat(3, minmax(132px, 1fr));
+  }
+
+  .management-toolbar .management-search {
+    grid-column: 1 / -1;
   }
 
   .commodity-detail__filters {

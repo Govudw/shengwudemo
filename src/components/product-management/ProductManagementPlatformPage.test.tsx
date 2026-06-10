@@ -384,6 +384,19 @@ describe('ProductManagementPlatformPage', () => {
     expect(container.textContent).toContain('虚拟细胞')
     expect(container.textContent).toContain('BioMap Agent')
     expect(container.textContent).toContain('高风险计费项')
+    expect(getSelectOptions(container, '筛选成本年度')).toEqual(['2026'])
+    expect(getSelectOptions(container, '筛选成本季度')).toEqual(['Q2', 'Q3'])
+    expect(getSelectOptions(container, '筛选成本产品')).toContain('虚拟细胞')
+    expect(getSelectOptions(container, '筛选成本口径')).toContain('标准用量')
+    expect(getSelectOptions(container, '筛选成本总览风险')).toContain('关注')
+
+    setSelect(container, '筛选成本产品', 'BioMap Agent')
+    expect(getCommodityRowTexts(container).some((text) => text.includes('BioMap Agent'))).toBe(
+      true,
+    )
+    expect(getCommodityRowTexts(container).some((text) => text.includes('虚拟细胞'))).toBe(
+      false,
+    )
 
     root.unmount()
   })
@@ -442,6 +455,42 @@ describe('ProductManagementPlatformPage', () => {
     expect(container.textContent).toContain('毛利试算')
     expect(container.textContent).toContain('版本记录')
     expect(container.textContent).toContain('VCELL-COMM-001-BI-001')
+    expect(container.textContent).toContain('草稿')
+
+    act(() => {
+      getButton(container, '返回成本模型列表').click()
+    })
+
+    expect(container.textContent).toContain('成本模型名称')
+    expect(container.textContent).not.toContain('成本模型详情')
+
+    root.unmount()
+  })
+
+  it('keeps cost pagination and reset behavior stable after filtering', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '成本管理').click()
+    })
+    act(() => {
+      getButton(container, '成本项管理').click()
+    })
+
+    expect(container.textContent).toContain('1 / 3')
+
+    act(() => {
+      getButton(container, '下一页').click()
+    })
+
+    expect(container.textContent).toContain('2 / 3')
+
+    setSelect(container, '筛选成本科目', '共享成本')
+
+    expect(container.textContent).toContain('1 / 1')
+    expect(getCommodityRowTexts(container).every((text) => text.includes('共享成本'))).toBe(
+      true,
+    )
 
     root.unmount()
   })
