@@ -9,6 +9,8 @@ type ThreadComposerProps = {
   onDraftChange: (draft: string) => void
   onSubmit: () => void
   onNotify: (message: string) => void
+  disabled?: boolean
+  placeholder?: string
 }
 
 function ThreadComposer({
@@ -16,13 +18,28 @@ function ThreadComposer({
   onDraftChange,
   onSubmit,
   onNotify,
+  disabled = false,
+  placeholder = '继续推进这个对话...',
 }: ThreadComposerProps) {
   const attachmentMenuRef = useRef<HTMLDivElement>(null)
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false)
-  const canSubmit = draft.trim().length > 0
+  const canSubmit = !disabled && draft.trim().length > 0
+  const attachmentMenuVisible = attachmentMenuOpen && !disabled
 
   useEffect(() => {
-    if (!attachmentMenuOpen) {
+    if (!disabled || !attachmentMenuOpen) {
+      return undefined
+    }
+
+    const closeTimer = window.setTimeout(() => {
+      setAttachmentMenuOpen(false)
+    }, 0)
+
+    return () => window.clearTimeout(closeTimer)
+  }, [attachmentMenuOpen, disabled])
+
+  useEffect(() => {
+    if (!attachmentMenuVisible) {
       return undefined
     }
 
@@ -48,9 +65,13 @@ function ThreadComposer({
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [attachmentMenuOpen])
+  }, [attachmentMenuVisible])
 
   function handleTextareaKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (disabled) {
+      return
+    }
+
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
 
@@ -61,6 +82,11 @@ function ThreadComposer({
   }
 
   function selectAttachmentAction(action: AttachmentAction) {
+    if (disabled) {
+      setAttachmentMenuOpen(false)
+      return
+    }
+
     setAttachmentMenuOpen(false)
     onNotify(
       action === 'asset'
@@ -76,9 +102,16 @@ function ThreadComposer({
           className="thread-composer__textarea"
           value={draft}
           aria-label="继续推进这个对话"
-          placeholder="继续推进这个对话..."
+          placeholder={placeholder}
+          disabled={disabled}
           rows={2}
-          onChange={(event) => onDraftChange(event.target.value)}
+          onChange={(event) => {
+            if (disabled) {
+              return
+            }
+
+            onDraftChange(event.target.value)
+          }}
           onKeyDown={handleTextareaKeyDown}
         />
         <div className="thread-composer__actions">
@@ -91,14 +124,21 @@ function ThreadComposer({
               className="thread-composer__context-button"
               aria-label="Add context"
               aria-haspopup="menu"
-              aria-expanded={attachmentMenuOpen}
+              aria-expanded={attachmentMenuVisible}
               aria-controls="thread-composer-attachment-menu"
-              onClick={() => setAttachmentMenuOpen((open) => !open)}
+              disabled={disabled}
+              onClick={() => {
+                if (disabled) {
+                  return
+                }
+
+                setAttachmentMenuOpen((open) => !open)
+              }}
             >
               <PlusIcon className="thread-composer__icon" />
             </button>
 
-            {attachmentMenuOpen ? (
+            {attachmentMenuVisible ? (
               <AttachmentMenu
                 id="thread-composer-attachment-menu"
                 onSelect={selectAttachmentAction}
@@ -110,7 +150,11 @@ function ThreadComposer({
             className="thread-composer__send-button"
             aria-label="Send"
             disabled={!canSubmit}
-            onClick={onSubmit}
+            onClick={() => {
+              if (canSubmit) {
+                onSubmit()
+              }
+            }}
           >
             <SendIcon className="thread-composer__icon" />
           </button>

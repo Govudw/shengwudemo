@@ -16,6 +16,11 @@ import {
   WorkspaceToolWindowIcon,
 } from './icons'
 import RunInspector from './RunInspector'
+import {
+  buildThreadReplaySteps,
+  deriveReplayRunInspector,
+  deriveReplayTranscript,
+} from './threadReplay'
 import ThreadComposer from './ThreadComposer'
 import WorkspaceSideWindow from './WorkspaceSideWindow'
 import type { WorkspaceSideWindowThreadState } from './WorkspaceSideWindow'
@@ -35,6 +40,13 @@ type ThreadWorkspaceProps = {
   sidebarCollapsed?: boolean
   onSidebarCollapsedChange?: (collapsed: boolean) => void
 }
+
+type ReplaySession = {
+  threadId: string
+  projectName: string
+}
+
+const REPLAY_STEP_INTERVAL_MS = 1000
 
 function ThreadWorkspace(props: ThreadWorkspaceProps) {
   const {
@@ -64,9 +76,13 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
   const sideWindowPanelRef = useRef<HTMLElement>(null)
   const renameInputRef = useRef<HTMLInputElement>(null)
   const cancelDeleteButtonRef = useRef<HTMLButtonElement>(null)
+  const replayTimerRef = useRef<number | null>(null)
   const [runInspectorDrawer, setRunInspectorDrawer] = useState(false)
   const [sideWindowOpen, setSideWindowOpen] = useState(false)
   const [sideWindowMaximized, setSideWindowMaximized] = useState(false)
+  const [replayPlaying, setReplayPlaying] = useState(false)
+  const [replayVisibleStepCount, setReplayVisibleStepCount] = useState(0)
+  const [replaySession, setReplaySession] = useState<ReplaySession | null>(null)
   const [sideWindowStateByThreadId, setSideWindowStateByThreadId] = useState<
     Record<string, WorkspaceSideWindowThreadState>
   >({})
@@ -81,6 +97,64 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
     () => buildThreadObjectStorageFiles(projectName, thread.id),
     [projectName, thread.id],
   )
+  const replaySteps = useMemo(
+    () => buildThreadReplaySteps(thread.transcript),
+    [thread.transcript],
+  )
+  const fullReplayTranscript = useMemo(
+    () =>
+      deriveReplayTranscript(thread.transcript, replaySteps, replaySteps.length),
+    [replaySteps, thread.transcript],
+  )
+  const replayAvailable = fullReplayTranscript.length > 0
+  const replaySessionMatches =
+    replaySession?.threadId === thread.id &&
+    replaySession.projectName === projectName
+  const replayActive = replayPlaying && replaySessionMatches
+  const runInspectorVisible = runInspectorOpen || replayActive
+  const replayTranscript = useMemo(
+    () =>
+      replayActive
+        ? deriveReplayTranscript(
+            thread.transcript,
+            replaySteps,
+            replayVisibleStepCount,
+          )
+        : thread.transcript,
+    [replayActive, replaySteps, replayVisibleStepCount, thread.transcript],
+  )
+  const replayRunInspector = useMemo(
+    () =>
+      replayActive
+        ? deriveReplayRunInspector(
+            thread.runInspector,
+            replaySteps,
+            replayVisibleStepCount,
+          )
+        : thread.runInspector,
+    [replayActive, replaySteps, replayVisibleStepCount, thread.runInspector],
+  )
+  const activeReplayStepId =
+    replayActive && replayVisibleStepCount > 0
+      ? replaySteps[Math.min(replayVisibleStepCount, replaySteps.length) - 1]
+          ?.id ?? null
+      : null
+
+  const clearReplayTimer = useCallback(() => {
+    if (replayTimerRef.current === null) {
+      return
+    }
+
+    window.clearInterval(replayTimerRef.current)
+    replayTimerRef.current = null
+  }, [])
+
+  const finishReplay = useCallback(() => {
+    clearReplayTimer()
+    setReplayPlaying(false)
+    setReplayVisibleStepCount(0)
+    setReplaySession(null)
+  }, [clearReplayTimer])
 
   const closeRunInspector = useCallback(() => {
     onRunInspectorOpenChange(false)
@@ -145,6 +219,63 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
     setSideWindowMaximized(false)
     restoreSidebarCollapsed()
   }, [restoreSidebarCollapsed, thread.id])
+
+  useEffect(() => {
+    if (!replayActive || !replayAvailable) {
+      clearReplayTimer()
+      return undefined
+    }
+
+    replayTimerRef.current = window.setInterval(() => {
+      setReplayVisibleStepCount((currentCount) => {
+        return Math.min(currentCount + 1, replaySteps.length)
+      })
+    }, REPLAY_STEP_INTERVAL_MS)
+
+    return clearReplayTimer
+  }, [clearReplayTimer, replayActive, replayAvailable, replaySteps.length])
+
+  useEffect(() => {
+    if (
+      !replayActive ||
+      !replayAvailable ||
+      replayVisibleStepCount < replaySteps.length
+    ) {
+      return undefined
+    }
+
+    clearReplayTimer()
+
+    const completionTimer = window.setTimeout(() => {
+      setReplayPlaying(false)
+      setReplayVisibleStepCount(0)
+      setReplaySession(null)
+    }, 0)
+
+    return () => window.clearTimeout(completionTimer)
+  }, [
+    clearReplayTimer,
+    replayActive,
+    replayAvailable,
+    replaySteps.length,
+    replayVisibleStepCount,
+  ])
+
+  useEffect(() => {
+    if (!replaySession || replaySessionMatches) {
+      return undefined
+    }
+
+    clearReplayTimer()
+
+    const resetTimer = window.setTimeout(() => {
+      setReplayPlaying(false)
+      setReplayVisibleStepCount(0)
+      setReplaySession(null)
+    }, 0)
+
+    return () => window.clearTimeout(resetTimer)
+  }, [clearReplayTimer, replaySession, replaySessionMatches])
 
   useEffect(() => {
     if (!menuOpen) {
@@ -288,6 +419,10 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
   }
 
   function handleRunInspectorButtonClick() {
+    if (replayActive) {
+      return
+    }
+
     if (sideWindowOpen) {
       previousRunInspectorOpenRef.current = null
       setSideWindowOpen(false)
@@ -298,6 +433,26 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
     }
 
     onRunInspectorOpenChange(!runInspectorOpen)
+  }
+
+  function handleReplayButtonClick() {
+    if (replayActive) {
+      finishReplay()
+      return
+    }
+
+    if (!replayAvailable) {
+      return
+    }
+
+    clearReplayTimer()
+    previousRunInspectorOpenRef.current = null
+    setSideWindowOpen(false)
+    setSideWindowMaximized(false)
+    restoreSidebarCollapsed()
+    setReplaySession({ threadId: thread.id, projectName })
+    setReplayVisibleStepCount(0)
+    setReplayPlaying(true)
   }
 
   function handleProjectFileOpen(block: ProjectFileBlock) {
@@ -324,6 +479,12 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
     }))
   }
 
+  const runInspectorButtonLabel = replayActive
+    ? '回放期间运行信息保持显示'
+    : runInspectorVisible
+      ? '关闭运行信息'
+      : '打开运行信息'
+
   function submitRename() {
     const nextTitle = renameValue.trim().replace(/\s+/g, ' ')
 
@@ -339,7 +500,7 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
   return (
     <section
       className={`thread-workspace${
-        runInspectorOpen ? ' thread-workspace--run-inspector-open' : ''
+        runInspectorVisible ? ' thread-workspace--run-inspector-open' : ''
       }${sideWindowOpen ? ' thread-workspace--side-window-open' : ''
       }${
         sideWindowOpen && sideWindowMaximized
@@ -377,13 +538,32 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
         </div>
         <div className="thread-workspace__actions">
           <button
+            type="button"
+            className={`thread-workspace__replay-button${
+              replayActive ? ' thread-workspace__replay-button--playing' : ''
+            }`}
+            aria-label={replayActive ? '完成线程回放' : '播放线程回放'}
+            title={
+              replayActive
+                ? '完成线程回放'
+                : replayAvailable
+                  ? '播放线程回放'
+                  : '暂无可回放内容'
+            }
+            disabled={!replayActive && !replayAvailable}
+            onClick={handleReplayButtonClick}
+          >
+            <span>Replay</span>
+          </button>
+          <button
             ref={runInfoButtonRef}
             type="button"
             className="thread-workspace__run-info-button"
-            aria-label={runInspectorOpen ? '关闭运行信息' : '打开运行信息'}
-            aria-expanded={runInspectorOpen}
+            aria-label={runInspectorButtonLabel}
+            aria-expanded={runInspectorVisible}
             aria-controls="thread-run-inspector"
-            title={runInspectorOpen ? '关闭运行信息' : '打开运行信息'}
+            title={runInspectorButtonLabel}
+            disabled={replayActive}
             onClick={handleRunInspectorButtonClick}
           >
             <PanelRightIcon className="thread-workspace__run-info-icon" />
@@ -463,11 +643,15 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
       </header>
 
       <div className="thread-workspace__conversation-column">
-        {thread.transcript.length > 0 ? (
+        {replayTranscript.length > 0 ? (
           <ConversationTranscript
-            turns={thread.transcript}
+            turns={replayTranscript}
             onProjectFileOpen={handleProjectFileOpen}
+            replayActive={replayActive}
+            activeReplayStepId={activeReplayStepId}
           />
+        ) : replayActive ? (
+          null
         ) : (
           <div className="thread-workspace__empty">
             这个对话暂未制作内容
@@ -479,10 +663,12 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
           onDraftChange={onDraftChange}
           onSubmit={onSubmit}
           onNotify={onNotify}
+          disabled={replayActive}
+          placeholder={replayActive ? '回放进行中...' : undefined}
         />
       </div>
 
-      {runInspectorOpen ? (
+      {runInspectorVisible ? (
         <>
           <button
             type="button"
@@ -506,7 +692,7 @@ function ThreadWorkspace(props: ThreadWorkspaceProps) {
               }
             }}
           >
-            <RunInspector data={thread.runInspector} />
+            <RunInspector data={replayRunInspector} />
           </aside>
         </>
       ) : null}
