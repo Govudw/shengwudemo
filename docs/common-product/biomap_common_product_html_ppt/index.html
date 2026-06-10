@@ -1,0 +1,2164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BioMap 通用产品立项汇报</title>
+  <style>
+    :root {
+      --ink: #071421;
+      --muted: #56677c;
+      --paper: #f4f9ff;
+      --paper-2: #ffffff;
+      --line: #c9e3ff;
+      --teal: #19cfd2;
+      --blue: #288ff0;
+      --deep-blue: #185ed7;
+      --amber: #53b7ff;
+      --coral: #2ad8bd;
+      --green: #4dbaf5;
+      --mint: #dffbff;
+      --sky: #dcecff;
+      --cream: #f4faff;
+      --rose: #e7f4ff;
+      --glass: rgba(255, 255, 255, 0.78);
+      --glass-strong: rgba(255, 255, 255, 0.9);
+      --shadow: 0 24px 80px rgba(23, 105, 196, 0.18);
+      --soft-shadow: 0 16px 40px rgba(44, 130, 226, 0.13);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      color: var(--ink);
+      background: #e7f2ff;
+      font-family: "Aptos", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .deck-shell {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(30, 210, 216, 0.26), transparent 28%),
+        radial-gradient(circle at 86% 18%, rgba(40, 143, 240, 0.22), transparent 30%),
+        linear-gradient(135deg, #eff7ff, #dfeeff 48%, #f7fbff);
+    }
+
+    .deck {
+      position: relative;
+      width: min(100vw - 36px, calc((100vh - 36px) * 16 / 9));
+      height: min(100vh - 36px, calc((100vw - 36px) * 9 / 16));
+      overflow: hidden;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(136, 190, 255, 0.52);
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 12px;
+      padding: 40px 54px 26px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(18px);
+      transition: opacity 240ms ease, transform 240ms ease, visibility 240ms ease;
+      background:
+        linear-gradient(rgba(46, 128, 218, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(46, 128, 218, 0.055) 1px, transparent 1px),
+        linear-gradient(135deg, #f8fcff 0%, #eef7ff 48%, #f7fbff 100%);
+      background-size: 30px 30px, 30px 30px, auto;
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(34, 213, 218, 0.2), transparent 26%, transparent 76%, rgba(40, 143, 240, 0.16)),
+        radial-gradient(circle at 80% 12%, rgba(42, 216, 189, 0.18), transparent 24%),
+        radial-gradient(circle at 92% 76%, rgba(37, 119, 231, 0.12), transparent 25%);
+      mix-blend-mode: normal;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0);
+      z-index: 2;
+    }
+
+    .slide.dark {
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(248, 252, 255, 0.98) 0%, rgba(237, 247, 255, 0.9) 44%, rgba(220, 237, 255, 0.82) 100%),
+        linear-gradient(rgba(53, 139, 233, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(53, 139, 233, 0.055) 1px, transparent 1px);
+      background-size: auto, 30px 30px, 30px 30px;
+    }
+
+    .slide.dark::before {
+      background:
+        linear-gradient(90deg, rgba(248, 252, 255, 0.94) 0 42%, rgba(231, 244, 255, 0.3) 56%, rgba(198, 224, 255, 0.34)),
+        radial-gradient(circle at 86% 28%, rgba(25, 207, 210, 0.26), transparent 24%),
+        radial-gradient(circle at 77% 72%, rgba(40, 143, 240, 0.18), transparent 30%);
+      mix-blend-mode: normal;
+    }
+
+    .slide > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 28px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .dark .eyebrow {
+      color: var(--muted);
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 34px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--teal), var(--blue));
+    }
+
+    .dark .eyebrow::before {
+      background: linear-gradient(90deg, var(--teal), var(--blue));
+    }
+
+    .page-id {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .dark .page-id {
+      color: var(--muted);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      max-width: 900px;
+      font-size: 56px;
+      line-height: 1.08;
+      font-weight: 860;
+    }
+
+    h2 {
+      max-width: 930px;
+      font-size: 34px;
+      line-height: 1.18;
+      font-weight: 820;
+    }
+
+    .single-line-title {
+      max-width: none;
+      white-space: nowrap;
+      font-size: 32px;
+    }
+
+    h3 {
+      font-size: 21px;
+      line-height: 1.24;
+      font-weight: 800;
+    }
+
+    .lead {
+      max-width: 840px;
+      color: var(--muted);
+      font-size: 20px;
+      line-height: 1.55;
+      font-weight: 520;
+    }
+
+    .dark .lead {
+      color: #1e2d3d;
+    }
+
+    .content {
+      display: grid;
+      gap: 18px;
+      align-content: center;
+      min-height: 0;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .dark .footer {
+      color: var(--muted);
+    }
+
+    .tagline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 6px 12px;
+      border: 1px solid rgba(40, 143, 240, 0.28);
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: 0 8px 22px rgba(40, 143, 240, 0.11);
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    .dark .pill {
+      color: #14314d;
+      border-color: rgba(40, 143, 240, 0.28);
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .brand-line {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #1c2a38;
+      font-size: 18px;
+      font-weight: 820;
+    }
+
+    .molecule-mark {
+      position: relative;
+      width: 30px;
+      height: 30px;
+      display: inline-block;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%, #19cfd2 0 3px, transparent 4px),
+        radial-gradient(circle at 50% 8%, #19cfd2 0 2px, transparent 3px),
+        radial-gradient(circle at 50% 92%, #19cfd2 0 2px, transparent 3px),
+        radial-gradient(circle at 8% 50%, #19cfd2 0 2px, transparent 3px),
+        radial-gradient(circle at 92% 50%, #19cfd2 0 2px, transparent 3px),
+        radial-gradient(circle at 23% 23%, #288ff0 0 2px, transparent 3px),
+        radial-gradient(circle at 77% 23%, #288ff0 0 2px, transparent 3px),
+        radial-gradient(circle at 23% 77%, #288ff0 0 2px, transparent 3px),
+        radial-gradient(circle at 77% 77%, #288ff0 0 2px, transparent 3px);
+    }
+
+    .molecule-mark::before,
+    .molecule-mark::after {
+      content: "";
+      position: absolute;
+      inset: 14px 3px auto;
+      height: 1px;
+      background: rgba(25, 207, 210, 0.75);
+      transform: rotate(45deg);
+      transform-origin: center;
+    }
+
+    .molecule-mark::after {
+      transform: rotate(-45deg);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 0.96fr 1.04fr;
+      gap: 28px;
+      align-items: center;
+    }
+
+    .hero-title {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 16px;
+      max-width: 760px;
+      font-size: 51px;
+      line-height: 1.12;
+      font-weight: 900;
+    }
+
+    .hero-title .gradient {
+      background: linear-gradient(90deg, #20d6d0 0%, #2ba0ef 58%, #3a77ff 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero-title .black {
+      color: #050b12;
+    }
+
+    .hero-copy {
+      max-width: 720px;
+      margin-top: 22px;
+      color: #0e1d2c;
+      font-size: 19px;
+      line-height: 1.72;
+      font-weight: 640;
+    }
+
+    .hero-visual {
+      position: relative;
+      min-height: 415px;
+      overflow: hidden;
+      border-left: 1px solid rgba(79, 156, 242, 0.16);
+    }
+
+    .hero-visual::before {
+      content: "";
+      position: absolute;
+      inset: 8px 0 0 8px;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.18) 36%, transparent),
+        radial-gradient(circle at 58% 45%, rgba(30, 199, 255, 0.3), transparent 21%),
+        radial-gradient(circle at 72% 32%, rgba(40, 143, 240, 0.22), transparent 22%),
+        linear-gradient(135deg, rgba(197, 223, 250, 0.18), rgba(53, 154, 244, 0.12));
+      filter: blur(0.1px);
+    }
+
+    .hero-visual::after {
+      content: "";
+      position: absolute;
+      right: 18px;
+      top: 28px;
+      width: 380px;
+      height: 300px;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.22) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.22) 1px, transparent 1px),
+        linear-gradient(135deg, rgba(43, 147, 239, 0.28), rgba(25, 207, 210, 0.1));
+      background-size: 34px 34px, 34px 34px, auto;
+      clip-path: polygon(0 18%, 86% 0, 100% 72%, 18% 100%);
+      opacity: 0.86;
+    }
+
+    .discovery-ring {
+      position: absolute;
+      right: 124px;
+      top: 64px;
+      width: 245px;
+      height: 245px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.92) 0 19%, rgba(54, 169, 255, 0.18) 20% 36%, transparent 37%),
+        conic-gradient(from 15deg, rgba(37, 117, 255, 0.96), rgba(24, 208, 214, 0.75), rgba(37, 117, 255, 0.9), rgba(24, 208, 214, 0.82), rgba(37, 117, 255, 0.96));
+      box-shadow: 0 0 0 9px rgba(24, 137, 239, 0.12), 0 0 52px rgba(40, 143, 240, 0.35);
+    }
+
+    .discovery-ring::before {
+      content: "DNA";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 92px;
+      height: 92px;
+      display: grid;
+      place-items: center;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      color: #1e81f2;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(83, 183, 255, 0.5);
+      font-size: 23px;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+
+    .orbit-card {
+      position: absolute;
+      width: 112px;
+      min-height: 62px;
+      display: grid;
+      align-content: center;
+      gap: 3px;
+      padding: 8px 10px;
+      color: #145099;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(84, 166, 250, 0.36);
+      box-shadow: 0 10px 28px rgba(47, 142, 239, 0.13);
+      text-align: center;
+      font-size: 10px;
+      line-height: 1.18;
+      font-weight: 760;
+    }
+
+    .orbit-card b {
+      color: #1f78ef;
+      font-size: 10px;
+      line-height: 1.1;
+    }
+
+    .o1 { right: 190px; top: 8px; }
+    .o2 { right: 26px; top: 102px; }
+    .o3 { right: 82px; top: 278px; }
+    .o4 { right: 284px; top: 280px; }
+    .o5 { right: 340px; top: 103px; }
+
+    .lab-chip {
+      position: absolute;
+      right: 22px;
+      bottom: 28px;
+      width: 226px;
+      height: 132px;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.86), rgba(225, 244, 255, 0.58)),
+        repeating-linear-gradient(90deg, rgba(40, 143, 240, 0.24) 0 2px, transparent 2px 18px);
+      border: 1px solid rgba(84, 166, 250, 0.3);
+      box-shadow: 0 18px 42px rgba(47, 142, 239, 0.18);
+    }
+
+    .lab-chip::before {
+      content: "";
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      top: 22px;
+      height: 46px;
+      border: 2px solid rgba(37, 117, 255, 0.42);
+      border-bottom: 0;
+      border-radius: 50% 50% 0 0;
+    }
+
+    .lab-chip::after {
+      content: "";
+      position: absolute;
+      left: 28px;
+      right: 28px;
+      bottom: 22px;
+      height: 30px;
+      background: linear-gradient(90deg, #19cfd2 0 16%, transparent 16% 24%, #288ff0 24% 42%, transparent 42% 50%, #19cfd2 50% 68%, transparent 68% 76%, #288ff0 76%);
+      opacity: 0.72;
+    }
+
+    .thesis {
+      border-left: 5px solid var(--teal);
+      padding: 18px 0 18px 24px;
+      font-size: 32px;
+      line-height: 1.35;
+      font-weight: 800;
+      background: linear-gradient(90deg, rgba(210, 246, 255, 0.78), rgba(255, 255, 255, 0.25));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .outcome-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .outcome {
+      min-height: 124px;
+      padding: 18px;
+      border: 1px solid rgba(73, 159, 242, 0.22);
+      background: var(--glass);
+      box-shadow: var(--soft-shadow);
+    }
+
+    .outcome strong {
+      display: block;
+      margin-bottom: 12px;
+      font-size: 27px;
+      line-height: 1;
+    }
+
+    .outcome span {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+      font-weight: 600;
+    }
+
+    .business-result {
+      padding: 14px 18px;
+      border: 1px solid rgba(73, 159, 242, 0.24);
+      background: rgba(226, 248, 255, 0.82);
+      color: #0d2741;
+      box-shadow: var(--soft-shadow);
+      font-size: 18px;
+      line-height: 1.35;
+      font-weight: 780;
+    }
+
+    .driver-board {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .driver-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .driver {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 14px;
+      align-items: start;
+      padding: 12px 14px;
+      background: var(--glass);
+      border: 1px solid rgba(73, 159, 242, 0.2);
+      box-shadow: 0 10px 26px rgba(40, 143, 240, 0.08);
+    }
+
+    .driver b {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      color: #fff;
+      font-size: 13px;
+      font-weight: 820;
+    }
+
+    .driver p {
+      color: var(--muted);
+      margin-top: 4px;
+      font-size: 14px;
+      line-height: 1.42;
+      font-weight: 600;
+    }
+
+    .pressure-meter {
+      min-height: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, rgba(25, 207, 210, 0.98), rgba(40, 143, 240, 0.96));
+      color: #fff;
+      box-shadow: var(--soft-shadow);
+      display: grid;
+      align-content: space-between;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .pressure-meter::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, transparent 0 46%, rgba(255, 255, 255, 0.09) 46% 47%, transparent 47%),
+        radial-gradient(circle at 78% 24%, rgba(255, 255, 255, 0.36), transparent 25%);
+    }
+
+    .pressure-meter > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .pressure-meter .big {
+      font-size: 62px;
+      line-height: 0.9;
+      font-weight: 900;
+    }
+
+    .pressure-meter p {
+      color: rgba(248, 251, 246, 0.78);
+      font-size: 15px;
+      line-height: 1.45;
+      font-weight: 600;
+    }
+
+    .risk-table {
+      display: grid;
+      gap: 8px;
+    }
+
+    .risk-row {
+      display: grid;
+      grid-template-columns: 0.8fr 1.2fr;
+      gap: 12px;
+      min-height: 58px;
+      align-items: stretch;
+    }
+
+    .risk-row div {
+      padding: 14px 16px;
+      border: 1px solid rgba(73, 159, 242, 0.2);
+      background: var(--glass);
+      font-size: 15px;
+      line-height: 1.35;
+      font-weight: 700;
+    }
+
+    .risk-row .result {
+      color: #2f3d39;
+      background: rgba(230, 246, 255, 0.86);
+      border-color: rgba(40, 143, 240, 0.28);
+    }
+
+    .risk-row.header div {
+      background: linear-gradient(90deg, var(--deep-blue), var(--blue));
+      color: #fff;
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+
+    .ladder {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      align-items: end;
+    }
+
+    .level {
+      min-height: 270px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 12px;
+      padding: 15px;
+      border: 1px solid rgba(73, 159, 242, 0.22);
+      background: var(--glass);
+      box-shadow: 0 12px 28px rgba(40, 143, 240, 0.08);
+    }
+
+    .level:nth-child(1) { min-height: 160px; border-top: 5px solid #58cfff; }
+    .level:nth-child(2) { min-height: 190px; border-top: 5px solid #35c6f4; }
+    .level:nth-child(3) { min-height: 220px; border-top: 5px solid #1fcdd4; }
+    .level:nth-child(4) { min-height: 250px; border-top: 5px solid #288ff0; }
+    .level:nth-child(5) { min-height: 280px; border-top: 5px solid #1b63df; }
+
+    .level b {
+      font-size: 25px;
+      line-height: 1;
+    }
+
+    .level span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.38;
+      font-weight: 650;
+    }
+
+    .target-band {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1.6fr;
+      gap: 12px;
+    }
+
+    .band-cell {
+      padding: 12px 15px;
+      color: #f8fbf6;
+      background: linear-gradient(135deg, #0d79e5, #19cfd2);
+      font-size: 14px;
+      line-height: 1.35;
+      font-weight: 760;
+    }
+
+    .band-cell.accent {
+      background: linear-gradient(135deg, #12c7d7, #276ef1);
+    }
+
+    .platform-map {
+      display: grid;
+      gap: 14px;
+    }
+
+    .map-row {
+      display: grid;
+      gap: 12px;
+    }
+
+    .map-row.top {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    .map-row.middle {
+      grid-template-columns: repeat(4, 1fr);
+      border: 2px solid rgba(35, 125, 228, 0.55);
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.5);
+      box-shadow: inset 0 0 28px rgba(40, 143, 240, 0.08);
+    }
+
+    .map-row.middle.five {
+      grid-template-columns: repeat(5, 1fr);
+      gap: 9px;
+    }
+
+    .map-row.bottom {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    .map-node {
+      min-height: 72px;
+      display: grid;
+      align-content: center;
+      gap: 4px;
+      padding: 12px 14px;
+      border: 1px solid rgba(73, 159, 242, 0.24);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 10px 26px rgba(40, 143, 240, 0.08);
+      text-align: center;
+      font-size: 14px;
+      font-weight: 780;
+    }
+
+    .map-node small {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.3;
+      font-weight: 680;
+    }
+
+    .map-node.core {
+      min-height: 104px;
+      color: #fff;
+      background: linear-gradient(135deg, #124a9f, #1677e8 48%, #19cfd2);
+      border-color: rgba(255, 255, 255, 0.58);
+    }
+
+    .map-node.core small {
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    .map-row.middle.five .map-node {
+      min-height: 104px;
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    .map-node.agent { border-top: 5px solid var(--teal); }
+    .map-node.exp { border-top: 5px solid var(--green); }
+    .map-node.data { border-top: 5px solid var(--blue); }
+    .map-node.biz { border-top: 5px solid var(--amber); }
+
+    .map-caption {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 760;
+      text-align: center;
+    }
+
+    .map-caption::before,
+    .map-caption::after {
+      content: "";
+      height: 1px;
+      background: rgba(54, 139, 226, 0.28);
+    }
+
+    .value-grid {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 22px;
+    }
+
+    .number-wall {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .number-tile {
+      min-height: 128px;
+      padding: 18px;
+      background: var(--glass-strong);
+      border: 1px solid rgba(73, 159, 242, 0.22);
+      box-shadow: var(--soft-shadow);
+    }
+
+    .number-tile strong {
+      display: block;
+      color: var(--teal);
+      font-size: 36px;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .number-tile span {
+      display: block;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    .speed-list {
+      display: grid;
+      gap: 11px;
+    }
+
+    .speed-row {
+      display: grid;
+      grid-template-columns: 1fr 0.8fr 0.8fr;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 14px;
+      border: 1px solid rgba(20, 32, 30, 0.12);
+      background: var(--glass);
+      font-size: 14px;
+      font-weight: 720;
+    }
+
+    .speed-row .before {
+      color: var(--coral);
+    }
+
+    .speed-row .after {
+      color: var(--teal);
+    }
+
+    .metric-table {
+      display: grid;
+      gap: 9px;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr 1.2fr;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      background: rgba(252, 251, 247, 0.8);
+      border: 1px solid rgba(73, 159, 242, 0.2);
+      font-size: 14px;
+      font-weight: 710;
+    }
+
+    .bar {
+      height: 10px;
+      background: rgba(47, 142, 239, 0.16);
+      overflow: hidden;
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--teal), var(--blue), var(--deep-blue));
+    }
+
+    .demo-flow {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .demo-step {
+      position: relative;
+      min-height: 150px;
+      padding: 16px 14px;
+      background: var(--glass-strong);
+      border: 1px solid rgba(73, 159, 242, 0.22);
+      box-shadow: 0 12px 28px rgba(40, 143, 240, 0.09);
+    }
+
+    .demo-step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: -10px;
+      width: 10px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--teal), var(--blue));
+    }
+
+    .demo-step b {
+      display: block;
+      margin-bottom: 14px;
+      color: var(--teal);
+      font-size: 26px;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .demo-step strong {
+      display: block;
+      font-size: 16px;
+      line-height: 1.25;
+      font-weight: 820;
+    }
+
+    .demo-step span {
+      display: block;
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.34;
+      font-weight: 650;
+    }
+
+    .demo-lens {
+      display: grid;
+      grid-template-columns: 0.8fr 1.2fr;
+      gap: 16px;
+      align-items: stretch;
+      margin-top: 18px;
+    }
+
+    .lens-dark {
+      padding: 18px;
+      color: #f8fbf6;
+      background: linear-gradient(135deg, #0e5dc8, #1fcdd4);
+      font-size: 21px;
+      line-height: 1.32;
+      font-weight: 830;
+    }
+
+    .lens-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .lens-list div {
+      padding: 13px;
+      background: rgba(226, 248, 255, 0.86);
+      border: 1px solid rgba(25, 207, 210, 0.28);
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 720;
+    }
+
+    .demo-summary-title {
+      max-width: none;
+      font-size: 30px;
+      line-height: 1.18;
+    }
+
+    .demo-summary-title + .agent-foundation {
+      min-height: 352px;
+    }
+
+    .agent-foundation {
+      position: relative;
+      min-height: 382px;
+      display: grid;
+      place-items: center;
+    }
+
+    .agent-core {
+      width: 266px;
+      height: 266px;
+      display: grid;
+      place-items: center;
+      padding: 34px;
+      color: #f8fbf6;
+      background:
+        radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.22), transparent 28%),
+        linear-gradient(135deg, #0f5fcb, #198bf0 48%, #18cdd2);
+      border-radius: 50%;
+      text-align: center;
+      box-shadow: 0 0 0 10px rgba(25, 207, 210, 0.16), 0 0 0 22px rgba(40, 143, 240, 0.11), 0 22px 60px rgba(23, 105, 196, 0.28);
+    }
+
+    .agent-core strong {
+      display: block;
+      font-size: 27px;
+      line-height: 1.1;
+      font-weight: 900;
+    }
+
+    .agent-core span {
+      display: block;
+      margin-top: 14px;
+      color: rgba(248, 251, 246, 0.72);
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    .spoke {
+      position: absolute;
+      width: 162px;
+      min-height: 64px;
+      padding: 10px 12px;
+      display: grid;
+      align-content: center;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(73, 159, 242, 0.25);
+      box-shadow: 0 10px 26px rgba(40, 143, 240, 0.1);
+      font-size: 13px;
+      line-height: 1.26;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .spoke small {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .s1 { top: 4px; left: 86px; border-top: 5px solid var(--teal); }
+    .s2 { top: 4px; right: 86px; border-top: 5px solid var(--green); }
+    .s3 { top: 154px; left: 20px; border-top: 5px solid var(--amber); }
+    .s4 { top: 154px; right: 20px; border-top: 5px solid var(--blue); }
+    .s5 { bottom: 4px; left: 86px; border-top: 5px solid var(--coral); }
+    .s6 { bottom: 4px; right: 86px; border-top: 5px solid var(--teal); }
+
+    .module-strips {
+      display: grid;
+      gap: 12px;
+    }
+
+    .module-strip {
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      min-height: 82px;
+      border: 1px solid rgba(73, 159, 242, 0.22);
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: var(--soft-shadow);
+    }
+
+    .module-strip b {
+      display: grid;
+      align-content: center;
+      padding: 16px;
+      color: #f8fbf6;
+      background: linear-gradient(135deg, #0e5dc8, #1fcdd4);
+      font-size: 17px;
+      line-height: 1.25;
+    }
+
+    .module-strip:nth-child(1) b { background: linear-gradient(135deg, #19cfd2, #288ff0); }
+    .module-strip:nth-child(2) b { background: linear-gradient(135deg, #4dbaf5, #1677e8); }
+    .module-strip:nth-child(3) b { background: linear-gradient(135deg, #288ff0, #185ed7); }
+    .module-strip:nth-child(4) b { background: linear-gradient(135deg, #14bfd6, #2368d8); }
+
+    .module-strip span {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px;
+      color: #203349;
+      font-size: 15px;
+      line-height: 1.42;
+      font-weight: 680;
+    }
+
+    .feature-strips {
+      display: grid;
+      gap: 10px;
+    }
+
+    .feature-strip {
+      display: grid;
+      grid-template-columns: 185px 1fr 168px;
+      min-height: 70px;
+      border: 1px solid rgba(73, 159, 242, 0.22);
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 10px 26px rgba(40, 143, 240, 0.08);
+    }
+
+    .feature-strip b {
+      display: grid;
+      align-content: center;
+      padding: 14px 16px;
+      color: #fff;
+      background: linear-gradient(135deg, #0e5dc8, #1fcdd4);
+      font-size: 16px;
+      line-height: 1.22;
+      font-weight: 850;
+    }
+
+    .feature-strip:nth-child(1) b { background: linear-gradient(135deg, #19cfd2, #288ff0); }
+    .feature-strip:nth-child(2) b { background: linear-gradient(135deg, #4dbaf5, #1677e8); }
+    .feature-strip:nth-child(3) b { background: linear-gradient(135deg, #288ff0, #185ed7); }
+    .feature-strip:nth-child(4) b { background: linear-gradient(135deg, #14bfd6, #2368d8); }
+    .feature-strip:nth-child(5) b { background: linear-gradient(135deg, #0f5fcb, #18cdd2); }
+
+    .feature-strip span,
+    .feature-strip em {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 680;
+    }
+
+    .feature-strip span {
+      color: #203349;
+    }
+
+    .feature-strip em {
+      font-style: normal;
+      color: var(--muted);
+      background: rgba(226, 248, 255, 0.62);
+      border-left: 1px solid rgba(73, 159, 242, 0.22);
+    }
+
+    .maturity-layout {
+      display: grid;
+      grid-template-columns: 0.82fr 1.18fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .stage-legend {
+      display: grid;
+      gap: 8px;
+    }
+
+    .stage-card {
+      display: grid;
+      grid-template-columns: 62px 1fr 48px;
+      gap: 10px;
+      align-items: center;
+      min-height: 60px;
+      padding: 10px 12px;
+      border: 1px solid rgba(73, 159, 242, 0.22);
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 10px 22px rgba(40, 143, 240, 0.07);
+    }
+
+    .stage-card b {
+      display: grid;
+      place-items: center;
+      height: 38px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 850;
+    }
+
+    .stage-card span {
+      color: #1b3148;
+      font-size: 12px;
+      line-height: 1.28;
+      font-weight: 690;
+    }
+
+    .stage-card em {
+      color: var(--teal);
+      font-style: normal;
+      font-size: 15px;
+      font-weight: 900;
+      text-align: right;
+    }
+
+    .status-table {
+      display: grid;
+      grid-template-columns: 1.1fr 0.62fr 1.28fr;
+      gap: 6px 8px;
+      align-content: start;
+    }
+
+    .status-table div {
+      min-height: 43px;
+      display: grid;
+      align-content: center;
+      padding: 8px 10px;
+      border: 1px solid rgba(73, 159, 242, 0.22);
+      background: rgba(255, 255, 255, 0.84);
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+
+    .status-table .head {
+      min-height: 34px;
+      color: #fff;
+      background: linear-gradient(90deg, #185ed7, #288ff0);
+      text-transform: uppercase;
+      font-size: 12px;
+      font-weight: 820;
+    }
+
+    .status-table .phase {
+      color: var(--teal);
+      font-weight: 900;
+    }
+
+    .status-table .date {
+      color: #24364a;
+      background: rgba(226, 248, 255, 0.78);
+    }
+
+    .linkage-layout {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .linkage-steps,
+    .boundary-panel {
+      display: grid;
+      gap: 12px;
+    }
+
+    .link-step {
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 14px;
+      min-height: 106px;
+      padding: 15px;
+      border: 1px solid rgba(73, 159, 242, 0.22);
+      background: rgba(255, 255, 255, 0.84);
+      box-shadow: 0 10px 24px rgba(40, 143, 240, 0.08);
+    }
+
+    .link-step b {
+      display: grid;
+      place-items: center;
+      width: 54px;
+      height: 54px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .link-step strong,
+    .boundary-box strong {
+      display: block;
+      color: #0d2237;
+      font-size: 16px;
+      line-height: 1.25;
+      font-weight: 850;
+    }
+
+    .link-step span,
+    .boundary-box span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    .boundary-box {
+      min-height: 96px;
+      padding: 15px;
+      border: 1px solid rgba(25, 207, 210, 0.3);
+      background: rgba(226, 248, 255, 0.78);
+      box-shadow: 0 10px 24px rgba(40, 143, 240, 0.07);
+    }
+
+    .boundary-box.dark {
+      color: #fff;
+      background: linear-gradient(135deg, #0e5dc8, #1fcdd4);
+      border-color: rgba(255, 255, 255, 0.52);
+    }
+
+    .boundary-box.dark strong,
+    .boundary-box.dark span {
+      color: #fff;
+    }
+
+    .security-flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .security-step {
+      position: relative;
+      min-height: 142px;
+      padding: 14px 13px;
+      border: 1px solid rgba(73, 159, 242, 0.22);
+      border-top: 5px solid var(--teal);
+      background: rgba(255, 255, 255, 0.84);
+      box-shadow: 0 10px 24px rgba(40, 143, 240, 0.08);
+    }
+
+    .security-step:nth-child(2) { border-top-color: #35c6f4; }
+    .security-step:nth-child(3) { border-top-color: var(--blue); }
+    .security-step:nth-child(4) { border-top-color: var(--deep-blue); }
+    .security-step:nth-child(5) { border-top-color: var(--coral); }
+
+    .security-step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      right: -10px;
+      top: 54px;
+      width: 10px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--teal), var(--blue));
+    }
+
+    .security-step b {
+      display: block;
+      color: var(--teal);
+      font-size: 25px;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .security-step strong {
+      display: block;
+      margin-top: 12px;
+      color: #0d2237;
+      font-size: 15px;
+      line-height: 1.22;
+      font-weight: 850;
+    }
+
+    .security-step span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.34;
+      font-weight: 650;
+    }
+
+    .security-bottom {
+      display: grid;
+      grid-template-columns: 0.72fr 1.28fr;
+      gap: 14px;
+      align-items: stretch;
+      margin-top: 4px;
+    }
+
+    .security-claim {
+      display: grid;
+      align-content: center;
+      min-height: 104px;
+      padding: 18px;
+      color: #fff;
+      background: linear-gradient(135deg, #0e5dc8, #1fcdd4);
+      box-shadow: var(--soft-shadow);
+      font-size: 22px;
+      line-height: 1.28;
+      font-weight: 850;
+    }
+
+    .security-notes {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .security-notes div {
+      min-height: 104px;
+      display: grid;
+      align-content: center;
+      padding: 13px;
+      border: 1px solid rgba(25, 207, 210, 0.28);
+      background: rgba(226, 248, 255, 0.84);
+      color: #17314a;
+      font-size: 13px;
+      line-height: 1.34;
+      font-weight: 720;
+    }
+
+    .support-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .support-item {
+      min-height: 132px;
+      padding: 15px;
+      border: 1px solid rgba(73, 159, 242, 0.22);
+      background: rgba(255, 255, 255, 0.84);
+      box-shadow: 0 10px 24px rgba(40, 143, 240, 0.08);
+    }
+
+    .support-item b {
+      display: block;
+      color: #0d2237;
+      font-size: 16px;
+      line-height: 1.22;
+      font-weight: 850;
+    }
+
+    .support-item span {
+      display: block;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    .support-item.accent {
+      color: #fff;
+      background: linear-gradient(135deg, #0e5dc8, #1fcdd4);
+      border-color: rgba(255, 255, 255, 0.52);
+    }
+
+    .support-item.accent b,
+    .support-item.accent span {
+      color: #fff;
+    }
+
+    .flywheel {
+      position: relative;
+      min-height: 388px;
+      display: grid;
+      place-items: center;
+    }
+
+    .flywheel-center {
+      width: 220px;
+      height: 220px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #f8fbf6;
+      background:
+        radial-gradient(circle at 50% 36%, rgba(255, 255, 255, 0.24), transparent 30%),
+        linear-gradient(135deg, #0f5fcb, #198bf0 46%, #18cdd2);
+      box-shadow: 0 0 0 11px rgba(25, 207, 210, 0.14), 0 0 0 24px rgba(40, 143, 240, 0.1), 0 22px 58px rgba(23, 105, 196, 0.24);
+      text-align: center;
+      padding: 32px;
+      font-size: 24px;
+      line-height: 1.16;
+      font-weight: 900;
+    }
+
+    .fly-node {
+      position: absolute;
+      width: 198px;
+      min-height: 68px;
+      padding: 10px 13px;
+      display: grid;
+      align-content: center;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(73, 159, 242, 0.24);
+      box-shadow: 0 10px 26px rgba(40, 143, 240, 0.09);
+      font-size: 14px;
+      line-height: 1.32;
+      font-weight: 760;
+      text-align: center;
+    }
+
+    .fly-node small {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .f1 { top: 6px; left: 50%; transform: translateX(-50%); border-top: 5px solid var(--teal); }
+    .f2 { top: 130px; right: 18px; border-top: 5px solid var(--green); }
+    .f3 { bottom: 6px; right: 152px; border-top: 5px solid var(--blue); }
+    .f4 { bottom: 6px; left: 152px; border-top: 5px solid var(--amber); }
+    .f5 { top: 130px; left: 18px; border-top: 5px solid var(--coral); }
+
+    .benefit-table {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 7px 12px;
+      align-items: stretch;
+    }
+
+    .benefit-table div {
+      padding: 8px 12px;
+      border: 1px solid rgba(73, 159, 242, 0.22);
+      background: rgba(255, 255, 255, 0.84);
+      font-size: 13px;
+      line-height: 1.32;
+      font-weight: 720;
+    }
+
+    .benefit-table .head {
+      color: #fff;
+      background: linear-gradient(90deg, #185ed7, #288ff0);
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+
+    .benefit-table .target {
+      color: var(--teal);
+      font-weight: 860;
+    }
+
+    .closing-grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .closing-claim {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 18px;
+      align-items: start;
+      padding: 20px 22px;
+      border: 1px solid rgba(73, 159, 242, 0.24);
+      background: rgba(255, 255, 255, 0.74);
+      box-shadow: var(--soft-shadow);
+    }
+
+    .closing-claim b {
+      display: grid;
+      place-items: center;
+      width: 56px;
+      height: 56px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .closing-claim p {
+      color: #132438;
+      font-size: 23px;
+      line-height: 1.35;
+      font-weight: 760;
+    }
+
+    .controls {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      opacity: 0;
+      background: rgba(16, 52, 92, 0.68);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      transition: opacity 160ms ease;
+    }
+
+    .controls:hover,
+    .controls:focus-within {
+      opacity: 1;
+    }
+
+    .controls button {
+      width: 36px;
+      height: 36px;
+      border: 0;
+      color: #f8fbf6;
+      background: rgba(255, 255, 255, 0.16);
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .controls button:hover {
+      background: rgba(25, 207, 210, 0.34);
+    }
+
+    .counter {
+      min-width: 58px;
+      color: rgba(248, 251, 246, 0.78);
+      font-size: 12px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .progress {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      z-index: 11;
+      height: 4px;
+      width: 100%;
+      background: rgba(40, 143, 240, 0.12);
+    }
+
+    .progress i {
+      display: block;
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #19cfd2, #288ff0, #185ed7);
+      transition: width 180ms ease;
+    }
+
+    @media (max-width: 900px) {
+      .slide {
+        padding: 34px 36px 28px;
+      }
+
+      h1 {
+        font-size: 42px;
+      }
+
+      h2 {
+        font-size: 28px;
+      }
+
+      .lead {
+        font-size: 16px;
+      }
+
+      .outcome-strip,
+      .map-row.top,
+      .map-row.middle,
+      .map-row.bottom,
+      .demo-flow,
+      .lens-list {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .driver-board,
+      .value-grid,
+      .demo-lens {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      html,
+      body {
+        width: auto;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+      }
+
+      .deck-shell {
+        display: block;
+        width: auto;
+        height: auto;
+        padding: 0;
+        background: #fff;
+      }
+
+      .deck {
+        width: auto;
+        height: auto;
+        box-shadow: none;
+        overflow: visible;
+      }
+
+      .slide {
+        position: relative;
+        inset: auto;
+        width: 13.333in;
+        height: 7.5in;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        page-break-after: always;
+        break-after: page;
+      }
+
+      .controls,
+      .progress {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck-shell">
+    <section class="deck" aria-live="polite">
+      <article class="slide dark active" data-title="Title">
+        <div class="topline">
+          <span class="brand-line"><span class="molecule-mark" aria-hidden="true"></span>BioMap Product OS</span>
+          <span class="page-id">01 / 17</span>
+        </div>
+        <div class="content">
+          <div class="hero-grid">
+            <div>
+              <h1 class="hero-title"><span class="gradient">BioMap 通用产品</span><span class="black">立项汇报</span></h1>
+              <p class="hero-copy">把 Agentic AI、实验、数据资产和企业服务做成一套公司级公共产品，让新产品线不用从零搭底座。</p>
+              <div class="tagline">
+                <span class="pill">公司级公共产品</span>
+                <span class="pill">服务多条产品线</span>
+              </div>
+            </div>
+            <div class="hero-visual" aria-hidden="true">
+              <div class="discovery-ring"></div>
+              <div class="orbit-card o1"><b>1. Agent</b><span>Task planning</span></div>
+              <div class="orbit-card o2"><b>2. Experiment</b><span>Workflow execution</span></div>
+              <div class="orbit-card o3"><b>3. Data</b><span>Knowledge service</span></div>
+              <div class="orbit-card o4"><b>4. Model</b><span>Feedback loop</span></div>
+              <div class="orbit-card o5"><b>5. Enterprise</b><span>IAM & audit</span></div>
+              <div class="lab-chip"></div>
+            </div>
+          </div>
+        </div>
+        <div class="footer">
+          <span>BioMap 通用产品</span>
+          <span>v2 HTML deck</span>
+        </div>
+      </article>
+
+      <article class="slide" data-title="核心结论">
+        <div class="topline">
+          <span class="eyebrow">Core Thesis</span>
+          <span class="page-id">02 / 17</span>
+        </div>
+        <div class="content">
+          <h2>BioMap 需要一套给所有产品线共用的产品底座，并按明确节点推进到可交付状态。</h2>
+          <div class="thesis">这次要做的，是把通用 Agentic AI、智能实验平台、数据资产管理、企业服务前台和后台系统做成各产品线都能复用的公共能力。</div>
+          <div class="outcome-strip">
+            <div class="outcome"><strong>少重复</strong><span>账号、权限、Agent、实验、数据这些基础能力，不要每条线都做一遍。</span></div>
+            <div class="outcome"><strong>上线更快</strong><span>新 Agent、新产品、新实验流程、新企业客户都可以少走一段基础建设。</span></div>
+            <div class="outcome"><strong>AI 能力一致</strong><span>让各产品线至少共享任务规划、工具调用、日志、评估这些 Agentic AI 能力。</span></div>
+            <div class="outcome"><strong>方便扩张</strong><span>多条产品线在同一套底座上配置和交付，不再各自补基础系统。</span></div>
+          </div>
+          <div class="business-result">最终是让新行业产品和企业客户交付更快、更标准、更可复制。</div>
+        </div>
+        <div class="footer"><span>核心判断</span><span>别让每条产品线都重复搭一遍基础系统</span></div>
+      </article>
+
+      <article class="slide" data-title="核心功能">
+        <div class="topline">
+          <span class="eyebrow">Core Product Scope</span>
+          <span class="page-id">03 / 17</span>
+        </div>
+        <div class="content">
+          <h2>核心功能不是一个单独平台，而是五类公司级公共能力。</h2>
+          <div class="feature-strips">
+            <div class="feature-strip"><b>通用 Agentic AI</b><span>Agent loop、工具调用、Skill、任务日志、权限审计、评估与回放。</span><em>优先通过行业 Agent 场景验证。</em></div>
+            <div class="feature-strip"><b>智能实验平台</b><span>LIMS、ELN、实验工作流、原子组件接入、实验结果追踪。</span><em>连接 AI 建议和真实实验闭环。</em></div>
+            <div class="feature-strip"><b>数据资产管理系统</b><span>数据目录、元数据、权限、血缘、知识库、文档和数据 API。</span><em>内部支撑系统，不独立对外售卖。</em></div>
+            <div class="feature-strip"><b>企业服务前台系统</b><span>审批、权限管理、通知、用户中心、费用中心和企业管理员入口。</span><em>支撑企业客户可见服务。</em></div>
+            <div class="feature-strip"><b>企业服务后台系统</b><span>产商品管理、账单系统、合同订单联通、运营配置和交付管理。</span><em>短期 SOP / 表格化过渡。</em></div>
+          </div>
+        </div>
+        <div class="footer"><span>功能边界</span><span>通用产品聚焦中后台、通用框架和公共能力</span></div>
+      </article>
+
+      <article class="slide" data-title="建设状态">
+        <div class="topline">
+          <span class="eyebrow">Build Status</span>
+          <span class="page-id">04 / 17</span>
+        </div>
+        <div class="content">
+          <h2>当前两项已到 Alpha / Beta，三项按 2026 年节点推进。</h2>
+          <div class="maturity-layout">
+            <div class="stage-legend">
+              <div class="stage-card"><b>预研</b><span>验证方向、边界和方案，还没有稳定产品化链路。</span><em>立项前</em></div>
+              <div class="stage-card"><b>Alpha</b><span>核心链路跑通，可以内部演示或小范围验证。</span><em>0-1</em></div>
+              <div class="stage-card"><b>Beta</b><span>进入真实业务试点，验证稳定性、复用性和交付方式。</span><em>1-10</em></div>
+              <div class="stage-card"><b>GA</b><span>可作为标准能力稳定交付，后续进入持续迭代。</span><em>10-N</em></div>
+            </div>
+            <div class="status-table">
+              <div class="head">核心功能</div><div class="head">当前</div><div class="head">目标节点</div>
+              <div>通用 Agentic AI</div><div class="phase">Alpha</div><div class="date">2026-06-30 达到 Beta</div>
+              <div>智能实验平台</div><div class="phase">Beta</div><div class="date">6 个月内达到 GA</div>
+              <div>数据资产管理系统</div><div class="phase">预研</div><div class="date">06-30 Alpha / 09-30 Beta / 12-30 GA</div>
+              <div>企业服务前台系统</div><div class="phase">预研</div><div class="date">07-30 Alpha / 09-30 Beta / 12-30 GA</div>
+              <div>企业服务后台系统</div><div class="phase">预研</div><div class="date">Q4 启动，年底达到 Alpha</div>
+            </div>
+          </div>
+        </div>
+        <div class="footer"><span>建设进度</span><span>GA 后进入持续迭代和平稳投入</span></div>
+      </article>
+
+      <article class="slide" data-title="为什么现在">
+        <div class="topline">
+          <span class="eyebrow">Why Now</span>
+          <span class="page-id">05 / 17</span>
+        </div>
+        <div class="content">
+          <h2>现在必须做，是因为多条产品线已经开始重复要 Agent、权限、数据接入和企业交付能力。</h2>
+          <div class="driver-board">
+            <div class="driver-list">
+              <div class="driver"><b>1</b><div><strong>多行业产品线并行</strong><p>每条线都会反复需要账号、权限、数据、Agent、实验和交付能力。</p></div></div>
+              <div class="driver"><b>2</b><div><strong>Agent 需求变多</strong><p>文献分析、实验设计、项目管理、BD 支持、合规审查，底层能力其实是一套。</p></div></div>
+              <div class="driver"><b>3</b><div><strong>实验、数据、模型要连起来</strong><p>AI 建议、实验执行、实验结果、模型反馈不能停留在分散系统里。</p></div></div>
+              <div class="driver"><b>4</b><div><strong>企业客户要求更高</strong><p>IAM、SSO、多租户、审计、资源配额、合同订单计费是规模化 toB 的基本门槛。</p></div></div>
+              <div class="driver"><b>5</b><div><strong>各自建设会越做越散</strong><p>产品线越多，重复投入、体验不一致、数据难复用的问题越重。</p></div></div>
+            </div>
+            <div class="pressure-meter">
+              <div class="big">已出现</div>
+              <p>这些需求已经不只是单个产品线的问题；再晚统一，后面就是系统整合成本。</p>
+              <p>现在先把公共能力收住，后续产品线扩张才不会反复补基础系统。</p>
+            </div>
+          </div>
+        </div>
+        <div class="footer"><span>为什么现在</span><span>重复需求已经出现，越晚统一越贵</span></div>
+      </article>
+
+      <article class="slide" data-title="自建风险">
+        <div class="topline">
+          <span class="eyebrow">Self-built Risk</span>
+          <span class="page-id">06 / 17</span>
+        </div>
+        <div class="content">
+          <h2 class="single-line-title">各产品线自建，短期快，长期会变成五类重复成本。</h2>
+          <div class="risk-table">
+            <div class="risk-row header"><div>各线自建对象</div><div>会带来的问题</div></div>
+            <div class="risk-row"><div>Agent 框架各自建设</div><div class="result">AI 能力不一致，工具、Skill、评估集和日志经验无法复用。</div></div>
+            <div class="risk-row"><div>实验平台各自建设</div><div class="result">LIMS、ELN、流程、记录割裂，实验结果难以统一追踪和反哺模型。</div></div>
+            <div class="risk-row"><div>数据服务各自建设</div><div class="result">数据留在各自系统里，知识库无法跨产品复用，治理和审计成本上升。</div></div>
+            <div class="risk-row"><div>企业服务各自建设</div><div class="result">toB 交付重复、慢、不标准，每个客户都容易变成项目制补功能。</div></div>
+            <div class="risk-row"><div>权限审计各自建设</div><div class="result">安全、合规和企业客户信任风险上升，Agent 访问边界难以统一。</div></div>
+          </div>
+        </div>
+        <div class="footer"><span>核心判断</span><span>这些通用能力不该反复占用行业线研发</span></div>
+      </article>
+
+      <article class="slide" data-title="AI 水平">
+        <div class="topline">
+          <span class="eyebrow">Agentic AI Maturity</span>
+          <span class="page-id">07 / 17</span>
+        </div>
+        <div class="content">
+          <h2>这里最要紧的是：各产品线的 Agentic AI 水平会拉开差距。</h2>
+          <div class="ladder">
+            <div class="level"><b>L0</b><strong>基础问答</strong><span>能回答问题，但不能稳定完成任务。</span></div>
+            <div class="level"><b>L1</b><strong>知识库增强</strong><span>基于文献、内部文档和企业知识回答问题。</span></div>
+            <div class="level"><b>L2</b><strong>工具调用</strong><span>调用数据库、API、模型、分析工具完成部分操作。</span></div>
+            <div class="level"><b>L3</b><strong>任务型 Agent</strong><span>围绕目标进行规划、执行、检查、汇总和修正。</span></div>
+            <div class="level"><b>L4</b><strong>闭环研发 Agent</strong><span>连接数据、模型、实验、反馈和审计，支持持续优化。</span></div>
+          </div>
+          <div class="target-band">
+            <div class="band-cell">如果各线自建：能力可能停留在 L0/L1/L2，少数到 L3，难以统一到 L4。</div>
+            <div class="band-cell accent">通用 Agent 先把主要产品线带到 L2/L3，再为 L4 闭环研发 Agent 做准备。</div>
+          </div>
+          <div class="business-result">没有通用 Agent，各线最多各自做到工具调用；有公共底座，任务规划、日志评估和审计才能公司级复用。</div>
+        </div>
+        <div class="footer"><span>AI 能力定位</span><span>先保证下限，再往 L4 走</span></div>
+      </article>
+
+      <article class="slide" data-title="总体定位">
+        <div class="topline">
+          <span class="eyebrow">Platform Positioning</span>
+          <span class="page-id">08 / 17</span>
+        </div>
+        <div class="content">
+          <h2>通用产品夹在行业产品线和底层资源之间，把模型、数据、实验、工具和企业系统接起来。</h2>
+          <div class="platform-map">
+            <div class="map-row top">
+              <div class="map-node">文献分析 Agent<small>研发与情报场景</small></div>
+              <div class="map-node">实验设计 Agent<small>实验方案与执行</small></div>
+              <div class="map-node">数据分析 Agent<small>模型与数据洞察</small></div>
+              <div class="map-node">项目管理 Agent<small>研发流程协同</small></div>
+              <div class="map-node">企业知识 Agent<small>客户与内部服务</small></div>
+            </div>
+            <div class="map-caption">行业线主要换自己的数据、Skill、工具和前端形态</div>
+            <div class="map-row middle five">
+              <div class="map-node core agent">通用 Agentic AI<small>核心 loop / 工具调用 / Skill / 日志评估</small></div>
+              <div class="map-node core exp">智能实验平台<small>LIMS / ELN / 工作流 / 结果追踪</small></div>
+              <div class="map-node core data">数据资产管理<small>目录 / 知识库 / 权限 / 血缘审计</small></div>
+              <div class="map-node core biz">企业服务前台<small>审批 / 权限 / 通知 / 用户中心</small></div>
+              <div class="map-node core biz">企业服务后台<small>产商品 / 账单 / 订单 / 运营配置</small></div>
+            </div>
+            <div class="map-caption">底层能力通过权限、审计和标准接口接入，逐步变成公司资产</div>
+            <div class="map-row bottom">
+              <div class="map-node">基础模型<small>推理 / embedding / 路由</small></div>
+              <div class="map-node">知识与文档<small>文献 / 专利 / 内部记录</small></div>
+              <div class="map-node">实验资源<small>样本 / 试剂 / SOP / 设备</small></div>
+              <div class="map-node">内部工具<small>API / 分析组件 / 报告</small></div>
+              <div class="map-node">企业系统<small>组织 / 合同 / 法务 / 财务</small></div>
+            </div>
+          </div>
+        </div>
+        <div class="footer"><span>系统关系</span><span>这里看的是系统关系，不是模块罗列</span></div>
+      </article>
+
+      <article class="slide" data-title="行业接入">
+        <div class="topline">
+          <span class="eyebrow">Industry Linkage</span>
+          <span class="page-id">09 / 17</span>
+        </div>
+        <div class="content">
+          <h2>先接入行业 Agent 场景，验证通用能力，再沉淀复用组件。</h2>
+          <div class="linkage-layout">
+            <div class="linkage-steps">
+              <div class="link-step"><b>01</b><div><strong>用一个行业 Agent 场景跑通公共能力</strong><span>选择真实、高频、可验证的任务，跑通任务理解、规划、工具调用、数据接入、权限审计、日志评估和结果输出。</span></div></div>
+              <div class="link-step"><b>02</b><div><strong>将可复用部分沉淀回通用产品</strong><span>沉淀前端小组件、行业 Skill、工具接入模板、数据接口配置、权限审计规则、评估样例和交付经验。</span></div></div>
+              <div class="link-step"><b>03</b><div><strong>按 Alpha / Beta / GA 管理交付节奏</strong><span>Alpha 验证链路；Beta 进入真实试点；GA 成为行业产品可稳定依赖的标准能力。</span></div></div>
+            </div>
+            <div class="boundary-panel">
+              <div class="boundary-box dark"><strong>Agent loop 和通用框架由通用产品统一定义</strong><span>不在每条行业线里反复定义，行业线重点提供真实任务、行业数据和验收标准。</span></div>
+              <div class="boundary-box"><strong>中后台能力原则上接入所有行业产品</strong><span>数据资产管理系统、企业服务前台和后台系统不作为独立行业场景入口，也不单独对外验证。</span></div>
+              <div class="boundary-box"><strong>复用对象要具体</strong><span>复用 Skill、工具接入、前端组件、数据接口和审计规则，不把“复用”停留在口号上。</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="footer"><span>联动机制</span><span>行业产品线给真实场景，通用产品沉淀公共能力</span></div>
+      </article>
+
+      <article class="slide" data-title="全流程安全">
+        <div class="topline">
+          <span class="eyebrow">Customer Security</span>
+          <span class="page-id">10 / 17</span>
+        </div>
+        <div class="content">
+          <h2>客户使用的全流程安全，要覆盖登录、授权、执行、审计和回放。</h2>
+          <div class="security-flow">
+            <div class="security-step"><b>01</b><strong>身份进入</strong><span>企业 IAM、SSO、用户中心确认人、组织和租户。</span></div>
+            <div class="security-step"><b>02</b><strong>访问授权</strong><span>按角色、组织、项目、resource 和数据边界授权。</span></div>
+            <div class="security-step"><b>03</b><strong>任务执行</strong><span>Agent 调用工具、数据和实验流程前，先做权限校验。</span></div>
+            <div class="security-step"><b>04</b><strong>过程留痕</strong><span>记录用户、Agent、系统对资源和工具的访问与操作。</span></div>
+            <div class="security-step"><b>05</b><strong>审计回放</strong><span>按用户、资源、动作和时间追踪问题与责任边界。</span></div>
+          </div>
+          <div class="security-bottom">
+            <div class="security-claim">当前权限控制可以细到 resource 级。</div>
+            <div class="security-notes">
+              <div>审批：资源申请、访问授权和高风险变更可进入审批。</div>
+              <div>通知：权限变更、任务状态和安全事件及时触达。</div>
+              <div>边界：Agent 不能绕过企业前台系统直接访问资源。</div>
+            </div>
+          </div>
+        </div>
+        <div class="footer"><span>安全边界</span><span>安全能力属于企业服务前台系统的一部分</span></div>
+      </article>
+
+      <article class="slide" data-title="降本提效">
+        <div class="topline">
+          <span class="eyebrow">Efficiency Case</span>
+          <span class="page-id">11 / 17</span>
+        </div>
+        <div class="content">
+          <h2>第一笔账：少重复建设，上线周期也能压下来。</h2>
+          <div class="value-grid">
+            <div class="number-wall">
+              <div class="number-tile"><strong>33-63</strong><span>单条产品线基础能力自建投入，人月。</span></div>
+              <div class="number-tile"><strong>132-252</strong><span>4 条产品线重复投入估算，人月。</span></div>
+              <div class="number-tile"><strong>198-378</strong><span>6 条产品线重复投入估算，人月。</span></div>
+              <div class="number-tile"><strong>30%-50%</strong><span>2 年周期内公共能力重复研发投入的减少目标。</span></div>
+            </div>
+            <div class="speed-list">
+              <div class="speed-row"><strong>场景</strong><strong>没有通用产品</strong><strong>目标</strong></div>
+              <div class="speed-row"><span>新 Agent 概念到 Demo</span><span class="before">4-8 周</span><span class="after">1-2 周</span></div>
+              <div class="speed-row"><span>新 Agent Demo 到试点</span><span class="before">2-3 个月</span><span class="after">3-6 周</span></div>
+              <div class="speed-row"><span>新行业产品底座搭建</span><span class="before">3-6 个月</span><span class="after">4-8 周</span></div>
+              <div class="speed-row"><span>新实验流程上线</span><span class="before">4-10 周</span><span class="after">1-3 周</span></div>
+              <div class="speed-row"><span>新企业客户基础开通</span><span class="before">4-8 周</span><span class="after">1-2 周</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="footer"><span>量化价值</span><span>产品线越多，复用越划算</span></div>
+      </article>
+
+      <article class="slide" data-title="AI 指标">
+        <div class="topline">
+          <span class="eyebrow">Agentic AI Targets</span>
+          <span class="page-id">12 / 17</span>
+        </div>
+        <div class="content">
+          <h2>通用 Agent 的目标更具体：让 AI 能力能复用、能评估、能继续改。</h2>
+          <div class="metric-table">
+            <div class="metric-row"><strong>新 Agent Demo 周期</strong><span>1-2 周</span><div class="bar"><i style="width: 78%"></i></div></div>
+            <div class="metric-row"><strong>通用 Skill / 工具复用率</strong><span>50%-70%</span><div class="bar"><i style="width: 66%"></i></div></div>
+            <div class="metric-row"><strong>Agent 任务成功率提升</strong><span>10-30 个百分点</span><div class="bar"><i style="width: 58%"></i></div></div>
+            <div class="metric-row"><strong>标准任务人工介入率下降</strong><span>20%-40%</span><div class="bar"><i style="width: 62%"></i></div></div>
+            <div class="metric-row"><strong>Agent 工具调用成功率</strong><span>80%-90% 以上</span><div class="bar"><i style="width: 86%"></i></div></div>
+            <div class="metric-row"><strong>Agent 日志和审计覆盖率</strong><span>接近 100%</span><div class="bar"><i style="width: 96%"></i></div></div>
+          </div>
+          <p class="lead">这些指标对应的是一件具体的事：Prompt、工具、Skill、评估集、日志、失败案例和最佳实践不再散在各团队。</p>
+        </div>
+        <div class="footer"><span>Demo 前铺垫</span><span>Demo 要证明的是通用能力，不是单个功能</span></div>
+      </article>
+
+      <article class="slide" data-title="Agent Demo">
+        <div class="topline">
+          <span class="eyebrow">Agent Demo Moment</span>
+          <span class="page-id">13 / 17</span>
+        </div>
+        <div class="content">
+          <h2>DEMO展示</h2>
+          <div class="demo-flow">
+            <div class="demo-step"><b>01</b><strong>接收任务</strong><span>基于文献和内部知识，生成实验设计建议。</span></div>
+            <div class="demo-step"><b>02</b><strong>理解目标</strong><span>识别项目目标、约束、输入材料和需要确认的边界。</span></div>
+            <div class="demo-step"><b>03</b><strong>规划步骤</strong><span>拆成检索、模型调用、分析、建议生成和人工确认。</span></div>
+            <div class="demo-step"><b>04</b><strong>调用能力</strong><span>使用知识库、内部模型、数据分析工具或实验系统。</span></div>
+            <div class="demo-step"><b>05</b><strong>生成结果</strong><span>输出方案、证据、风险点和下一步实验建议。</span></div>
+            <div class="demo-step"><b>06</b><strong>记录过程</strong><span>留下日志、权限、审计、回放和评估数据。</span></div>
+          </div>
+          <div class="demo-lens">
+            <div class="lens-dark">Demo 要证明三件事：一个任务能跑完、能力能复用、过程可审计。</div>
+            <div class="lens-list">
+              <div>一个任务能跑完：从目标理解到结果生成，不停在问答。</div>
+              <div>能力能复用：核心 loop、Skill 和工具能给其他 Agent 用。</div>
+              <div>过程可审计：日志、权限、回放和评估数据都能留下来。</div>
+            </div>
+          </div>
+        </div>
+        <div class="footer"><span>Demo 判断标准</span><span>任务完成、能力复用、过程可审计</span></div>
+      </article>
+
+      <article class="slide" data-title="Demo 收束">
+        <div class="topline">
+          <span class="eyebrow">Reusable Foundation</span>
+          <span class="page-id">14 / 17</span>
+        </div>
+        <div class="content">
+          <h2 class="demo-summary-title">Agent loop 由通用产品统一定义，行业线复用 Skill、组件和接入经验。</h2>
+          <div class="agent-foundation">
+            <div class="agent-core"><div><strong>统一 Agent loop</strong><span>任务理解 / 规划 / 执行 / 反馈 / 修正 / 终止判断</span></div></div>
+            <div class="spoke s1">前端小组件<small>行业产品可快速组合</small></div>
+            <div class="spoke s2">行业 Skill<small>场景能力封装复用</small></div>
+            <div class="spoke s3">工具接入模板<small>数据库、API、模型、实验系统</small></div>
+            <div class="spoke s4">数据接口配置<small>接入数据资产管理系统</small></div>
+            <div class="spoke s5">权限审计规则<small>访问边界、过程可追踪</small></div>
+            <div class="spoke s6">评估样例<small>试点经验回到通用产品</small></div>
+          </div>
+        </div>
+        <div class="footer"><span>关键结论</span><span>Agent loop 不在各行业线重复定义</span></div>
+      </article>
+
+      <article class="slide" data-title="产品飞轮">
+        <div class="topline">
+          <span class="eyebrow">Product Flywheel</span>
+          <span class="page-id">15 / 17</span>
+        </div>
+        <div class="content">
+          <h2>长期优势来自 Agent、实验、数据、模型能不能连起来。</h2>
+          <div class="flywheel">
+            <div class="flywheel-center">Agent - 实验 - 数据 - 模型飞轮</div>
+            <div class="fly-node f1">用户 / 客户任务<small>研发问题、数据分析、实验方案、企业服务请求</small></div>
+            <div class="fly-node f2">Agent 执行<small>调用知识库、模型、工具和智能实验平台</small></div>
+            <div class="fly-node f3">结果进入数据资产管理<small>实验结果、业务记录、操作日志、审计链路</small></div>
+            <div class="fly-node f4">回头改进能力<small>优化模型、知识库、Skill、评估集和流程</small></div>
+            <div class="fly-node f5">服务更多产品线<small>能力被复用，客户交付更快</small></div>
+          </div>
+        </div>
+        <div class="footer"><span>长期价值</span><span>省研发只是第一步，平台要越用越强</span></div>
+      </article>
+
+      <article class="slide" data-title="公司支持">
+        <div class="topline">
+          <span class="eyebrow">Company Support</span>
+          <span class="page-id">16 / 17</span>
+        </div>
+        <div class="content">
+          <h2>当前不需要额外人力，重点需要公司确认优先级、试点场景和商业化边界。</h2>
+          <div class="support-grid">
+            <div class="support-item"><b>公共底座定位</b><span>通用产品服务多条行业产品线，不按单一项目需求建设。</span></div>
+            <div class="support-item"><b>行业 Agent 试点</b><span>行业线提供真实、高频、可验证的场景、数据和验收标准。</span></div>
+            <div class="support-item"><b>中后台系统接入</b><span>数据资产、企业服务前台和后台原则上接入各行业产品。</span></div>
+            <div class="support-item"><b>权限安全审计</b><span>当前可做到 resource 级权限控制；后续统一 Agent 调用工具、访问数据、触发流程的边界原则。</span></div>
+            <div class="support-item accent"><b>商业化口径</b><span>Agentic AI 先作为行业属性智能体的一部分出售；未达到 GA 前，不做规模商业化。</span></div>
+            <div class="support-item"><b>后台短期过渡</b><span>企业服务后台短期用 SOP 和表格化方式支撑，Q4 再产品化。</span></div>
+          </div>
+        </div>
+        <div class="footer"><span>资源诉求</span><span>需要的是协同和边界，不是新增人力</span></div>
+      </article>
+
+      <article class="slide dark" data-title="总结">
+        <div class="topline">
+          <span class="eyebrow">Closing</span>
+          <span class="page-id">17 / 17</span>
+        </div>
+        <div class="content">
+          <h2>建议立项：按 2026 年节点，把五类通用能力做成行业产品共用底座。</h2>
+          <div class="closing-grid">
+            <div class="closing-claim"><b>01</b><p>核心功能是五类：通用 Agentic AI、智能实验平台、数据资产管理、企业服务前台和后台系统。</p></div>
+            <div class="closing-claim"><b>02</b><p>行业联动先从行业 Agent 场景切入，把 Skill、组件、数据接口和审计经验沉淀回通用产品。</p></div>
+            <div class="closing-claim"><b>03</b><p>当前不需要新增人力；需要确认公共底座定位、中后台接入、resource 级权限审计原则和商业化边界。</p></div>
+          </div>
+        </div>
+        <div class="footer"><span>BioMap 通用产品立项汇报</span><span>v2 HTML deck</span></div>
+      </article>
+    </section>
+  </main>
+
+  <nav class="controls" aria-label="presentation controls">
+    <button type="button" id="prev" aria-label="上一页" title="上一页">‹</button>
+    <span class="counter" id="counter">01 / 17</span>
+    <button type="button" id="next" aria-label="下一页" title="下一页">›</button>
+    <button type="button" id="print" aria-label="打印" title="打印">⎙</button>
+  </nav>
+  <div class="progress" aria-hidden="true"><i id="progress"></i></div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const counter = document.getElementById("counter");
+    const progress = document.getElementById("progress");
+    const total = slides.length;
+    let index = 0;
+
+    function pad(n) {
+      return String(n).padStart(2, "0");
+    }
+
+    function show(nextIndex, pushHash = true) {
+      index = (nextIndex + total) % total;
+      slides.forEach((slide, i) => {
+        slide.classList.toggle("active", i === index);
+      });
+      counter.textContent = `${pad(index + 1)} / ${pad(total)}`;
+      progress.style.width = `${((index + 1) / total) * 100}%`;
+      if (pushHash) {
+        history.replaceState(null, "", `#${index + 1}`);
+      }
+    }
+
+    document.getElementById("prev").addEventListener("click", () => show(index - 1));
+    document.getElementById("next").addEventListener("click", () => show(index + 1));
+    document.getElementById("print").addEventListener("click", () => window.print());
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+        event.preventDefault();
+        show(index + 1);
+      }
+      if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault();
+        show(index - 1);
+      }
+      if (event.key === "Home") {
+        event.preventDefault();
+        show(0);
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        show(total - 1);
+      }
+    });
+
+    function readHashIndex() {
+      const hashNumber = Number(window.location.hash.replace("#", ""));
+      if (Number.isInteger(hashNumber) && hashNumber >= 1 && hashNumber <= total) {
+        return hashNumber - 1;
+      }
+      return 0;
+    }
+
+    window.addEventListener("hashchange", () => {
+      const next = readHashIndex();
+      if (next !== index) {
+        show(next, false);
+      }
+    });
+
+    show(readHashIndex(), false);
+  </script>
+</body>
+</html>
