@@ -371,6 +371,102 @@ describe('ProductManagementPlatformPage', () => {
     root.unmount()
   })
 
+  it('renders cost overview metrics, product margin rows, and risk rows', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '成本管理').click()
+    })
+
+    expect(container.textContent).toContain('本季度目标成本')
+    expect(container.textContent).toContain('成本模型覆盖率')
+    expect(container.textContent).toContain('产品成本与毛利')
+    expect(container.textContent).toContain('虚拟细胞')
+    expect(container.textContent).toContain('BioMap Agent')
+    expect(container.textContent).toContain('高风险计费项')
+
+    root.unmount()
+  })
+
+  it('filters cost items by subject and searches cost model resource packages', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '成本管理').click()
+    })
+    act(() => {
+      getButton(container, '成本项管理').click()
+    })
+
+    expect(getTableHeaders(container)).toContain('成本项名称')
+    expect(getSelectOptions(container, '筛选成本科目')).toContain('资源成本')
+    setSelect(container, '筛选成本科目', '资源成本')
+    expect(getCommodityRowTexts(container).length).toBeGreaterThan(0)
+    expect(getCommodityRowTexts(container).every((text) => text.includes('资源成本'))).toBe(
+      true,
+    )
+
+    act(() => {
+      getButton(container, '成本模型').click()
+    })
+    setSearchInput(container, '搜索成本模型', '虚拟细胞积分资源包')
+    expect(
+      getCommodityRowTexts(container)
+        .slice(0, 3)
+        .map((text) => text.match(/虚拟细胞积分资源包-\d+/)?.[0]),
+    ).toEqual([
+      '虚拟细胞积分资源包-10000',
+      '虚拟细胞积分资源包-50000',
+      '虚拟细胞积分资源包-100000',
+    ])
+
+    root.unmount()
+  })
+
+  it('opens a read-only cost model detail with breakdown, pricing simulation, and versions', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '成本管理').click()
+    })
+    act(() => {
+      getButton(container, '成本模型').click()
+    })
+    act(() => {
+      getButtons(container, '查看')[0].click()
+    })
+
+    expect(container.textContent).toContain('成本模型详情')
+    expect(container.textContent).toContain('模型概览')
+    expect(container.textContent).toContain('成本拆解')
+    expect(container.textContent).toContain('毛利试算')
+    expect(container.textContent).toContain('版本记录')
+    expect(container.textContent).toContain('VCELL-COMM-001-BI-001')
+
+    root.unmount()
+  })
+
+  it('renders allocation rules and cost version records', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '成本管理').click()
+    })
+    act(() => {
+      getButton(container, '成本分摊规则').click()
+    })
+    expect(getTableHeaders(container)).toContain('共享成本项')
+    expect(container.textContent).toContain('分摊完整度')
+
+    act(() => {
+      getButton(container, '成本版本记录').click()
+    })
+    expect(getTableHeaders(container)).toContain('版本号')
+    expect(container.textContent).toContain('口径锁定')
+
+    root.unmount()
+  })
+
   it('renders target management as a top-level tab with its own navigation', () => {
     const { container, root } = renderProductManagementPlatformPage()
 
