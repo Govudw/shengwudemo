@@ -9,11 +9,18 @@ import {
   costSubjects,
   costVersionRecords,
   type AllocationStatus,
+  type CostAllocationRecord,
+  type CostBreakdownRecord,
+  type CostItemRecord,
   type CostModelRecord,
+  type CostModelVersionRecord,
   type CostModelStatus,
+  type CostOverviewRecord,
+  type CostPricingSimulationRecord,
   type CostRecordStatus,
   type CostRiskStatus,
   type CostSection,
+  type CostVersionRecord,
   type CostVersionStatus,
 } from './costManagementMockData'
 import { productRecords } from './productManagementMockData'
@@ -28,6 +35,17 @@ type TableColumn<TRecord> = {
   key: string
   header: string
   render: (record: TRecord) => ReactNode
+}
+
+type CostStructureRow = {
+  productId: string
+  productName: string
+  resourceCost: string
+  laborCost: string
+  deliveryCost: string
+  opsAllocation: string
+  thirdPartyCost: string
+  sharedCost: string
 }
 
 const managementPageSize = 10
@@ -90,7 +108,7 @@ function CostOverviewView() {
       />
       <MetricGrid metrics={metrics} />
       <ManagementSection title="产品成本与毛利">
-        <ManagementTable
+        <ManagementTable<CostOverviewRecord>
           records={costOverviewRecords}
           getRowKey={(record) => record.productId}
           minWidth={1200}
@@ -122,7 +140,7 @@ function CostOverviewView() {
         />
       </ManagementSection>
       <ManagementSection title="成本结构">
-        <ManagementTable
+        <ManagementTable<CostStructureRow>
           records={costStructureRows}
           getRowKey={(record) => record.productId}
           minWidth={1080}
@@ -138,7 +156,7 @@ function CostOverviewView() {
         />
       </ManagementSection>
       <ManagementSection title="高风险计费项">
-        <ManagementTable
+        <ManagementTable<CostModelRecord>
           records={riskRows}
           getRowKey={(record) => record.costModelId}
           minWidth={1140}
@@ -278,7 +296,7 @@ function CostItemsView() {
           + 新建成本项
         </button>
       </ManagementToolbar>
-      <ManagementTable
+      <ManagementTable<CostItemRecord>
         records={pagedRecords}
         getRowKey={(record) => record.id}
         minWidth={1500}
@@ -453,7 +471,7 @@ function CostModelsView() {
           }}
         />
       </ManagementToolbar>
-      <ManagementTable
+      <ManagementTable<CostModelRecord>
         records={pagedRecords}
         getRowKey={(record) => record.costModelId}
         minWidth={1580}
@@ -586,7 +604,7 @@ function CostModelDetailView({
       </section>
       <section className="management-detail__section" aria-label="成本拆解">
         <h2>成本拆解</h2>
-        <ManagementTable
+        <ManagementTable<CostBreakdownRecord>
           records={record.breakdown}
           getRowKey={(breakdown) => breakdown.costItemCode}
           minWidth={1040}
@@ -612,7 +630,7 @@ function CostModelDetailView({
       </section>
       <section className="management-detail__section" aria-label="毛利试算">
         <h2>毛利试算</h2>
-        <ManagementTable
+        <ManagementTable<CostPricingSimulationRecord>
           records={record.pricingSimulation}
           getRowKey={(simulation) => simulation.priceLine}
           minWidth={720}
@@ -626,7 +644,7 @@ function CostModelDetailView({
       </section>
       <section className="management-detail__section" aria-label="版本记录">
         <h2>版本记录</h2>
-        <ManagementTable
+        <ManagementTable<CostModelVersionRecord>
           records={record.versions}
           getRowKey={(version) => version.costVersion}
           minWidth={860}
@@ -738,7 +756,7 @@ function CostAllocationsView() {
           + 新建分摊规则
         </button>
       </ManagementToolbar>
-      <ManagementTable
+      <ManagementTable<CostAllocationRecord>
         records={pagedRecords}
         getRowKey={(record) => record.allocationRuleId}
         minWidth={1320}
@@ -911,7 +929,7 @@ function CostVersionsView() {
           }}
         />
       </ManagementToolbar>
-      <ManagementTable
+      <ManagementTable<CostVersionRecord>
         records={pagedRecords}
         getRowKey={(record) => `${record.costVersion}-${record.relatedObjectId}`}
         minWidth={1440}
@@ -1242,7 +1260,7 @@ function createOverviewMetrics(): MetricRecord[] {
   ]
 }
 
-function createCostStructureRows() {
+function createCostStructureRows(): CostStructureRow[] {
   return costOverviewRecords.map((overview, index) => {
     const productModels = costModelRecords.filter(
       (record) => record.productId === overview.productId,
