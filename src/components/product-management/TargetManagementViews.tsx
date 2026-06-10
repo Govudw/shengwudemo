@@ -24,6 +24,7 @@ import {
 } from './targetManagementMockData'
 import {
   commodityRecords,
+  getCommodityDetail,
   productRecords,
   productStages,
   type CommoditySaleType,
@@ -67,6 +68,19 @@ type MarginVarianceRow = TargetMarginVarianceRecord & {
   riskStatus: TargetRiskStatus
 }
 
+type TargetDisplayChangeType = '创建' | '预测调整' | '锁定' | '复盘'
+
+type TargetVersionDisplayRow = TargetVersionRecord & {
+  targetCode: string
+  year: '2026'
+  quarter: TargetQuarter
+  displayChangeType: TargetDisplayChangeType
+  beforeTarget: string
+  afterTarget: string
+  beforeGrossMargin: string
+  afterGrossMargin: string
+}
+
 type ManagementStatus =
   | TargetRiskStatus
   | TargetStatus
@@ -89,9 +103,12 @@ const targetCommodityTypes = uniqueValues(
 const targetVersionStatuses = uniqueValues(
   targetVersionRecords.map((record) => record.status),
 )
-const targetVersionChangeTypes = uniqueValues(
-  targetVersionRecords.map((record) => record.changeType),
-)
+const targetVersionDisplayChangeTypes: TargetDisplayChangeType[] = [
+  '创建',
+  '预测调整',
+  '锁定',
+  '复盘',
+]
 const targetVarianceTypes = uniqueValues(
   targetMarginVarianceRecords.map((record) => record.varianceType),
 )
@@ -225,6 +242,7 @@ function TargetOverviewView() {
             textColumn('confirmedCost', '已确认成本', (record) => record.confirmedCost),
             textColumn('costUsageRate', '成本使用率', (record) => record.costUsageRate),
             textColumn('actualGrossProfit', '实际毛利额', (record) => record.actualGrossProfit),
+            textColumn('targetGrossMargin', '目标毛利率', (record) => record.targetGrossMargin),
             textColumn('actualGrossMargin', '实际毛利率', (record) => record.actualGrossMargin),
             textColumn(
               'forecastAttainmentRate',
@@ -623,13 +641,16 @@ function TargetDetailView({
         <ManagementTable<TargetCommodityContributionRecord>
           records={detail?.commodityContributions ?? []}
           getRowKey={(contribution) => contribution.id}
-          minWidth={1260}
+          minWidth={1480}
           columns={[
             textColumn(
               'commodityName',
               '商品名称',
               (contribution) => contribution.commodityName,
               true,
+            ),
+            textColumn('commodityType', '商品类型', (contribution) =>
+              getCommodityType(contribution.commodityId),
             ),
             textColumn(
               'billingItemName',
@@ -656,13 +677,22 @@ function TargetDetailView({
               '贡献达成率',
               (contribution) => contribution.contributionRate,
             ),
+            textColumn('contributionShare', '贡献占比', (contribution) =>
+              getContributionShare(contribution),
+            ),
             textColumn('costBudget', '成本预算', (contribution) => contribution.costBudget),
             textColumn(
               'confirmedCost',
               '已确认成本',
               (contribution) => contribution.confirmedCost,
             ),
+            textColumn('grossProfit', '毛利额', (contribution) =>
+              getContributionGrossProfit(contribution),
+            ),
             textColumn('grossMargin', '毛利率', (contribution) => contribution.grossMargin),
+            textColumn('billingItemCount', '关联计费项数量', (contribution) =>
+              String(getCommodityBillingItemCount(contribution.commodityId)),
+            ),
             {
               key: 'riskStatus',
               header: '毛利风险',
@@ -792,8 +822,6 @@ function TargetContributionsView() {
           'commodityName',
           'billingItemCode',
           'billingItemName',
-          'costModelId',
-          'costVersion',
         ])
       }),
     [
@@ -885,29 +913,35 @@ function TargetContributionsView() {
       <ManagementTable<TargetCommodityContributionRecord>
         records={pagedRecords}
         getRowKey={(record) => record.id}
-        minWidth={1580}
+        minWidth={1660}
         columns={[
-          textColumn('productName', '产品名称', (record) => record.productName),
           textColumn('commodityName', '商品名称', (record) => record.commodityName, true),
+          textColumn('productName', '所属产品', (record) => record.productName),
           textColumn('commodityType', '商品类型', (record) =>
             getCommodityType(record.commodityId),
           ),
-          textColumn('billingItemName', '计费项名称', (record) => record.billingItemName),
-          textColumn('billingItemCode', '计费项编号', (record) => record.billingItemCode),
-          textColumn('costModelId', '成本模型', (record) => record.costModelId),
-          textColumn('costVersion', '成本版本', (record) => record.costVersion),
-          textColumn('revenueTarget', '业绩目标', (record) => record.revenueTarget),
-          textColumn('achievedRevenue', '已达成业绩', (record) => record.achievedRevenue),
+          textColumn('productOwner', '产品负责人', (record) =>
+            getProductOwner(record.productId),
+          ),
+          textColumn('revenueTarget', '季度目标贡献', (record) => record.revenueTarget),
+          textColumn('achievedRevenue', '实际贡献', (record) => record.achievedRevenue),
           textColumn('contributionRate', '贡献达成率', (record) => record.contributionRate),
-          textColumn('costBudget', '成本预算', (record) => record.costBudget),
-          textColumn('confirmedCost', '已确认成本', (record) => record.confirmedCost),
-          textColumn('grossMargin', '实际毛利率', (record) => record.grossMargin),
+          textColumn('confirmedCost', '成本贡献', (record) => record.confirmedCost),
+          textColumn('grossProfit', '毛利额', (record) =>
+            getContributionGrossProfit(record),
+          ),
+          textColumn('grossMargin', '毛利率', (record) => record.grossMargin),
+          textColumn('contributionShare', '贡献占比', (record) =>
+            getContributionShare(record),
+          ),
+          textColumn('billingItemName', '主要计费项', (record) => record.billingItemName),
           {
             key: 'riskStatus',
-            header: '毛利风险',
+            header: '风险状态',
             render: (record) => <StatusPill status={record.riskStatus} />,
           },
           textColumn('updatedAt', '更新时间', (record) => record.updatedAt),
+          actionColumn(),
         ]}
       />
       <Pagination
@@ -1103,21 +1137,20 @@ function TargetVersionsView() {
   const [changeTypeFilter, setChangeTypeFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
+  const versionRows = useMemo(() => createTargetVersionDisplayRows(), [])
 
   const filteredRecords = useMemo(
     () =>
-      targetVersionRecords.filter((record) => {
-        const target = getQuarterlyTarget(record.targetId)
-
+      versionRows.filter((record) => {
         if (productFilter !== 'all' && record.productName !== productFilter) {
           return false
         }
 
-        if (target?.year !== yearFilter) {
+        if (record.year !== yearFilter) {
           return false
         }
 
-        if (target?.quarter !== quarterFilter) {
+        if (record.quarter !== quarterFilter) {
           return false
         }
 
@@ -1125,18 +1158,18 @@ function TargetVersionsView() {
           return false
         }
 
-        if (changeTypeFilter !== 'all' && record.changeType !== changeTypeFilter) {
+        if (
+          changeTypeFilter !== 'all' &&
+          record.displayChangeType !== changeTypeFilter
+        ) {
           return false
         }
 
         return matchesQuery(record, searchQuery, [
           'targetVersion',
+          'targetCode',
           'productName',
-          'commodityName',
-          'billingItemCode',
-          'billingItemName',
-          'costVersion',
-          'changeType',
+          'displayChangeType',
           'creator',
           'description',
         ])
@@ -1147,6 +1180,7 @@ function TargetVersionsView() {
       quarterFilter,
       searchQuery,
       statusFilter,
+      versionRows,
       yearFilter,
     ],
   )
@@ -1220,44 +1254,41 @@ function TargetVersionsView() {
           label="筛选目标变更类型"
           value={changeTypeFilter}
           allLabel="全部变更类型"
-          options={targetVersionChangeTypes}
+          options={targetVersionDisplayChangeTypes}
           onChange={(value) => {
             setChangeTypeFilter(value)
             resetPage()
           }}
         />
       </ManagementToolbar>
-      <ManagementTable<TargetVersionRecord>
+      <ManagementTable<TargetVersionDisplayRow>
         records={pagedRecords}
         getRowKey={(record) => record.targetVersion}
-        minWidth={1720}
+        minWidth={1640}
         columns={[
           textColumn('targetVersion', '版本号', (record) => record.targetVersion, true),
+          textColumn('targetCode', '目标编号', (record) => record.targetCode),
           textColumn('productName', '产品名称', (record) => record.productName),
-          textColumn('commodityName', '商品名称', (record) => record.commodityName),
-          textColumn('billingItemName', '计费项名称', (record) => record.billingItemName),
-          textColumn('billingItemCode', '计费项编号', (record) => record.billingItemCode),
-          textColumn('costVersion', '成本版本', (record) => record.costVersion),
-          textColumn('year', '年度', (record) => getQuarterlyTarget(record.targetId)?.year ?? '-'),
+          textColumn('year', '年度', (record) => record.year),
+          textColumn('quarter', '季度', (record) => record.quarter),
+          textColumn('displayChangeType', '变更类型', (record) => record.displayChangeType),
+          textColumn('beforeTarget', '变更前目标', (record) => record.beforeTarget),
+          textColumn('afterTarget', '变更后目标', (record) => record.afterTarget),
           textColumn(
-            'quarter',
-            '季度',
-            (record) => getQuarterlyTarget(record.targetId)?.quarter ?? '-',
+            'beforeGrossMargin',
+            '变更前毛利率',
+            (record) => record.beforeGrossMargin,
           ),
-          textColumn('changeType', '变更类型', (record) => record.changeType),
+          textColumn(
+            'afterGrossMargin',
+            '变更后毛利率',
+            (record) => record.afterGrossMargin,
+          ),
           {
             key: 'status',
-            header: '版本状态',
+            header: '状态',
             render: (record) => <StatusPill status={record.status} />,
           },
-          textColumn('impactRevenue', '影响收入', (record) => record.impactRevenue),
-          textColumn('impactCost', '影响成本', (record) => record.impactCost),
-          textColumn(
-            'impactGrossMargin',
-            '影响毛利率',
-            (record) => record.impactGrossMargin,
-          ),
-          textColumn('effectiveAt', '生效时间', (record) => record.effectiveAt),
           textColumn('creator', '创建人', (record) => record.creator),
           textColumn('createdAt', '创建时间', (record) => record.createdAt),
           textColumn('description', '说明', (record) => record.description),
@@ -1608,6 +1639,28 @@ function createOverviewRiskNoteRows(records: TargetOverviewRecord[]): OverviewRi
   })
 }
 
+function createTargetVersionDisplayRows(): TargetVersionDisplayRow[] {
+  return targetVersionRecords.map((record, index) => {
+    const target = getQuarterlyTarget(record.targetId)
+    const afterTarget = parseCurrency(target?.revenueTarget ?? record.impactRevenue)
+    const impactRevenue = parseCurrency(record.impactRevenue)
+    const afterGrossMargin = parsePercent(target?.targetGrossMargin ?? '0')
+    const impactGrossMargin = parsePercent(record.impactGrossMargin)
+
+    return {
+      ...record,
+      targetCode: target?.targetCode ?? '-',
+      year: target?.year ?? '2026',
+      quarter: target?.quarter ?? 'Q2',
+      displayChangeType: getDisplayChangeType(index),
+      beforeTarget: formatCurrency(Math.max(0, afterTarget - impactRevenue)),
+      afterTarget: formatCurrency(afterTarget),
+      beforeGrossMargin: formatPercentValue(afterGrossMargin - impactGrossMargin),
+      afterGrossMargin: formatPercentValue(afterGrossMargin),
+    }
+  })
+}
+
 function createMarginVarianceRows(): MarginVarianceRow[] {
   return targetMarginVarianceRecords.map((record) => {
     const target = getQuarterlyTarget(record.targetId)
@@ -1720,12 +1773,41 @@ function getQuarterlyTarget(targetId: string) {
   return quarterlyTargetRecords.find((record) => record.targetId === targetId)
 }
 
+function getProductOwner(productId: string) {
+  return productRecords.find((record) => record.id === productId)?.owner ?? '-'
+}
+
 function getProductStage(productId: string): ProductStage | '-' {
   return productRecords.find((record) => record.id === productId)?.stage ?? '-'
 }
 
 function getCommodityType(commodityId: string): CommoditySaleType | '-' {
   return commodityRecords.find((record) => record.id === commodityId)?.commodityType ?? '-'
+}
+
+function getCommodityBillingItemCount(commodityId: string) {
+  return getCommodityDetail(commodityId)?.billingItems.length ?? 0
+}
+
+function getContributionGrossProfit(record: TargetCommodityContributionRecord) {
+  return formatCurrency(
+    parseCurrency(record.achievedRevenue) - parseCurrency(record.confirmedCost),
+  )
+}
+
+function getContributionShare(record: TargetCommodityContributionRecord) {
+  const target = getQuarterlyTarget(record.targetId)
+  const denominator = parseCurrency(target?.revenueTarget ?? '0')
+
+  if (denominator <= 0) {
+    return '-'
+  }
+
+  return `${Math.round((parseCurrency(record.revenueTarget) / denominator) * 100)}%`
+}
+
+function getDisplayChangeType(index: number): TargetDisplayChangeType {
+  return targetVersionDisplayChangeTypes[index % targetVersionDisplayChangeTypes.length]
 }
 
 function getRiskStatusForVariance(varianceType: VarianceType): TargetRiskStatus {
@@ -1758,4 +1840,10 @@ function getStatusTone(status: ManagementStatus) {
     case '已归档':
       return 'neutral'
   }
+}
+
+function formatPercentValue(value: number) {
+  const roundedValue = Math.round(value * 10) / 10
+
+  return Number.isInteger(roundedValue) ? `${roundedValue}%` : `${roundedValue.toFixed(1)}%`
 }

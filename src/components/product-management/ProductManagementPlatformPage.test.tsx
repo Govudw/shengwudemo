@@ -549,6 +549,7 @@ describe('ProductManagementPlatformPage', () => {
     expect(container.textContent).toContain('产品目标达成表')
     expect(container.textContent).toContain('月度趋势表')
     expect(container.textContent).toContain('风险说明表')
+    expect(getTableHeaders(container)).toContain('目标毛利率')
 
     act(() => {
       getButton(container, '季度目标').click()
@@ -639,6 +640,14 @@ describe('ProductManagementPlatformPage', () => {
     expect(container.textContent).toContain('成本结构')
     expect(container.textContent).toContain('版本记录')
     expect(container.textContent).toContain('风险说明')
+    expect(getTableHeaders(container)).toEqual(
+      expect.arrayContaining([
+        '商品类型',
+        '贡献占比',
+        '毛利额',
+        '关联计费项数量',
+      ]),
+    )
     expect(container.textContent).toContain(virtualCellQ2Target!.targetCode)
     expectedCommodityNames.forEach((name) => {
       expect(container.textContent).toContain(name)
@@ -664,7 +673,23 @@ describe('ProductManagementPlatformPage', () => {
       getButton(container, '商品贡献').click()
     })
 
-    expect(getTableHeaders(container)).toContain('商品名称')
+    expect(getTableHeaders(container)).toEqual([
+      '商品名称',
+      '所属产品',
+      '商品类型',
+      '产品负责人',
+      '季度目标贡献',
+      '实际贡献',
+      '贡献达成率',
+      '成本贡献',
+      '毛利额',
+      '毛利率',
+      '贡献占比',
+      '主要计费项',
+      '风险状态',
+      '更新时间',
+      '操作',
+    ])
     setSearchInput(container, '搜索商品贡献', 'BioMap Agent')
     expect(getCommodityRowTexts(container)).toHaveLength(1)
     expect(container.textContent).toContain('BioMap Agent - SaaS')
@@ -700,11 +725,28 @@ describe('ProductManagementPlatformPage', () => {
       getButton(container, '目标版本记录').click()
     })
 
-    expect(getTableHeaders(container)).toContain('版本状态')
-    expect(getTableHeaders(container)).toContain('变更类型')
+    expect(getTableHeaders(container)).toEqual([
+      '版本号',
+      '目标编号',
+      '产品名称',
+      '年度',
+      '季度',
+      '变更类型',
+      '变更前目标',
+      '变更后目标',
+      '变更前毛利率',
+      '变更后毛利率',
+      '状态',
+      '创建人',
+      '创建时间',
+      '说明',
+      '操作',
+    ])
     expect(container.textContent).toContain('已生效')
-    expect(container.textContent).toContain('目标调整')
-    expect(container.textContent).toContain('成本预算调整')
+    expect(container.textContent).toContain('创建')
+    expect(container.textContent).toContain('预测调整')
+    expect(container.textContent).toContain('锁定')
+    expect(container.textContent).toContain('复盘')
 
     root.unmount()
   })
