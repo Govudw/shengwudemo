@@ -545,6 +545,10 @@ describe('ProductManagementPlatformPage', () => {
       'page',
     )
     expect(container.textContent).toContain('目标总览')
+    expect(container.textContent).toContain('本季度业绩目标')
+    expect(container.textContent).toContain('产品目标达成表')
+    expect(container.textContent).toContain('月度趋势表')
+    expect(container.textContent).toContain('风险说明表')
 
     act(() => {
       getButton(container, '季度目标').click()
@@ -555,6 +559,201 @@ describe('ProductManagementPlatformPage', () => {
     )
     expect(getButton(container, '目标总览').getAttribute('aria-current')).toBeNull()
     expect(container.textContent).toContain('季度目标')
+
+    root.unmount()
+  })
+
+  it('renders the quarterly target list with core financial and status fields', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '季度目标').click()
+    })
+
+    expect(getTableHeaders(container)).toEqual([
+      '目标名称',
+      '目标编号',
+      '产品名称',
+      '产品负责人',
+      '年度',
+      '季度',
+      '业绩目标',
+      '已达成业绩',
+      '达成率',
+      '成本预算',
+      '已确认成本',
+      '成本使用率',
+      '目标毛利率',
+      '实际毛利率',
+      '预测达成率',
+      '风险状态',
+      '目标状态',
+      '更新时间',
+      '操作',
+    ])
+    expect(getCommodityRowTexts(container)).toHaveLength(5)
+    expect(container.textContent).toContain('虚拟细胞 2026 Q2 经营目标')
+    expect(container.textContent).toContain('BioMap Agent 2026 Q2 经营目标')
+    expect(container.textContent).toContain('2026')
+    expect(container.textContent).toContain('Q2')
+    expect(container.textContent).toContain('达成率')
+    expect(container.textContent).toContain('成本使用率')
+    expect(container.textContent).toContain('目标毛利率')
+    expect(container.textContent).toContain('实际毛利率')
+    expect(container.textContent).toContain('目标状态')
+    expect(container.textContent).toContain('已完成')
+    expect((getButton(container, '+ 新建目标') as HTMLButtonElement).disabled).toBe(
+      true,
+    )
+
+    root.unmount()
+  })
+
+  it('opens quarterly target detail with overview, monthly, contribution, cost, and version sections', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+    const virtualCellQ2Target = quarterlyTargetRecords.find(
+      (record) => record.productName === '虚拟细胞' && record.quarter === 'Q2',
+    )
+    expect(virtualCellQ2Target).toBeDefined()
+    const expectedCommodityNames = commodityRecords
+      .filter((record) => record.productType === '虚拟细胞')
+      .map((record) => record.name)
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '季度目标').click()
+    })
+    act(() => {
+      getButtons(container, '查看')[0].click()
+    })
+
+    expect(container.textContent).toContain('目标详情')
+    expect(container.textContent).toContain('目标概览')
+    expect(container.textContent).toContain('月度拆分')
+    expect(container.textContent).toContain('商品贡献')
+    expect(container.textContent).toContain('成本结构')
+    expect(container.textContent).toContain('版本记录')
+    expect(container.textContent).toContain('风险说明')
+    expect(container.textContent).toContain(virtualCellQ2Target!.targetCode)
+    expectedCommodityNames.forEach((name) => {
+      expect(container.textContent).toContain(name)
+    })
+
+    act(() => {
+      getButton(container, '返回季度目标').click()
+    })
+
+    expect(container.textContent).toContain('季度目标')
+    expect(container.textContent).not.toContain('目标详情')
+
+    root.unmount()
+  })
+
+  it('renders target commodity contribution rows including BioMap Agent SaaS', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '商品贡献').click()
+    })
+
+    expect(getTableHeaders(container)).toContain('商品名称')
+    setSearchInput(container, '搜索商品贡献', 'BioMap Agent')
+    expect(getCommodityRowTexts(container)).toHaveLength(1)
+    expect(container.textContent).toContain('BioMap Agent - SaaS')
+
+    root.unmount()
+  })
+
+  it('renders target margin variance with variance type and suggested actions', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '成本与毛利').click()
+    })
+
+    expect(getTableHeaders(container)).toContain('差异类型')
+    expect(getTableHeaders(container)).toContain('建议动作')
+    expect(container.textContent).toContain('正向')
+    expect(container.textContent).toContain('复核高消耗租户')
+
+    root.unmount()
+  })
+
+  it('renders target version records with statuses and change types', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '目标版本记录').click()
+    })
+
+    expect(getTableHeaders(container)).toContain('版本状态')
+    expect(getTableHeaders(container)).toContain('变更类型')
+    expect(container.textContent).toContain('已生效')
+    expect(container.textContent).toContain('目标调整')
+    expect(container.textContent).toContain('成本预算调整')
+
+    root.unmount()
+  })
+
+  it('limits target contribution list to 10 rows per page and paginates results', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '商品贡献').click()
+    })
+
+    expect(getCommodityRowTexts(container)).toHaveLength(10)
+    expect(container.textContent).toContain('共 17 条')
+    expect(container.textContent).toContain('1 / 2')
+    expect(container.textContent).not.toContain('BioMap Agent - SaaS')
+
+    act(() => {
+      getButton(container, '下一页').click()
+    })
+
+    expect(getCommodityRowTexts(container)).toHaveLength(7)
+    expect(container.textContent).toContain('2 / 2')
+    expect(container.textContent).toContain('BioMap Agent - SaaS')
+
+    root.unmount()
+  })
+
+  it('shows Q3 target actual values as zero or empty placeholders', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '季度目标').click()
+    })
+    setSelect(container, '筛选目标季度', 'Q3')
+
+    const rows = getCommodityRowTexts(container)
+    expect(rows).toHaveLength(5)
+    rows.forEach((row) => {
+      expect(row).toContain('Q3')
+      expect(row).toContain('0')
+      expect(row).toContain('-')
+      expect(row).toContain('进行中')
+    })
 
     root.unmount()
   })
