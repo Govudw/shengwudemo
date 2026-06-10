@@ -224,34 +224,71 @@ export function getTargetDetail(targetId: string | null) {
 }
 
 export const targetCommodityContributionRecords: TargetCommodityContributionRecord[] =
-  commodityRecords.map((commodity, index) => {
-    const model = getPrimaryModelForCommodity(commodity.id)
-    const target = getQuarterlyTargetForProduct(model.productId, 'Q2')
-    const revenueTarget = 180000 + index * 36000
-    const achievedRevenue = Math.round(revenueTarget * (0.58 + (index % 5) * 0.06))
-    const confirmedCost = Math.round(achievedRevenue * (0.28 + (index % 4) * 0.03))
+  (['Q2', 'Q3'] as const).flatMap((quarter) =>
+    commodityRecords.map((commodity, index) => {
+      const model = getPrimaryModelForCommodity(commodity.id)
+      const target = getQuarterlyTargetForProduct(model.productId, quarter)
+      const productCommodities = commodityRecords.filter(
+        (record) => record.productType === commodity.productType,
+      )
+      const commodityIndex = productCommodities.findIndex(
+        (record) => record.id === commodity.id,
+      )
+      const allocationWeights = productCommodities.map(
+        (_, weightIndex) => weightIndex + 1,
+      )
+      const totalWeight = allocationWeights.reduce((sum, weight) => sum + weight, 0)
+      const allocationWeight = allocationWeights[commodityIndex] ?? 1
+      const revenueTarget = Math.round(
+        parseCurrency(target.revenueTarget) * 0.96 * (allocationWeight / totalWeight),
+      )
+      const achievedRevenue =
+        quarter === 'Q3'
+          ? 0
+          : Math.round(revenueTarget * (0.58 + (index % 5) * 0.06))
+      const confirmedCost =
+        quarter === 'Q3'
+          ? 0
+          : Math.round(achievedRevenue * (0.28 + (index % 4) * 0.03))
 
-    return {
-      id: `target-contribution-${String(index + 1).padStart(3, '0')}`,
-      targetId: target.targetId,
-      productId: model.productId,
-      productName: model.productName,
-      commodityId: commodity.id,
-      commodityName: commodity.name,
-      billingItemCode: model.billingItemCode,
-      billingItemName: model.billingItemName,
-      costModelId: model.costModelId,
-      costVersion: model.costVersion,
-      revenueTarget: formatCurrency(revenueTarget),
-      achievedRevenue: formatCurrency(achievedRevenue),
-      contributionRate: `${Math.round((achievedRevenue / revenueTarget) * 100)}%`,
-      costBudget: formatCurrency(Math.round(revenueTarget * 0.36)),
-      confirmedCost: formatCurrency(confirmedCost),
-      grossMargin: `${Math.round(((achievedRevenue - confirmedCost) / achievedRevenue) * 100)}%`,
-      riskStatus: index % 6 === 0 ? '风险' : index % 4 === 0 ? '关注' : '正常',
-      updatedAt: `2026-06-${String((index % 9) + 1).padStart(2, '0')} 15:30`,
-    }
-  })
+      return {
+        id: `target-contribution-${quarter.toLowerCase()}-${String(index + 1).padStart(3, '0')}`,
+        targetId: target.targetId,
+        productId: model.productId,
+        productName: model.productName,
+        commodityId: commodity.id,
+        commodityName: commodity.name,
+        billingItemCode: model.billingItemCode,
+        billingItemName: model.billingItemName,
+        costModelId: model.costModelId,
+        costVersion: model.costVersion,
+        revenueTarget: formatCurrency(revenueTarget),
+        achievedRevenue: quarter === 'Q3' ? '0' : formatCurrency(achievedRevenue),
+        contributionRate:
+          quarter === 'Q3'
+            ? '0'
+            : `${Math.round((achievedRevenue / revenueTarget) * 100)}%`,
+        costBudget: formatCurrency(Math.round(revenueTarget * 0.36)),
+        confirmedCost: quarter === 'Q3' ? '0' : formatCurrency(confirmedCost),
+        grossMargin:
+          quarter === 'Q3'
+            ? '-'
+            : `${Math.round(((achievedRevenue - confirmedCost) / achievedRevenue) * 100)}%`,
+        riskStatus:
+          quarter === 'Q3'
+            ? target.riskStatus
+            : index % 6 === 0
+              ? '风险'
+              : index % 4 === 0
+                ? '关注'
+                : '正常',
+        updatedAt:
+          quarter === 'Q3'
+            ? '2026-06-10 15:30'
+            : `2026-06-${String((index % 9) + 1).padStart(2, '0')} 15:30`,
+      }
+    }),
+  )
 
 const marginVarianceModelKeys = [
   'VCELL-COMM-001-BI-001',
@@ -305,33 +342,49 @@ export const targetMarginVarianceRecords: TargetMarginVarianceRecord[] =
     }
   })
 
-export const targetVersionRecords: TargetVersionRecord[] = costModelRecords
-  .slice(0, 15)
-  .map((model, index) => {
-    const target = getQuarterlyTargetForProduct(model.productId, 'Q2')
+export const targetVersionRecords: TargetVersionRecord[] = (['Q2', 'Q3'] as const)
+  .flatMap((quarter) =>
+    costModelRecords.slice(0, 15).map((model, index) => {
+      const target = getQuarterlyTargetForProduct(model.productId, quarter)
 
-    return {
-      targetVersion: `TV-2026Q2-${String(index + 1).padStart(3, '0')}`,
-      targetId: target.targetId,
-      productId: model.productId,
-      productName: model.productName,
-      commodityId: model.commodityId,
-      commodityName: model.commodityName,
-      billingItemCode: model.billingItemCode,
-      billingItemName: model.billingItemName,
-      costModelId: model.costModelId,
-      costVersion: model.costVersion,
-      changeType: getTargetVersionChangeType(index),
-      status: index % 6 === 0 ? '草稿' : index % 5 === 0 ? '已归档' : '已生效',
-      impactRevenue: formatCurrency(60000 + index * 12000),
-      impactCost: formatCurrency(12000 + index * 4800),
-      impactGrossMargin: `${index % 3 === 0 ? '-' : '+'}${(1.2 + index * 0.1).toFixed(1)}pt`,
-      effectiveAt: index % 4 === 0 ? '2026-07-01 00:00' : '2026-06-01 00:00',
-      creator: model.productName === 'BioMap Agent' ? '宋旭政俊' : model.productName,
-      createdAt: `2026-06-${String((index % 15) + 1).padStart(2, '0')} 11:00`,
-      description: `${model.commodityName} 商品贡献、成本预算与毛利目标版本更新。`,
-    }
-  })
+      return {
+        targetVersion: `TV-2026${quarter}-${String(index + 1).padStart(3, '0')}`,
+        targetId: target.targetId,
+        productId: model.productId,
+        productName: model.productName,
+        commodityId: model.commodityId,
+        commodityName: model.commodityName,
+        billingItemCode: model.billingItemCode,
+        billingItemName: model.billingItemName,
+        costModelId: model.costModelId,
+        costVersion: model.costVersion,
+        changeType: getTargetVersionChangeType(index),
+        status:
+          quarter === 'Q3'
+            ? '草稿'
+            : index % 6 === 0
+              ? '草稿'
+              : index % 5 === 0
+                ? '已归档'
+                : '已生效',
+        impactRevenue: formatCurrency(60000 + index * 12000),
+        impactCost: formatCurrency(12000 + index * 4800),
+        impactGrossMargin: `${index % 3 === 0 ? '-' : '+'}${(1.2 + index * 0.1).toFixed(1)}pt`,
+        effectiveAt:
+          quarter === 'Q3'
+            ? '2026-07-01 00:00'
+            : index % 4 === 0
+              ? '2026-07-01 00:00'
+              : '2026-06-01 00:00',
+        creator: model.productName === 'BioMap Agent' ? '宋旭政俊' : model.productName,
+        createdAt:
+          quarter === 'Q3'
+            ? `2026-06-${String((index % 15) + 10).padStart(2, '0')} 11:00`
+            : `2026-06-${String((index % 15) + 1).padStart(2, '0')} 11:00`,
+        description: `${model.commodityName} ${quarter} 商品贡献、成本预算与毛利目标版本更新。`,
+      }
+    }),
+  )
 
 export const targetOverviewRecords: TargetOverviewRecord[] = quarterlyTargetRecords.map((target) => ({
   targetId: target.targetId,
@@ -734,6 +787,12 @@ function getTargetVersionChangeType(
   ]
 
   return values[index % values.length]
+}
+
+function parseCurrency(value: string) {
+  const parsedValue = Number(value.replace(/[^\d.-]/g, ''))
+
+  return Number.isFinite(parsedValue) ? parsedValue : 0
 }
 
 function formatCurrency(value: number) {

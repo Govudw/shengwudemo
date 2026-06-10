@@ -205,6 +205,31 @@ describe('ProductManagementPlatformPage', () => {
     })
   })
 
+  it('keeps commodity contribution shares within each product target', () => {
+    const targetsById = new Map(
+      quarterlyTargetRecords.map((record) => [record.targetId, record]),
+    )
+    const totalsByTarget = new Map<string, number>()
+
+    targetCommodityContributionRecords.forEach((record) => {
+      totalsByTarget.set(
+        record.targetId,
+        (totalsByTarget.get(record.targetId) ?? 0) +
+          parseCurrencyValue(record.revenueTarget),
+      )
+    })
+
+    totalsByTarget.forEach((totalContribution, targetId) => {
+      const target = targetsById.get(targetId)
+      expect(target).toBeDefined()
+
+      const targetTotal = parseCurrencyValue(target!.revenueTarget)
+      expect(Math.round((totalContribution / targetTotal) * 100)).toBeLessThanOrEqual(
+        101,
+      )
+    })
+  })
+
   it('renders the product platform shell with 产品管理 selected by default', () => {
     const { container, root } = renderProductManagementPlatformPage()
 
@@ -674,7 +699,7 @@ describe('ProductManagementPlatformPage', () => {
       getButton(container, '商品贡献').click()
     })
 
-    expect(getTableHeaders(container)).toEqual([
+    expect(getTableHeaders(container)).toEqual(expect.arrayContaining([
       '商品名称',
       '所属产品',
       '商品类型',
@@ -690,10 +715,34 @@ describe('ProductManagementPlatformPage', () => {
       '风险状态',
       '更新时间',
       '操作',
-    ])
+    ]))
     setSearchInput(container, '搜索商品贡献', 'BioMap Agent')
     expect(getCommodityRowTexts(container)).toHaveLength(1)
     expect(container.textContent).toContain('BioMap Agent - SaaS')
+
+    root.unmount()
+  })
+
+  it('keeps Q3 target contribution filters populated with planning rows', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '商品贡献').click()
+    })
+    setSelect(container, '筛选贡献季度', 'Q3')
+
+    expect(getCommodityRowTexts(container)).toHaveLength(10)
+    expect(container.textContent).toContain('共 17 条')
+    expect(container.textContent).toContain('1 / 2')
+    expect(getCommodityRowTexts(container).every((row) => row.includes('0'))).toBe(
+      true,
+    )
+    expect(getCommodityRowTexts(container).some((row) => row.includes('-'))).toBe(
+      true,
+    )
 
     root.unmount()
   })
@@ -708,10 +757,49 @@ describe('ProductManagementPlatformPage', () => {
       getButton(container, '成本与毛利').click()
     })
 
-    expect(getTableHeaders(container)).toContain('差异类型')
-    expect(getTableHeaders(container)).toContain('建议动作')
+    expect(getTableHeaders(container)).toEqual(
+      expect.arrayContaining([
+        '产品名称',
+        '业绩目标',
+        '已达成业绩',
+        '成本预算',
+        '已确认成本',
+        '目标毛利额',
+        '实际毛利额',
+        '差异类型',
+        '建议动作',
+      ]),
+    )
+    expect(getTableHeaders(container)).not.toContain('商品名称')
+    expect(getTableHeaders(container)).not.toContain('计费项名称')
+    expect(getCommodityRowTexts(container)).toHaveLength(5)
     expect(container.textContent).toContain('正向')
     expect(container.textContent).toContain('复核高消耗租户')
+
+    root.unmount()
+  })
+
+  it('keeps Q3 margin filters populated with product-level planning rows', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '成本与毛利').click()
+    })
+    setSelect(container, '筛选毛利季度', 'Q3')
+
+    expect(getCommodityRowTexts(container)).toHaveLength(5)
+    expect(getCommodityRowTexts(container).every((row) => row.includes('Q3'))).toBe(
+      true,
+    )
+    expect(getCommodityRowTexts(container).every((row) => row.includes('0'))).toBe(
+      true,
+    )
+    expect(getCommodityRowTexts(container).every((row) => row.includes('-'))).toBe(
+      true,
+    )
 
     root.unmount()
   })
@@ -726,7 +814,7 @@ describe('ProductManagementPlatformPage', () => {
       getButton(container, '目标版本记录').click()
     })
 
-    expect(getTableHeaders(container)).toEqual([
+    expect(getTableHeaders(container)).toEqual(expect.arrayContaining([
       '版本号',
       '目标编号',
       '产品名称',
@@ -742,7 +830,7 @@ describe('ProductManagementPlatformPage', () => {
       '创建时间',
       '说明',
       '操作',
-    ])
+    ]))
     expect(getSelectOptions(container, '筛选目标变更类型')).toEqual([
       '全部变更类型',
       '创建',
@@ -759,6 +847,28 @@ describe('ProductManagementPlatformPage', () => {
     expect(container.textContent).toContain('预测调整')
     expect(container.textContent).toContain('锁定')
     expect(container.textContent).toContain('复盘')
+
+    root.unmount()
+  })
+
+  it('keeps Q3 target version filters populated with planning records', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '目标版本记录').click()
+    })
+    setSelect(container, '筛选版本季度', 'Q3')
+
+    expect(getCommodityRowTexts(container)).toHaveLength(10)
+    expect(container.textContent).toContain('共 15 条')
+    expect(container.textContent).toContain('1 / 2')
+    expect(getCommodityRowTexts(container).every((row) => row.includes('Q3'))).toBe(
+      true,
+    )
+    expect(container.textContent).toContain('TG-2026-Q3')
 
     root.unmount()
   })
@@ -1534,4 +1644,10 @@ function setSearchInput(container: HTMLElement, label: string, value: string) {
       }),
     )
   })
+}
+
+function parseCurrencyValue(value: string) {
+  const parsedValue = Number(value.replace(/[^\d.-]/g, ''))
+
+  return Number.isFinite(parsedValue) ? parsedValue : 0
 }

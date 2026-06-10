@@ -11,7 +11,6 @@ import {
   type QuarterlyTargetRecord,
   type TargetCommodityContributionRecord,
   type TargetCostStructureRecord,
-  type TargetMarginVarianceRecord,
   type TargetMonthlyTrendRecord,
   type TargetOverviewRecord,
   type TargetRiskNoteRecord,
@@ -54,7 +53,10 @@ type OverviewRiskNoteRow = TargetRiskNoteRecord & {
   productName: string
 }
 
-type MarginVarianceRow = TargetMarginVarianceRecord & {
+type MarginVarianceRow = {
+  id: string
+  productId: string
+  productName: string
   year: '2026'
   quarter: TargetQuarter
   revenueTarget: string
@@ -62,9 +64,17 @@ type MarginVarianceRow = TargetMarginVarianceRecord & {
   revenueVariance: string
   costBudget: string
   confirmedCost: string
+  costVariance: string
   targetGrossProfit: string
   actualGrossProfit: string
   grossProfitVariance: string
+  targetGrossMargin: string
+  actualGrossMargin: string
+  marginVariance: string
+  varianceType: VarianceType
+  reason: string
+  suggestedAction: string
+  updatedAt: string
   riskStatus: TargetRiskStatus
 }
 
@@ -994,9 +1004,6 @@ function TargetMarginsView() {
 
         return matchesQuery(record, searchQuery, [
           'productName',
-          'commodityName',
-          'billingItemName',
-          'billingItemCode',
           'varianceType',
           'reason',
           'suggestedAction',
@@ -1092,8 +1099,10 @@ function TargetMarginsView() {
       <ManagementTable<MarginVarianceRow>
         records={pagedRecords}
         getRowKey={(record) => record.id}
-        minWidth={1780}
+        minWidth={1860}
         columns={[
+          textColumn('year', '年度', (record) => record.year),
+          textColumn('quarter', '季度', (record) => record.quarter),
           textColumn('productName', '产品名称', (record) => record.productName, true),
           textColumn('revenueTarget', '业绩目标', (record) => record.revenueTarget),
           textColumn('achievedRevenue', '已达成业绩', (record) => record.achievedRevenue),
@@ -1664,30 +1673,57 @@ function createTargetVersionDisplayRows(): TargetVersionDisplayRow[] {
 }
 
 function createMarginVarianceRows(): MarginVarianceRow[] {
-  return targetMarginVarianceRecords.map((record) => {
-    const target = getQuarterlyTarget(record.targetId)
-    const revenueTarget = parseCurrency(target?.revenueTarget ?? '0')
-    const achievedRevenue = parseCurrency(target?.achievedRevenue ?? '0')
-    const targetGrossProfit = Math.round(
-      revenueTarget * (parsePercent(record.targetGrossMargin) / 100),
-    )
-    const actualGrossProfit = Math.round(
-      achievedRevenue * (parsePercent(record.actualGrossMargin) / 100),
-    )
+  return quarterlyTargetRecords.map((target) => {
+    const revenueTarget = parseCurrency(target.revenueTarget)
+    const achievedRevenue = parseCurrency(target.achievedRevenue)
+    const costBudget = parseCurrency(target.costBudget)
+    const confirmedCost = parseCurrency(target.confirmedCost)
+    const targetGrossProfit = parseCurrency(target.targetGrossProfit)
+    const actualGrossProfit = parseCurrency(target.actualGrossProfit)
+    const targetGrossMargin = parsePercent(target.targetGrossMargin)
+    const actualGrossMargin = parsePercent(target.actualGrossMargin)
+    const isPlanningQuarter = target.quarter === 'Q3'
+    const varianceType = isPlanningQuarter
+      ? target.riskStatus === '关注'
+        ? '轻微负向'
+        : '正向'
+      : getProductVarianceType(actualGrossProfit - targetGrossProfit, targetGrossProfit)
 
     return {
-      ...record,
-      year: target?.year ?? '2026',
-      quarter: target?.quarter ?? 'Q2',
-      revenueTarget: target?.revenueTarget ?? '0',
-      achievedRevenue: target?.achievedRevenue ?? '0',
-      revenueVariance: formatSignedCurrency(achievedRevenue - revenueTarget),
-      costBudget: record.targetCost,
-      confirmedCost: record.actualCost,
-      targetGrossProfit: formatCurrency(targetGrossProfit),
-      actualGrossProfit: formatCurrency(actualGrossProfit),
-      grossProfitVariance: formatSignedCurrency(actualGrossProfit - targetGrossProfit),
-      riskStatus: getRiskStatusForVariance(record.varianceType),
+      id: `target-margin-${target.targetId}`,
+      productId: target.productId,
+      productName: target.productName,
+      year: target.year,
+      quarter: target.quarter,
+      revenueTarget: target.revenueTarget,
+      achievedRevenue: target.achievedRevenue,
+      revenueVariance: isPlanningQuarter
+        ? '-'
+        : formatSignedCurrency(achievedRevenue - revenueTarget),
+      costBudget: target.costBudget,
+      confirmedCost: target.confirmedCost,
+      costVariance: isPlanningQuarter
+        ? '-'
+        : formatSignedCurrency(confirmedCost - costBudget),
+      targetGrossProfit: target.targetGrossProfit,
+      actualGrossProfit: target.actualGrossProfit,
+      grossProfitVariance: isPlanningQuarter
+        ? '-'
+        : formatSignedCurrency(actualGrossProfit - targetGrossProfit),
+      targetGrossMargin: target.targetGrossMargin,
+      actualGrossMargin: target.actualGrossMargin,
+      marginVariance: isPlanningQuarter
+        ? '-'
+        : formatPointVariance(actualGrossMargin - targetGrossMargin),
+      varianceType,
+      reason: isPlanningQuarter
+        ? '季度尚未开始确认实际收入，当前为目标预算和销售漏斗预测。'
+        : '产品收入确认节奏与成本使用率共同影响实际毛利表现。',
+      suggestedAction: isPlanningQuarter
+        ? '锁定重点客户商机和资源预算上限'
+        : '复核高消耗租户、锁定折扣线并调整下月资源预算',
+      updatedAt: target.updatedAt,
+      riskStatus: isPlanningQuarter ? target.riskStatus : getRiskStatusForVariance(varianceType),
     }
   })
 }
@@ -1808,6 +1844,18 @@ function getContributionShare(record: TargetCommodityContributionRecord) {
   return `${Math.round((parseCurrency(record.revenueTarget) / denominator) * 100)}%`
 }
 
+function getProductVarianceType(variance: number, targetAmount: number): VarianceType {
+  if (variance >= 0) {
+    return '正向'
+  }
+
+  if (targetAmount > 0 && Math.abs(variance) / targetAmount > 0.12) {
+    return '重大负向'
+  }
+
+  return '轻微负向'
+}
+
 function getRiskStatusForVariance(varianceType: VarianceType): TargetRiskStatus {
   switch (varianceType) {
     case '正向':
@@ -1844,4 +1892,13 @@ function formatPercentValue(value: number) {
   const roundedValue = Math.round(value * 10) / 10
 
   return Number.isInteger(roundedValue) ? `${roundedValue}%` : `${roundedValue.toFixed(1)}%`
+}
+
+function formatPointVariance(value: number) {
+  const roundedValue = Math.round(Math.abs(value) * 10) / 10
+  const formattedValue = Number.isInteger(roundedValue)
+    ? String(roundedValue)
+    : roundedValue.toFixed(1)
+
+  return `${value >= 0 ? '+' : '-'}${formattedValue}pt`
 }
