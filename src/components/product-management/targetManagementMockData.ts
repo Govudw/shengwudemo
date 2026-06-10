@@ -151,7 +151,7 @@ export type TargetVersionRecord = {
   billingItemName: string
   costModelId: string
   costVersion: string
-  changeType: '目标调整' | '成本预算调整' | '商品贡献调整' | '毛利口径锁定'
+  changeType: '创建' | '目标调整' | '成本预算调整' | '预测调整' | '锁定' | '复盘'
   status: TargetVersionStatus
   impactRevenue: string
   impactCost: string
@@ -390,8 +390,8 @@ function createQuarterlyTarget(
       : `${Math.round((actualGrossProfitValue / achievedRevenueValue) * 100)}%`,
     forecastAttainmentRate: isQ3 ? `${78 + index * 3}%` : `${86 + index * 2}%`,
     riskStatus: isQ3 ? (index >= 3 ? '关注' : '正常') : index % 4 === 0 ? '关注' : '正常',
-    status: isQ3 ? '进行中' : '已完成',
-    updatedAt: isQ3 ? '2026-06-10 09:00' : '2026-06-30 20:00',
+    status: isQ3 ? '草稿' : '进行中',
+    updatedAt: isQ3 ? '2026-06-10 09:00' : '2026-06-10 18:00',
   }
 }
 
@@ -725,10 +725,12 @@ function getTargetVersionChangeType(
   index: number,
 ): TargetVersionRecord['changeType'] {
   const values: TargetVersionRecord['changeType'][] = [
+    '创建',
     '目标调整',
     '成本预算调整',
-    '商品贡献调整',
-    '毛利口径锁定',
+    '预测调整',
+    '锁定',
+    '复盘',
   ]
 
   return values[index % values.length]

@@ -605,7 +605,8 @@ describe('ProductManagementPlatformPage', () => {
     expect(container.textContent).toContain('目标毛利率')
     expect(container.textContent).toContain('实际毛利率')
     expect(container.textContent).toContain('目标状态')
-    expect(container.textContent).toContain('已完成')
+    expect(container.textContent).toContain('进行中')
+    expect(container.textContent).toContain('2026-06-10')
     expect((getButton(container, '+ 新建目标') as HTMLButtonElement).disabled).toBe(
       true,
     )
@@ -742,8 +743,19 @@ describe('ProductManagementPlatformPage', () => {
       '说明',
       '操作',
     ])
+    expect(getSelectOptions(container, '筛选目标变更类型')).toEqual([
+      '全部变更类型',
+      '创建',
+      '目标调整',
+      '成本预算调整',
+      '预测调整',
+      '锁定',
+      '复盘',
+    ])
     expect(container.textContent).toContain('已生效')
     expect(container.textContent).toContain('创建')
+    expect(container.textContent).toContain('目标调整')
+    expect(container.textContent).toContain('成本预算调整')
     expect(container.textContent).toContain('预测调整')
     expect(container.textContent).toContain('锁定')
     expect(container.textContent).toContain('复盘')
@@ -794,7 +806,7 @@ describe('ProductManagementPlatformPage', () => {
       expect(row).toContain('Q3')
       expect(row).toContain('0')
       expect(row).toContain('-')
-      expect(row).toContain('进行中')
+      expect(row).toContain('草稿')
     })
 
     root.unmount()

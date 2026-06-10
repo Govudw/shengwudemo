@@ -68,7 +68,7 @@ type MarginVarianceRow = TargetMarginVarianceRecord & {
   riskStatus: TargetRiskStatus
 }
 
-type TargetDisplayChangeType = '创建' | '预测调整' | '锁定' | '复盘'
+type TargetDisplayChangeType = TargetVersionRecord['changeType']
 
 type TargetVersionDisplayRow = TargetVersionRecord & {
   targetCode: string
@@ -105,6 +105,8 @@ const targetVersionStatuses = uniqueValues(
 )
 const targetVersionDisplayChangeTypes: TargetDisplayChangeType[] = [
   '创建',
+  '目标调整',
+  '成本预算调整',
   '预测调整',
   '锁定',
   '复盘',
@@ -1640,7 +1642,7 @@ function createOverviewRiskNoteRows(records: TargetOverviewRecord[]): OverviewRi
 }
 
 function createTargetVersionDisplayRows(): TargetVersionDisplayRow[] {
-  return targetVersionRecords.map((record, index) => {
+  return targetVersionRecords.map((record) => {
     const target = getQuarterlyTarget(record.targetId)
     const afterTarget = parseCurrency(target?.revenueTarget ?? record.impactRevenue)
     const impactRevenue = parseCurrency(record.impactRevenue)
@@ -1652,7 +1654,7 @@ function createTargetVersionDisplayRows(): TargetVersionDisplayRow[] {
       targetCode: target?.targetCode ?? '-',
       year: target?.year ?? '2026',
       quarter: target?.quarter ?? 'Q2',
-      displayChangeType: getDisplayChangeType(index),
+      displayChangeType: record.changeType,
       beforeTarget: formatCurrency(Math.max(0, afterTarget - impactRevenue)),
       afterTarget: formatCurrency(afterTarget),
       beforeGrossMargin: formatPercentValue(afterGrossMargin - impactGrossMargin),
@@ -1804,10 +1806,6 @@ function getContributionShare(record: TargetCommodityContributionRecord) {
   }
 
   return `${Math.round((parseCurrency(record.revenueTarget) / denominator) * 100)}%`
-}
-
-function getDisplayChangeType(index: number): TargetDisplayChangeType {
-  return targetVersionDisplayChangeTypes[index % targetVersionDisplayChangeTypes.length]
 }
 
 function getRiskStatusForVariance(varianceType: VarianceType): TargetRiskStatus {
