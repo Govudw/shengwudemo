@@ -4,6 +4,23 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ProductManagementPlatformPage from './ProductManagementPlatformPage'
+import {
+  costAllocationRecords,
+  costItemRecords,
+  costModelRecords,
+  costVersionRecords,
+} from './costManagementMockData'
+import {
+  targetCommodityContributionRecords,
+  targetMarginVarianceRecords,
+  targetVersionRecords,
+  quarterlyTargetRecords,
+} from './targetManagementMockData'
+import {
+  commodityRecords,
+  productPlatformTabs,
+  productRecords,
+} from './productManagementMockData'
 
 beforeEach(() => {
   ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
@@ -15,6 +32,121 @@ afterEach(() => {
 })
 
 describe('ProductManagementPlatformPage', () => {
+  it('defines product platform tabs in the product, commodity, cost, target, billing order', () => {
+    expect(productPlatformTabs.map((tab) => tab.label)).toEqual([
+      '产品管理',
+      '商品管理',
+      '成本管理',
+      '目标管理',
+      '费用中心',
+    ])
+  })
+
+  it('keeps cost and target mock data aligned with products, commodities, and virtual cell billing items', () => {
+    expect(costItemRecords.length).toBeGreaterThanOrEqual(24)
+    expect(costModelRecords.length).toBeGreaterThanOrEqual(20)
+    expect(costAllocationRecords.length).toBeGreaterThanOrEqual(12)
+    expect(costVersionRecords.length).toBeGreaterThanOrEqual(18)
+    expect(quarterlyTargetRecords.length).toBeGreaterThanOrEqual(10)
+    expect(targetCommodityContributionRecords.length).toBeGreaterThanOrEqual(17)
+    expect(targetMarginVarianceRecords.length).toBeGreaterThanOrEqual(10)
+    expect(targetVersionRecords.length).toBeGreaterThanOrEqual(15)
+
+    const productIds = new Set(productRecords.map((record) => record.id))
+    const commodityIds = new Set(commodityRecords.map((record) => record.id))
+
+    expect(new Set(costModelRecords.map((record) => record.productId))).toEqual(
+      productIds,
+    )
+    expect(
+      commodityRecords.every((commodity) =>
+        costModelRecords.some((model) => model.commodityId === commodity.id),
+      ),
+    ).toBe(true)
+    expect(
+      commodityRecords.every((commodity) =>
+        targetCommodityContributionRecords.some(
+          (contribution) => contribution.commodityId === commodity.id,
+        ),
+      ),
+    ).toBe(true)
+
+    costModelRecords.forEach((record) => {
+      expect(productIds.has(record.productId)).toBe(true)
+      expect(commodityIds.has(record.commodityId)).toBe(true)
+      expect(record.billingItemCode.length).toBeGreaterThan(0)
+      expect(record.costModelId.length).toBeGreaterThan(0)
+      expect(record.costVersion.length).toBeGreaterThan(0)
+    })
+    costVersionRecords.forEach((record) => {
+      expect(productIds.has(record.productId)).toBe(true)
+      expect(commodityIds.has(record.commodityId)).toBe(true)
+      expect(record.billingItemCode.length).toBeGreaterThan(0)
+      expect(record.costModelId.length).toBeGreaterThan(0)
+      expect(record.costVersion.length).toBeGreaterThan(0)
+    })
+
+    const targetIds = new Set(quarterlyTargetRecords.map((record) => record.targetId))
+
+    quarterlyTargetRecords
+      .filter((record) => record.quarter === 'Q3')
+      .forEach((record) => {
+        expect(['0', '-']).toContain(record.achievedRevenue)
+        expect(['0', '-']).toContain(record.attainmentRate)
+        expect(['0', '-']).toContain(record.confirmedCost)
+        expect(['0', '-']).toContain(record.costUsageRate)
+        expect(['0', '-']).toContain(record.actualGrossProfit)
+        expect(['0', '-']).toContain(record.actualGrossMargin)
+      })
+
+    targetCommodityContributionRecords.forEach((record) => {
+      expect(targetIds.has(record.targetId)).toBe(true)
+      expect(productIds.has(record.productId)).toBe(true)
+      expect(commodityIds.has(record.commodityId)).toBe(true)
+      expect(record.billingItemCode.length).toBeGreaterThan(0)
+      expect(record.costModelId.length).toBeGreaterThan(0)
+      expect(record.costVersion.length).toBeGreaterThan(0)
+    })
+    targetMarginVarianceRecords.forEach((record) => {
+      expect(targetIds.has(record.targetId)).toBe(true)
+      expect(productIds.has(record.productId)).toBe(true)
+      expect(commodityIds.has(record.commodityId)).toBe(true)
+      expect(record.billingItemCode.length).toBeGreaterThan(0)
+      expect(record.costModelId.length).toBeGreaterThan(0)
+      expect(record.costVersion.length).toBeGreaterThan(0)
+    })
+    targetVersionRecords.forEach((record) => {
+      expect(targetIds.has(record.targetId)).toBe(true)
+      expect(productIds.has(record.productId)).toBe(true)
+      expect(commodityIds.has(record.commodityId)).toBe(true)
+      expect(record.billingItemCode.length).toBeGreaterThan(0)
+      expect(record.costModelId.length).toBeGreaterThan(0)
+      expect(record.costVersion.length).toBeGreaterThan(0)
+    })
+
+    const firstThreeModelNames = costModelRecords
+      .slice(0, 3)
+      .map((record) => record.billingItemName)
+    expect(firstThreeModelNames).toEqual([
+      '虚拟细胞积分资源包-10000',
+      '虚拟细胞积分资源包-50000',
+      '虚拟细胞积分资源包-100000',
+    ])
+
+    const virtualCellSaasModels = costModelRecords.filter(
+      (record) => record.commodityId === 'commodity-virtual-cell-saas',
+    )
+    expect(virtualCellSaasModels.map((record) => record.billingItemCode)).toEqual([
+      'VCELL-COMM-001-BI-001',
+      'VCELL-COMM-001-BI-002',
+      'VCELL-COMM-001-BI-003',
+      'VCELL-COMM-001-BI-004',
+      'VCELL-COMM-001-BI-005',
+      'VCELL-COMM-001-BI-006',
+      'VCELL-COMM-001-BI-007',
+    ])
+  })
+
   it('renders the product platform shell with 产品管理 selected by default', () => {
     const { container, root } = renderProductManagementPlatformPage()
 

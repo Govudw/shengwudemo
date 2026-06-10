@@ -1,4 +1,9 @@
-export type ProductPlatformTab = 'product' | 'commodity' | 'cost' | 'billing'
+export type ProductPlatformTab =
+  | 'product'
+  | 'commodity'
+  | 'cost'
+  | 'target'
+  | 'billing'
 export type CommodityStatus = '未发布' | '已发布' | '下架中' | '下架'
 export type CommodityFilter = 'all'
 export type ProductStage = '待发布' | 'Alpha' | 'Beta' | 'GA'
@@ -163,6 +168,7 @@ export const productPlatformTabs: { id: ProductPlatformTab; label: string }[] = 
   { id: 'product', label: '产品管理' },
   { id: 'commodity', label: '商品管理' },
   { id: 'cost', label: '成本管理' },
+  { id: 'target', label: '目标管理' },
   { id: 'billing', label: '费用中心' },
 ]
 
