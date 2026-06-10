@@ -1,4 +1,4 @@
-export type ProductPlatformTab = 'product' | 'commodity' | 'cost'
+export type ProductPlatformTab = 'product' | 'commodity' | 'cost' | 'billing'
 export type CommodityStatus = '未发布' | '已发布' | '下架中' | '下架'
 export type CommodityFilter = 'all'
 export type ProductStage = '待发布' | 'Alpha' | 'Beta' | 'GA'
@@ -17,6 +17,9 @@ export type BillingItemType =
   | '交付实施'
 export type PaymentType = '预付费' | '后付费'
 export type BillingChargeType = '资源包' | '包月'
+export type BillingInstanceType = BillingChargeType
+export type BillingSection = 'instances' | 'bills'
+export type BillingCycle = '小时' | '天' | '月'
 export type BillingItemStatus = '启用' | '停用'
 export type VersionStatus = '草稿' | '已发布' | '已失效'
 
@@ -39,6 +42,30 @@ export type ProductRecord = {
   stage: ProductStage
   externalVisible: ExternalVisible
   updatedAt: string
+  createdAt: string
+}
+
+export type BillingInstanceRecord = {
+  id: string
+  mainAccountId: string
+  customerName: string
+  billingItemName: string
+  billingItemCode: string
+  billingItemType: BillingInstanceType
+  startTime: string
+  endTime: string
+}
+
+export type BillRecord = {
+  id: string
+  mainAccountId: string
+  customerName: string
+  billingItemName: string
+  billingItemCode: string
+  billingItemType: BillingInstanceType
+  periodStart: string
+  periodEnd: string
+  cycle: BillingCycle
   createdAt: string
 }
 
@@ -136,6 +163,7 @@ export const productPlatformTabs: { id: ProductPlatformTab; label: string }[] = 
   { id: 'product', label: '产品管理' },
   { id: 'commodity', label: '商品管理' },
   { id: 'cost', label: '成本管理' },
+  { id: 'billing', label: '费用中心' },
 ]
 
 export const productDetailTabs: { id: ProductDetailTab; label: string }[] = [
@@ -151,6 +179,8 @@ export const commodityDetailTabs: { id: CommodityDetailTab; label: string }[] = 
 ]
 
 export const commodityPageSize = 10
+
+export const billPageSize = 10
 
 export const productStages: ProductStage[] = ['待发布', 'Alpha', 'Beta', 'GA']
 
@@ -182,6 +212,10 @@ export const billingItemTypes: BillingItemType[] = [
 ]
 
 export const paymentTypes: PaymentType[] = ['预付费', '后付费']
+
+export const billingInstanceTypes: BillingInstanceType[] = ['资源包', '包月']
+
+export const billingCycles: BillingCycle[] = ['小时', '天', '月']
 
 export const productRecords: ProductRecord[] = [
   {
@@ -408,6 +442,157 @@ export const commodityRecords: CommodityRecord[] = [
     status: '已发布',
   },
 ]
+
+export const billingInstanceRecords: BillingInstanceRecord[] = [
+  {
+    id: 'BI202606010001AA',
+    mainAccountId: 'tenant_test_001',
+    customerName: '测试客户',
+    billingItemName: '虚拟细胞积分资源包-10000',
+    billingItemCode: 'VCELL-COMM-001-BI-001',
+    billingItemType: '资源包',
+    startTime: '2026-06-01 00:00',
+    endTime: '2026-06-30 23:59',
+  },
+  {
+    id: 'BI202606020002AA',
+    mainAccountId: 'tenant_test_001',
+    customerName: '测试客户',
+    billingItemName: '虚拟细胞积分资源包-50000',
+    billingItemCode: 'VCELL-COMM-001-BI-002',
+    billingItemType: '资源包',
+    startTime: '2026-06-02 00:00',
+    endTime: '2026-07-01 23:59',
+  },
+  {
+    id: 'BI202606030003AA',
+    mainAccountId: 'tenant_test_001',
+    customerName: '测试客户',
+    billingItemName: '虚拟细胞平台基础订阅',
+    billingItemCode: 'VCELL-COMM-001-BI-004',
+    billingItemType: '包月',
+    startTime: '2026-06-03 00:00',
+    endTime: '2026-07-02 23:59',
+  },
+  {
+    id: 'BI202606040004AA',
+    mainAccountId: 'tenant_test_001',
+    customerName: '测试客户',
+    billingItemName: '虚拟细胞积分资源包-100000',
+    billingItemCode: 'VCELL-COMM-001-BI-003',
+    billingItemType: '资源包',
+    startTime: '2026-06-04 00:00',
+    endTime: '2026-07-03 23:59',
+  },
+  {
+    id: 'BI202606050005AA',
+    mainAccountId: 'tenant_test_001',
+    customerName: '测试客户',
+    billingItemName: '工作空间席位',
+    billingItemCode: 'VCELL-COMM-001-BI-005',
+    billingItemType: '包月',
+    startTime: '2026-06-05 00:00',
+    endTime: '2026-07-04 23:59',
+  },
+]
+
+const resourceBillItems = [
+  {
+    billingItemName: '虚拟细胞积分资源包-10000',
+    billingItemCode: 'VCELL-COMM-001-BI-001',
+    billingItemType: '资源包' as const,
+  },
+  {
+    billingItemName: '虚拟细胞积分资源包-50000',
+    billingItemCode: 'VCELL-COMM-001-BI-002',
+    billingItemType: '资源包' as const,
+  },
+  {
+    billingItemName: '虚拟细胞积分资源包-100000',
+    billingItemCode: 'VCELL-COMM-001-BI-003',
+    billingItemType: '资源包' as const,
+  },
+  {
+    billingItemName: '模型推理调用量',
+    billingItemCode: 'VCELL-COMM-001-BI-006',
+    billingItemType: '资源包' as const,
+  },
+  {
+    billingItemName: '高性能计算资源包',
+    billingItemCode: 'VCELL-COMM-001-BI-007',
+    billingItemType: '资源包' as const,
+  },
+]
+
+const monthlyBillItems = [
+  {
+    billingItemName: '虚拟细胞平台基础订阅',
+    billingItemCode: 'VCELL-COMM-001-BI-004',
+    billingItemType: '包月' as const,
+  },
+  {
+    billingItemName: '工作空间席位',
+    billingItemCode: 'VCELL-COMM-001-BI-005',
+    billingItemType: '包月' as const,
+  },
+]
+
+function getBillCycle(sequence: number): BillingCycle {
+  if (sequence % 3 === 1) {
+    return '天'
+  }
+
+  if (sequence % 3 === 2) {
+    return '小时'
+  }
+
+  return '月'
+}
+
+function padNumber(value: number, length: number) {
+  return String(value).padStart(length, '0')
+}
+
+function createBillRecord(sequence: number): BillRecord {
+  const day = padNumber(sequence, 2)
+  const cycle = getBillCycle(sequence)
+  const hour = padNumber(8 + (sequence % 10), 2)
+  const item =
+    cycle === '月'
+      ? monthlyBillItems[(sequence / 3 - 1) % monthlyBillItems.length]
+      : resourceBillItems[(sequence - 1) % resourceBillItems.length]
+  const periodStart =
+    cycle === '小时'
+      ? `2026-06-${day} ${hour}:00`
+      : `2026-06-${day} 00:00`
+  const periodEnd =
+    cycle === '月'
+      ? `2026-07-${day} 23:59`
+      : cycle === '小时'
+        ? `2026-06-${day} ${hour}:59`
+        : `2026-06-${day} 23:59`
+  const createdAt =
+    cycle === '小时'
+      ? `2026-06-${day} ${padNumber(9 + (sequence % 10), 2)}:05`
+      : cycle === '月'
+        ? `2026-06-${day} 00:20`
+        : `2026-06-${day} 23:58`
+
+  return {
+    id: `BILL202606${day}${padNumber(sequence, 4)}`,
+    mainAccountId: 'tenant_test_001',
+    customerName: '测试客户',
+    ...item,
+    periodStart,
+    periodEnd,
+    cycle,
+    createdAt,
+  }
+}
+
+export const billRecords: BillRecord[] = Array.from({ length: 30 }, (_, index) =>
+  createBillRecord(index + 1),
+)
 
 const productCodeByType: Record<ProductType, string> = {
   虚拟细胞: 'VCELL',

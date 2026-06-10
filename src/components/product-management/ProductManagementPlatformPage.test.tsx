@@ -155,6 +155,205 @@ describe('ProductManagementPlatformPage', () => {
     root.unmount()
   })
 
+  it('renders the billing center tab with instance and bill navigation', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '费用中心').click()
+    })
+
+    expect(getTabButton(container, '费用中心').getAttribute('aria-selected')).toBe(
+      'true',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '实例管理',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '账单管理',
+    )
+    expect(getButton(container, '实例管理').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(container.textContent).not.toContain('+ 新建产品')
+    expect(container.textContent).not.toContain('+ 新建商品')
+
+    root.unmount()
+  })
+
+  it('renders billing instances with filters, search, and disabled actions', () => {
+    const onNotify = vi.fn()
+    const { container, root } = renderProductManagementPlatformPage({ onNotify })
+
+    act(() => {
+      getTabButton(container, '费用中心').click()
+    })
+
+    expect(getTableHeaders(container)).toEqual([
+      '实例id',
+      '主账号',
+      '客户名称',
+      '计费项名称',
+      '计费项编号',
+      '计费项类型',
+      '起始时间',
+      '结束时间',
+      '操作',
+    ])
+    expect(getCommodityRowTexts(container)).toHaveLength(5)
+    expect(container.textContent).toContain('测试客户')
+    expect(container.textContent).toContain('资源包')
+    expect(container.textContent).toContain('包月')
+    expect(container.textContent).toContain('BI202606010001AA')
+    expect(container.textContent).toContain('虚拟细胞积分资源包-10000')
+    expect(container.textContent).toContain('VCELL-COMM-001-BI-001')
+    expect(container.textContent).not.toContain('==')
+    expect(getSelectOptions(container, '筛选实例主账号')).toEqual([
+      '全部主账号',
+      'tenant_test_001',
+    ])
+    expect(getSelectOptions(container, '筛选客户名称')).toEqual([
+      '全部客户',
+      '测试客户',
+    ])
+    expect(getSelectOptions(container, '筛选计费项类型')).toEqual([
+      '全部计费项类型',
+      '资源包',
+      '包月',
+    ])
+
+    setSelect(container, '筛选计费项类型', '包月')
+    expect(getCommodityRowTexts(container)).toHaveLength(2)
+    expect(getCommodityRowTexts(container).every((text) => text.includes('包月'))).toBe(
+      true,
+    )
+    expect(container.textContent).not.toContain('BI202606010001AA')
+
+    setSelect(container, '筛选计费项类型', 'all')
+    setSearchInput(container, '搜索实例', 'BI202606030003AA')
+    expect(getCommodityRowTexts(container)).toHaveLength(1)
+    expect(container.textContent).toContain('BI202606030003AA')
+
+    setSearchInput(container, '搜索实例', '')
+    setSearchInput(container, '筛选实例起始日期', '2026-06-03')
+    expect(getCommodityRowTexts(container)).toHaveLength(3)
+    expect(container.textContent).not.toContain('BI202606010001AA')
+
+    act(() => {
+      getButton(container, '+ 创建实例').click()
+    })
+    expect(onNotify).toHaveBeenCalledWith('创建实例暂未接入')
+
+    act(() => {
+      getButtons(container, '查看')[0].click()
+    })
+    expect(onNotify).toHaveBeenCalledWith(
+      expect.stringContaining('查看实例暂未接入'),
+    )
+
+    root.unmount()
+  })
+
+  it('renders billing records with filters, search, and disabled actions', () => {
+    const onNotify = vi.fn()
+    const { container, root } = renderProductManagementPlatformPage({ onNotify })
+
+    act(() => {
+      getTabButton(container, '费用中心').click()
+    })
+    act(() => {
+      getButton(container, '账单管理').click()
+    })
+
+    expect(getButton(container, '账单管理').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(getTableHeaders(container)).toEqual([
+      '账单id',
+      '主账号',
+      '客户名称',
+      '计费项名称',
+      '计费项编号',
+      '计费项类型',
+      '计费时间段',
+      '计费周期',
+      '账单创建时间',
+      '操作',
+    ])
+    expect(getCommodityRowTexts(container)).toHaveLength(10)
+    expect(container.textContent).toContain('共 30 条')
+    expect(container.textContent).toContain('1 / 3')
+    expect(container.textContent).toContain('BILL202606010001')
+    expect(container.textContent).toContain(
+      '2026-06-01 00:00 ~ 2026-06-01 23:59',
+    )
+    expect(container.textContent).not.toContain('BILL202606110011')
+    expect(container.textContent).toContain('虚拟细胞积分资源包-10000')
+    expect(container.textContent).toContain('VCELL-COMM-001-BI-001')
+    expect(container.textContent).toContain('小时')
+    expect(container.textContent).toContain('天')
+    expect(container.textContent).toContain('月')
+    expect(getSelectOptions(container, '筛选账单主账号')).toEqual([
+      '全部主账号',
+      'tenant_test_001',
+    ])
+    expect(getSelectOptions(container, '筛选账单客户名称')).toEqual([
+      '全部客户',
+      '测试客户',
+    ])
+    expect(getSelectOptions(container, '筛选账单计费项类型')).toEqual([
+      '全部计费项类型',
+      '资源包',
+      '包月',
+    ])
+    expect(getSelectOptions(container, '筛选计费周期')).toEqual([
+      '全部周期',
+      '小时',
+      '天',
+      '月',
+    ])
+
+    act(() => {
+      getButton(container, '下一页').click()
+    })
+    expect(getCommodityRowTexts(container)).toHaveLength(10)
+    expect(container.textContent).toContain('2 / 3')
+    expect(container.textContent).toContain('BILL202606110011')
+    expect(container.textContent).not.toContain('BILL202606010001')
+
+    setSelect(container, '筛选计费周期', '月')
+    expect(getCommodityRowTexts(container)).toHaveLength(10)
+    expect(container.textContent).toContain('1 / 1')
+    expect(container.textContent).toContain('共 10 条')
+    expect(getCommodityRowTexts(container).every((text) => text.includes('月'))).toBe(
+      true,
+    )
+
+    setSelect(container, '筛选计费周期', 'all')
+    setSearchInput(container, '搜索账单', 'BILL202606050005')
+    expect(getCommodityRowTexts(container)).toHaveLength(1)
+    expect(container.textContent).toContain('BILL202606050005')
+
+    setSearchInput(container, '搜索账单', '')
+    setSearchInput(container, '筛选账单开始日期', '2026-06-03')
+    expect(getCommodityRowTexts(container)).toHaveLength(10)
+    expect(container.textContent).toContain('共 28 条')
+    expect(container.textContent).not.toContain('BILL202606010001')
+
+    act(() => {
+      getButton(container, '+ 新增账单').click()
+    })
+    expect(onNotify).toHaveBeenCalledWith('新增账单暂未接入')
+
+    act(() => {
+      getButtons(container, '查看')[0].click()
+    })
+    expect(onNotify).toHaveBeenCalledWith(
+      expect.stringContaining('查看账单暂未接入'),
+    )
+
+    root.unmount()
+  })
+
   it('renders commodity sidebar menu and keeps 权限申请 disabled', () => {
     const { container, root } = renderProductManagementPlatformPage()
 
