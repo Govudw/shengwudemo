@@ -804,6 +804,37 @@ describe('ProductManagementPlatformPage', () => {
     root.unmount()
   })
 
+  it('offers complete margin variance type filters and keeps Q3 mild-negative rows visible', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '成本与毛利').click()
+    })
+
+    expect(getSelectOptions(container, '筛选差异类型')).toEqual([
+      '全部差异类型',
+      '正向',
+      '轻微负向',
+      '重大负向',
+    ])
+
+    setSelect(container, '筛选毛利季度', 'Q3')
+    setSelect(container, '筛选差异类型', '轻微负向')
+
+    expect(getCommodityRowTexts(container).length).toBeGreaterThan(0)
+    expect(getCommodityRowTexts(container).every((row) => row.includes('Q3'))).toBe(
+      true,
+    )
+    expect(
+      getCommodityRowTexts(container).every((row) => row.includes('轻微负向')),
+    ).toBe(true)
+
+    root.unmount()
+  })
+
   it('renders target version records with statuses and change types', () => {
     const { container, root } = renderProductManagementPlatformPage()
 

@@ -4,7 +4,6 @@ import {
   getTargetDetail,
   quarterlyTargetRecords,
   targetCommodityContributionRecords,
-  targetMarginVarianceRecords,
   targetOverviewRecords,
   targetRiskStatuses,
   targetVersionRecords,
@@ -121,9 +120,7 @@ const targetVersionDisplayChangeTypes: TargetDisplayChangeType[] = [
   '锁定',
   '复盘',
 ]
-const targetVarianceTypes = uniqueValues(
-  targetMarginVarianceRecords.map((record) => record.varianceType),
-)
+const targetVarianceTypes: VarianceType[] = ['正向', '轻微负向', '重大负向']
 
 export function TargetManagementView({ activeSection }: TargetManagementViewProps) {
   return (
