@@ -1,5 +1,17 @@
-import { commodityRecords, productRecords } from './productManagementMockData'
-import { costModelRecords, type CostModelRecord } from './costManagementMockData'
+import {
+  commodityRecords,
+  getCommodityDetail,
+  productRecords,
+  type BillingItemRecord,
+  type CommodityRecord,
+  type ProductType,
+} from './productManagementMockData'
+import {
+  costModelRecords,
+  costSubjects,
+  type CostModelRecord,
+  type CostSubject,
+} from './costManagementMockData'
 
 export type TargetSection =
   | 'overview'
@@ -62,6 +74,9 @@ export type TargetRiskNoteRecord = {
 export type TargetDetailRecord = {
   targetId: string
   monthlyTrends: TargetMonthlyTrendRecord[]
+  commodityContributions: TargetCommodityContributionRecord[]
+  costStructure: TargetCostStructureRecord[]
+  versions: TargetVersionRecord[]
   riskNotes: TargetRiskNoteRecord[]
 }
 
@@ -83,6 +98,21 @@ export type TargetCommodityContributionRecord = {
   confirmedCost: string
   grossMargin: string
   riskStatus: TargetRiskStatus
+  updatedAt: string
+}
+
+export type TargetCostStructureRecord = {
+  id: string
+  targetId: string
+  productId: string
+  productName: string
+  costSubject: CostSubject
+  targetCost: string
+  confirmedCost: string
+  usageRate: string
+  allocationBasis: string
+  riskStatus: TargetRiskStatus
+  owner: string
   updatedAt: string
 }
 
@@ -155,6 +185,9 @@ export const targetDetailsById: Record<string, TargetDetailRecord> =
       {
         targetId: target.targetId,
         monthlyTrends: createMonthlyTrends(target),
+        commodityContributions: createDetailCommodityContributions(target),
+        costStructure: createTargetCostStructure(target),
+        versions: createDetailTargetVersions(target),
         riskNotes: createRiskNotes(target),
       },
     ]),
@@ -366,6 +399,247 @@ function createRiskNotes(target: QuarterlyTargetRecord): TargetRiskNoteRecord[] 
       updatedAt: target.updatedAt,
     },
   ]
+}
+
+type DetailContributionInput = {
+  commodity: CommodityRecord
+  billingItem: BillingItemRecord
+  model: CostModelRecord
+}
+
+function createDetailCommodityContributions(
+  target: QuarterlyTargetRecord,
+): TargetCommodityContributionRecord[] {
+  return getDetailContributionInputs(target).map((input, index) =>
+    createDetailCommodityContribution(target, input, index),
+  )
+}
+
+function createDetailCommodityContribution(
+  target: QuarterlyTargetRecord,
+  input: DetailContributionInput,
+  index: number,
+): TargetCommodityContributionRecord {
+  const targetSequence = getTargetSequence(target)
+  const revenueTarget = 160000 + targetSequence * 18000 + index * 32000
+  const achievedRevenue =
+    target.quarter === 'Q3'
+      ? 0
+      : Math.round(revenueTarget * (0.54 + (index % 4) * 0.07))
+  const confirmedCost =
+    target.quarter === 'Q3'
+      ? 0
+      : Math.round(achievedRevenue * (0.3 + (index % 4) * 0.03))
+
+  return {
+    id: `${target.targetId}-contribution-${String(index + 1).padStart(3, '0')}`,
+    targetId: target.targetId,
+    productId: target.productId,
+    productName: target.productName,
+    commodityId: input.commodity.id,
+    commodityName: input.commodity.name,
+    billingItemCode: input.billingItem.code,
+    billingItemName: input.billingItem.name,
+    costModelId: input.model.costModelId,
+    costVersion: input.model.costVersion,
+    revenueTarget: formatCurrency(revenueTarget),
+    achievedRevenue: target.quarter === 'Q3' ? '0' : formatCurrency(achievedRevenue),
+    contributionRate:
+      target.quarter === 'Q3'
+        ? '0'
+        : `${Math.round((achievedRevenue / revenueTarget) * 100)}%`,
+    costBudget: formatCurrency(Math.round(revenueTarget * 0.36)),
+    confirmedCost: target.quarter === 'Q3' ? '0' : formatCurrency(confirmedCost),
+    grossMargin:
+      target.quarter === 'Q3'
+        ? '-'
+        : `${Math.round(((achievedRevenue - confirmedCost) / achievedRevenue) * 100)}%`,
+    riskStatus: getDetailRiskStatus(target, index),
+    updatedAt: target.updatedAt,
+  }
+}
+
+function createTargetCostStructure(
+  target: QuarterlyTargetRecord,
+): TargetCostStructureRecord[] {
+  const targetSequence = getTargetSequence(target)
+
+  return costSubjects.map((costSubject, index) => {
+    const targetCost = 58000 + targetSequence * 9000 + index * 24000
+    const confirmedCost =
+      target.quarter === 'Q3'
+        ? 0
+        : Math.round(targetCost * (0.5 + (index % 4) * 0.06))
+
+    return {
+      id: `${target.targetId}-cost-structure-${String(index + 1).padStart(3, '0')}`,
+      targetId: target.targetId,
+      productId: target.productId,
+      productName: target.productName,
+      costSubject,
+      targetCost: formatCurrency(targetCost),
+      confirmedCost: target.quarter === 'Q3' ? '0' : formatCurrency(confirmedCost),
+      usageRate:
+        target.quarter === 'Q3'
+          ? '0'
+          : `${Math.round((confirmedCost / targetCost) * 100)}%`,
+      allocationBasis: getCostStructureBasis(costSubject),
+      riskStatus: getDetailRiskStatus(target, index),
+      owner: target.productOwner,
+      updatedAt: target.updatedAt,
+    }
+  })
+}
+
+function createDetailTargetVersions(
+  target: QuarterlyTargetRecord,
+): TargetVersionRecord[] {
+  const contributionInputs = getDetailContributionInputs(target)
+  const targetSequence = getTargetSequence(target)
+
+  return Array.from({ length: 3 }, (_, index) => {
+    const input = contributionInputs[index % contributionInputs.length]
+
+    return {
+      targetVersion: `TV-2026${target.quarter}-${target.productId}-${String(index + 1).padStart(3, '0')}`,
+      targetId: target.targetId,
+      productId: target.productId,
+      productName: target.productName,
+      commodityId: input.commodity.id,
+      commodityName: input.commodity.name,
+      billingItemCode: input.billingItem.code,
+      billingItemName: input.billingItem.name,
+      costModelId: input.model.costModelId,
+      costVersion: input.model.costVersion,
+      changeType: getTargetVersionChangeType(targetSequence + index),
+      status: getDetailVersionStatus(target, index),
+      impactRevenue: formatCurrency(52000 + targetSequence * 6000 + index * 14000),
+      impactCost: formatCurrency(9000 + targetSequence * 2400 + index * 5200),
+      impactGrossMargin: `${index === 1 ? '-' : '+'}${(0.8 + index * 0.4).toFixed(1)}pt`,
+      effectiveAt: target.quarter === 'Q3' ? '2026-07-01 00:00' : '2026-06-01 00:00',
+      creator: target.productOwner,
+      createdAt: `2026-06-${String(6 + targetSequence + index).padStart(2, '0')} 11:00`,
+      description: `${target.productName} ${target.quarter} 目标详情、商品贡献与成本结构版本更新。`,
+    }
+  })
+}
+
+function getDetailContributionInputs(
+  target: QuarterlyTargetRecord,
+): DetailContributionInput[] {
+  const primaryInputs = getCommoditiesForTarget(target).map((commodity) => {
+    const billingItem = getCommodityDetail(commodity.id)?.billingItems[0]
+
+    if (!billingItem) {
+      return null
+    }
+
+    return createDetailContributionInput(commodity, billingItem)
+  })
+  const extraInputs = getCommoditiesForTarget(target).flatMap((commodity) =>
+    (getCommodityDetail(commodity.id)?.billingItems ?? [])
+      .slice(1)
+      .map((billingItem) => createDetailContributionInput(commodity, billingItem)),
+  )
+  const inputs = primaryInputs.filter(
+    (input): input is DetailContributionInput => input !== null,
+  )
+
+  for (const input of extraInputs) {
+    if (inputs.length >= 3) {
+      break
+    }
+
+    inputs.push(input)
+  }
+
+  if (inputs.length === 0) {
+    throw new Error(`Commodity contribution inputs not found for ${target.targetId}`)
+  }
+
+  while (inputs.length < 3) {
+    inputs.push(inputs[inputs.length % inputs.length])
+  }
+
+  return inputs
+}
+
+function createDetailContributionInput(
+  commodity: CommodityRecord,
+  billingItem: BillingItemRecord,
+): DetailContributionInput {
+  const model =
+    costModelRecords.find((record) => record.billingItemCode === billingItem.code) ??
+    getPrimaryModelForCommodity(commodity.id)
+
+  return { commodity, billingItem, model }
+}
+
+function getCommoditiesForTarget(target: QuarterlyTargetRecord) {
+  const productType = getProductTypeForTarget(target)
+
+  return commodityRecords.filter((record) => record.productType === productType)
+}
+
+function getProductTypeForTarget(target: QuarterlyTargetRecord): ProductType {
+  const product = productRecords.find((record) => record.id === target.productId)
+
+  if (!product) {
+    throw new Error(`Product not found for target ${target.targetId}`)
+  }
+
+  return product.name === 'BioMap Agent' ? '通用产品' : (product.name as ProductType)
+}
+
+function getTargetSequence(target: QuarterlyTargetRecord) {
+  const index = quarterlyTargetRecords.findIndex(
+    (record) => record.targetId === target.targetId,
+  )
+
+  return index >= 0 ? index : 0
+}
+
+function getDetailRiskStatus(
+  target: QuarterlyTargetRecord,
+  index: number,
+): TargetRiskStatus {
+  if (target.riskStatus === '风险' || index % 5 === 0) {
+    return target.riskStatus
+  }
+
+  return index % 3 === 0 ? '关注' : '正常'
+}
+
+function getDetailVersionStatus(
+  target: QuarterlyTargetRecord,
+  index: number,
+): TargetVersionStatus {
+  if (index === 0) {
+    return '已生效'
+  }
+
+  if (index === 1) {
+    return '已归档'
+  }
+
+  return target.quarter === 'Q3' ? '草稿' : '已生效'
+}
+
+function getCostStructureBasis(costSubject: CostSubject) {
+  switch (costSubject) {
+    case '资源成本':
+      return '按计费项用量和资源包消耗归集'
+    case '人力成本':
+      return '按售前、方案和客户成功人天归集'
+    case '交付成本':
+      return '按项目实施、验收和培训工作包归集'
+    case '运维成本':
+      return '按环境运行、监控审计和版本升级归集'
+    case '第三方成本':
+      return '按外部数据、知识库和供应商报价归集'
+    case '共享成本':
+      return '按季度共享池分摊规则归集'
+  }
 }
 
 function getPrimaryModelForCommodity(commodityId: string): CostModelRecord {

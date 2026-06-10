@@ -8,10 +8,12 @@ import {
   costAllocationRecords,
   costItemRecords,
   costModelRecords,
+  costSubjects,
   costVersionRecords,
 } from './costManagementMockData'
 import {
   targetCommodityContributionRecords,
+  targetDetailsById,
   targetMarginVarianceRecords,
   targetVersionRecords,
   quarterlyTargetRecords,
@@ -145,6 +147,62 @@ describe('ProductManagementPlatformPage', () => {
       'VCELL-COMM-001-BI-006',
       'VCELL-COMM-001-BI-007',
     ])
+  })
+
+  it('keeps target detail mock data complete for drill-down sections', () => {
+    expect(Object.keys(targetDetailsById).sort()).toEqual(
+      quarterlyTargetRecords.map((record) => record.targetId).sort(),
+    )
+    expect(costSubjects).toHaveLength(6)
+
+    Object.values(targetDetailsById).forEach((detail) => {
+      const monthlyTrends = readDetailArray(detail, 'monthlyTrends')
+      const commodityContributions = readDetailArray(
+        detail,
+        'commodityContributions',
+      )
+      const costStructure = readDetailArray(detail, 'costStructure')
+      const versions = readDetailArray(detail, 'versions')
+      const riskNotes = readDetailArray(detail, 'riskNotes')
+
+      expect(monthlyTrends.length).toBeGreaterThanOrEqual(3)
+      expect(commodityContributions.length).toBeGreaterThanOrEqual(3)
+      expect(costStructure).toHaveLength(6)
+      expect(versions.length).toBeGreaterThanOrEqual(3)
+      expect(riskNotes.length).toBeGreaterThanOrEqual(1)
+      expectRowsTargetId(monthlyTrends, detail.targetId)
+      expectRowsTargetId(commodityContributions, detail.targetId)
+      expectRowsTargetId(costStructure, detail.targetId)
+      expectRowsTargetId(versions, detail.targetId)
+      expectRowsTargetId(riskNotes, detail.targetId)
+      expect(
+        new Set(
+          costStructure.map(
+            (record) => (record as { costSubject?: unknown }).costSubject,
+          ),
+        ),
+      ).toEqual(new Set(costSubjects))
+    })
+
+    const virtualCellQ2Target = quarterlyTargetRecords.find(
+      (record) => record.productName === '虚拟细胞' && record.quarter === 'Q2',
+    )
+    expect(virtualCellQ2Target).toBeDefined()
+
+    const virtualCellCommodityIds = commodityRecords
+      .filter((record) => record.productType === '虚拟细胞')
+      .map((record) => record.id)
+    const contributionIds = new Set(
+      readDetailArray(
+        targetDetailsById[virtualCellQ2Target!.targetId],
+        'commodityContributions',
+      ).map((record) => (record as { commodityId?: string }).commodityId),
+    )
+
+    expect(virtualCellCommodityIds).toHaveLength(5)
+    virtualCellCommodityIds.forEach((commodityId) => {
+      expect(contributionIds.has(commodityId)).toBe(true)
+    })
   })
 
   it('renders the product platform shell with 产品管理 selected by default', () => {
@@ -942,6 +1000,21 @@ function getFirstCellText(rowText: string) {
   }
 
   return match
+}
+
+function readDetailArray(record: unknown, key: string) {
+  expect(record).toHaveProperty(key)
+
+  const value = (record as Record<string, unknown>)[key]
+  expect(Array.isArray(value)).toBe(true)
+
+  return value as unknown[]
+}
+
+function expectRowsTargetId(records: unknown[], targetId: string) {
+  records.forEach((record) => {
+    expect((record as { targetId?: unknown }).targetId).toBe(targetId)
+  })
 }
 
 function getSelectOptions(container: HTMLElement, label: string) {
