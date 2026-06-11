@@ -21,11 +21,17 @@ import type {
   AssetsSection,
   DemoProject,
 } from './store/demoStoreLogic'
+import {
+  findThreadByRouteId,
+  isThreadRouteId,
+} from './store/demoStoreLogic'
 
 const productManagementPlatformPath = '/product-management-platform'
 const productManagementProductPathPrefix = `${productManagementPlatformPath}/products/`
 const productManagementCommodityListPath = `${productManagementPlatformPath}/commodities`
 const productManagementCommodityPathPrefix = `${productManagementCommodityListPath}/`
+const threadPathPattern = /^\/c\/([a-z0-9]{16})\/?$/
+const legacyThreadPathPattern = /^\/([a-z0-9]{16})\/?$/
 
 function App() {
   const [pathname, setPathname] = useState(() => window.location.pathname)
@@ -35,6 +41,7 @@ function App() {
   const [activeCapabilityTag, setActiveCapabilityTag] =
     useState<CapabilityChip | null>(null)
   const composerTextAreaRef = useRef<HTMLTextAreaElement>(null)
+  const skipNextRootRouteSyncRef = useRef(false)
   const projects = useDemoStore((state) => state.projects)
   const selectedProjectId = useDemoStore((state) => state.selectedProjectId)
   const selectedThreadId = useDemoStore((state) => state.selectedThreadId)
@@ -119,12 +126,61 @@ function App() {
     }
   }, [clearStatus, statusMessage])
 
+  useEffect(() => {
+    if (isProductManagementRoute(pathname)) {
+      return
+    }
+
+    if (pathname === '/') {
+      if (skipNextRootRouteSyncRef.current) {
+        skipNextRootRouteSyncRef.current = false
+        return
+      }
+
+      startNewThread()
+      selectTopNav('Workspace')
+      return
+    }
+
+    const routeId = getThreadRouteId(pathname)
+
+    if (!routeId) {
+      return
+    }
+
+    const entry = findThreadByRouteId(projects, routeId)
+
+    if (entry) {
+      selectThread(entry.project.id, entry.thread.id)
+      selectTopNav('Workspace')
+      return
+    }
+
+    startNewThread()
+    selectTopNav('Workspace')
+    showStatus('Thread 不存在或已被删除')
+
+    if (window.location.pathname !== '/') {
+      window.history.replaceState(null, '', '/')
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    }
+  }, [
+    pathname,
+    projects,
+    selectThread,
+    selectTopNav,
+    showStatus,
+    startNewThread,
+  ])
+
   function handleNewThread() {
     startNewThread()
+    navigateToPath('/')
   }
 
   function handleSelectThread(projectId: string, threadId: string) {
     selectThread(projectId, threadId)
+    navigateToThreadPath(threadId)
   }
 
   function handlePromptSelect(prompt: string) {
@@ -150,7 +206,17 @@ function App() {
   }
 
   function handleSubmit() {
+    const wasDraftingNewThread = isDraftingNewThread
     submitDraft()
+
+    if (wasDraftingNewThread) {
+      const state = useDemoStore.getState()
+      const entry = getSelectedThreadEntry(state.projects, state.selectedThreadId)
+
+      if (entry) {
+        navigateToPath(getThreadPath(entry.thread.routeId))
+      }
+    }
   }
 
   function handleStartProjectThread(projectId: string) {
@@ -162,6 +228,7 @@ function App() {
   function handleOpenProjectThread(projectId: string, threadId: string) {
     selectThread(projectId, threadId)
     selectTopNav('Workspace')
+    navigateToThreadPath(threadId)
   }
 
   function handleOpenProjectAssets(
@@ -182,13 +249,55 @@ function App() {
     setPathname(path)
   }
 
+  function navigateToPathWithoutRootSync(path: string) {
+    if (path === '/') {
+      skipNextRootRouteSyncRef.current = true
+    }
+
+    navigateToPath(path)
+  }
+
+  function navigateToThreadPath(threadId: string) {
+    const entry = getSelectedThreadEntry(projects, threadId)
+
+    if (entry) {
+      navigateToPath(getThreadPath(entry.thread.routeId))
+    }
+  }
+
+  function handleArchiveThread(threadId: string) {
+    archiveThread(threadId)
+
+    if (threadId === selectedThreadId) {
+      navigateToPath('/')
+    }
+  }
+
+  function handleDeleteThread(threadId: string) {
+    deleteThread(threadId)
+
+    if (threadId === selectedThreadId) {
+      navigateToPath('/')
+    }
+  }
+
   function handlePrimaryNav(item: TopNavItem) {
-    if (
-      item === 'Workspace' ||
-      item === 'Projects' ||
-      item === 'Assets' ||
-      item === 'Capabilities'
-    ) {
+    if (item === 'Workspace') {
+      selectTopNav(item)
+
+      if (selectedThreadId && !isDraftingNewThread) {
+        navigateToThreadPath(selectedThreadId)
+      } else {
+        navigateToPath('/')
+      }
+
+      return
+    }
+
+    if (item === 'Projects' || item === 'Assets' || item === 'Capabilities') {
+      if (window.location.pathname !== '/') {
+        navigateToPathWithoutRootSync('/')
+      }
       selectTopNav(item)
       return
     }
@@ -317,8 +426,8 @@ function App() {
             onSelectThread={handleSelectThread}
             onTogglePinned={togglePinned}
             onRenameThread={renameThread}
-            onArchiveThread={archiveThread}
-            onDeleteThread={deleteThread}
+            onArchiveThread={handleArchiveThread}
+            onDeleteThread={handleDeleteThread}
             onNotify={showStatus}
           />
           <main
@@ -340,8 +449,8 @@ function App() {
                 onDraftChange={setDraft}
                 onSubmit={handleSubmit}
                 onRenameThread={renameThread}
-                onArchiveThread={archiveThread}
-                onDeleteThread={deleteThread}
+                onArchiveThread={handleArchiveThread}
+                onDeleteThread={handleDeleteThread}
                 onNotify={showStatus}
                 runInspectorOpen={runInspectorOpen}
                 onRunInspectorOpenChange={(open) =>
@@ -402,6 +511,26 @@ function getProductManagementCommodityId(pathname: string) {
   const commodityId = pathname.slice(productManagementCommodityPathPrefix.length)
 
   return commodityId ? decodeURIComponent(commodityId) : null
+}
+
+function getThreadRouteId(pathname: string) {
+  const routeId =
+    threadPathPattern.exec(pathname)?.[1] ??
+    legacyThreadPathPattern.exec(pathname)?.[1] ??
+    null
+
+  return routeId && isThreadRouteId(routeId) ? routeId : null
+}
+
+function getThreadPath(routeId: string) {
+  return `/c/${routeId}`
+}
+
+function isProductManagementRoute(pathname: string) {
+  return (
+    pathname === productManagementPlatformPath ||
+    pathname.startsWith(`${productManagementPlatformPath}/`)
+  )
 }
 
 function getSelectedThreadEntry(

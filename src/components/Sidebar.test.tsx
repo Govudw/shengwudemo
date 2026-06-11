@@ -14,6 +14,7 @@ const projects: DemoProject[] = [
     threads: [
       {
         id: 'egfr-affinity',
+        routeId: 'aaaaaaaaaaaaaaaa',
         title: 'EGFR 抗体亲和力优化',
         lastActivityAt: 0,
         pinned: false,
@@ -24,6 +25,7 @@ const projects: DemoProject[] = [
       },
       {
         id: 'cd3-bispecific',
+        routeId: 'bbbbbbbbbbbbbbbb',
         title: 'CD3 双抗序列优化分析',
         lastActivityAt: 3,
         pinned: false,
@@ -40,6 +42,7 @@ const projects: DemoProject[] = [
     threads: [
       {
         id: 'screening-plan',
+        routeId: 'cccccccccccccccc',
         title: '酶活性筛选方案讨论',
         lastActivityAt: 2,
         pinned: false,

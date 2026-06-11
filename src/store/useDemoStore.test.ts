@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { projects as seedProjects } from '../data/mockData'
+import { createInitialDemoState } from './demoStoreLogic'
 import type { DemoProject } from './demoStoreLogic'
 
 class MemoryStorage implements Storage {
@@ -48,7 +49,107 @@ describe('demo store persistence', () => {
       .find((thread) => thread.id === 'custom-thread')
 
     expect(customThread?.title).toBe('用户新增的自定义对话')
+    expect(customThread?.routeId).toMatch(/^[a-z0-9]{16}$/)
     expectCurrentEgfrReplaySeed(useDemoStore.getState().projects)
+  })
+
+  it('repairs duplicate persisted route ids without dropping user Threads', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const duplicateRouteId = 'abcdefghijklmnop'
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        projects: [
+          {
+            id: 'custom-project',
+            name: '用户自建项目',
+            threads: [
+              {
+                ...createPersistedThread('custom-a', '自定义对话 A', 1),
+                routeId: duplicateRouteId,
+              },
+              {
+                ...createPersistedThread('custom-b', '自定义对话 B', 2),
+                routeId: duplicateRouteId,
+              },
+            ],
+          },
+        ],
+        selectedProjectId: 'custom-project',
+        selectedThreadId: 'custom-b',
+        isDraftingNewThread: false,
+        draft: '',
+        expandedProjectIds: ['custom-project'],
+      },
+      version: demoStorePersistVersion,
+    })
+
+    const customThreads = useDemoStore
+      .getState()
+      .projects.find((project) => project.id === 'custom-project')
+      ?.threads ?? []
+    const routeIds = customThreads.map((thread) => thread.routeId)
+
+    expect(customThreads.map((thread) => thread.id)).toEqual([
+      'custom-a',
+      'custom-b',
+    ])
+    expect(routeIds.every((routeId) => /^[a-z0-9]{16}$/.test(routeId))).toBe(
+      true,
+    )
+    expect(new Set(routeIds).size).toBe(routeIds.length)
+    expect(useDemoStore.getState().selectedThreadId).toBe('custom-b')
+  })
+
+  it('keeps seed route ids when persisted user Threads collide with them', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const seedState = createInitialDemoState(seedProjects, Date.now())
+    const seedThread = seedState.projects
+      .find((project) => project.id === 'pipeline-build')
+      ?.threads.find(
+        (thread) => thread.id === 'pipeline-build-lims-enzyme-synthesis',
+      )
+
+    if (!seedThread) {
+      throw new Error('Seed thread missing')
+    }
+
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        projects: [
+          {
+            id: 'custom-project',
+            name: '用户自建项目',
+            threads: [
+              {
+                ...createPersistedThread('custom-collision', '撞 URL 的旧对话', 1),
+                routeId: seedThread.routeId,
+              },
+            ],
+          },
+        ],
+        selectedProjectId: 'custom-project',
+        selectedThreadId: 'custom-collision',
+        isDraftingNewThread: false,
+        draft: '',
+        expandedProjectIds: ['custom-project'],
+      },
+      version: demoStorePersistVersion,
+    })
+
+    const state = useDemoStore.getState()
+    const hydratedSeedThread = state.projects
+      .find((project) => project.id === 'pipeline-build')
+      ?.threads.find(
+        (thread) => thread.id === 'pipeline-build-lims-enzyme-synthesis',
+      )
+    const customThread = state.projects
+      .find((project) => project.id === 'custom-project')
+      ?.threads.find((thread) => thread.id === 'custom-collision')
+
+    expect(hydratedSeedThread?.routeId).toBe(seedThread.routeId)
+    expect(customThread?.routeId).toMatch(/^[a-z0-9]{16}$/)
+    expect(customThread?.routeId).not.toBe(seedThread.routeId)
+    expect(state.selectedThreadId).toBe('custom-collision')
   })
 
   it('refreshes stale same-version EGFR seed data while keeping persisted projects valid', async () => {
@@ -174,7 +275,9 @@ describe('demo store persistence', () => {
         markdown: '已记录追加分析请求。',
       },
     ]
-    const currentEgfrSeed = seedProjects[0].threads[0]
+    const currentEgfrSeed = seedProjects
+      .find((project) => project.id === 'antibody-optimization')
+      ?.threads.find((thread) => thread.id === 'egfr-affinity')
     const { useDemoStore } = await loadStoreWithPersistedState({
       state: {
         ...createOldEgfrPersistedState(),
@@ -185,13 +288,13 @@ describe('demo store persistence', () => {
             threads: [
               {
                 id: 'egfr-affinity',
-                title: currentEgfrSeed.title,
+                title: currentEgfrSeed?.title ?? 'EGFR 抗体亲和力优化',
                 lastActivityAt: 123,
                 pinned: false,
                 pinnedAt: null,
                 archived: false,
                 createdAt: 1,
-                transcript: [...(currentEgfrSeed.transcript ?? []), ...extraTurns],
+                transcript: [...(currentEgfrSeed?.transcript ?? []), ...extraTurns],
               },
             ],
           },
@@ -208,12 +311,12 @@ describe('demo store persistence', () => {
       egfrThread?.transcript.flatMap((turn) => turn.contentBlocks ?? []) ?? []
 
     expect(egfrThread?.transcript).toHaveLength(
-      (currentEgfrSeed.transcript?.length ?? 0) + extraTurns.length,
+      (currentEgfrSeed?.transcript?.length ?? 0) + extraTurns.length,
     )
     expect(egfrThread?.transcript.at(-2)).toMatchObject(extraTurns[0])
     expect(egfrThread?.transcript.at(-1)).toMatchObject(extraTurns[1])
     expect(blocks.some((block) => block.type === 'visualEvidence')).toBe(false)
-    expect(egfrThread?.runInspector).toEqual(currentEgfrSeed.runInspector)
+    expect(egfrThread?.runInspector).toEqual(currentEgfrSeed?.runInspector)
   })
 
   it('persists Run Inspector state while resetting it with demo state', async () => {

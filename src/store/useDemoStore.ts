@@ -21,6 +21,7 @@ import {
   toggleProjectSnapshot,
   toggleRunInspectorSnapshot,
   toggleSidebarCollapsedSnapshot,
+  createStableThreadRouteId,
 } from './demoStoreLogic'
 import type {
   ActiveTopNav,
@@ -28,13 +29,14 @@ import type {
   AssetsExperimentViewMode,
   AssetsFileViewMode,
   AssetsSection,
+  CreateThreadRouteId,
   DemoProject,
   DemoStateSnapshot,
   DemoThread,
 } from './demoStoreLogic'
 
 export const demoStorePersistKey = 'biomap-agent-demo-store-v2'
-export const demoStorePersistVersion = 3
+export const demoStorePersistVersion = 4
 
 const obsoleteSeedThreadIdsByProjectId: Record<string, ReadonlySet<string>> = {
   'enzyme-discovery': new Set([
@@ -82,7 +84,12 @@ export const useDemoStore = create<DemoStoreState>()(
       setDraft: (draft) => set({ draft }),
       submitDraft: () =>
         set((state) =>
-          submitDraftSnapshot(state, Date.now(), createThreadId),
+          submitDraftSnapshot(
+            state,
+            Date.now(),
+            createThreadId,
+            createThreadRouteId,
+          ),
         ),
       createProject: (name) =>
         set((state) =>
@@ -231,6 +238,26 @@ function createThreadId() {
     .slice(2, 8)}`
 }
 
+const threadRouteAlphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'
+
+const createThreadRouteId: CreateThreadRouteId = (existingRouteIds, seed) => {
+  if (typeof crypto !== 'undefined' && 'getRandomValues' in crypto) {
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const values = new Uint8Array(16)
+      crypto.getRandomValues(values)
+      const routeId = Array.from(values, (value) =>
+        threadRouteAlphabet[value % threadRouteAlphabet.length],
+      ).join('')
+
+      if (!existingRouteIds.has(routeId)) {
+        return routeId
+      }
+    }
+  }
+
+  return createStableThreadRouteId(existingRouteIds, seed)
+}
+
 function createProjectId(name: string) {
   const normalizedName = name
     .trim()
@@ -337,7 +364,7 @@ function mergeProjectsWithCurrentSeed(
     (restoredProject) => !currentProjectIds.has(restoredProject.id),
   )
 
-  return [...userCreatedProjects, ...mergedProjects]
+  return [...mergedProjects, ...userCreatedProjects]
 }
 
 function isObsoleteSeedThreadId(

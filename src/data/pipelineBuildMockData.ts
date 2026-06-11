@@ -18,6 +18,30 @@ type PipelineBuildThread = {
 
 type CapabilityArtifact = NonNullable<CapabilityRunReplayBlock['artifacts']>[number]
 
+const limsBuildProgressIds = Array.from(
+  { length: 12 },
+  (_item, index) =>
+    `lims-pipeline-build-progress-${String(index + 1).padStart(2, '0')}`,
+)
+
+function limsBuildReplayProgress(
+  completedStepNumbers: number[],
+  activeStepNumber?: number,
+) {
+  return {
+    ...(completedStepNumbers.length
+      ? {
+          completedProgressIds: completedStepNumbers.map(
+            (stepNumber) => limsBuildProgressIds[stepNumber - 1],
+          ),
+        }
+      : {}),
+    ...(activeStepNumber
+      ? { activeProgressId: limsBuildProgressIds[activeStepNumber - 1] }
+      : {}),
+  }
+}
+
 function capabilityRun(
   commandName: string,
   summary: string,
@@ -874,6 +898,7 @@ const limsPipelineBuildTranscript: ConversationTurn[] = [
     role: 'user',
     markdown:
       '上一轮酶合成实验已经跑通了，我想把这个 LIMS 流程固化成可复用 Pipeline。资料不是特别齐，我先把复盘包、部分 LIMS 工单、QC 摘要、审批事件和对象清单给你。你帮我抽出 DAG，不清楚的地方一项项问我。',
+    replayRunInspector: limsBuildReplayProgress([], 1),
     contentBlocks: [
       {
         type: 'projectFile',
@@ -924,86 +949,108 @@ const limsPipelineBuildTranscript: ConversationTurn[] = [
     role: 'mainAgent',
     markdown:
       '我先把资料分成两类：可以直接固化的事实，和需要你确认的缺口。\n\n**可以直接固化的事实**\n\n- 上一轮流程覆盖 48 个候选酶和 4 个对照。\n- 实际运行中出现过构建 QC 异常，并且只返工异常样本。\n- LIMS 里存在构建、表达、纯化、检测四类工单。\n- 审批事件包括 `run_start`、`rework_authorization`、`result_release`。\n- 输出包含工单包、执行记录、QC 结论、结构化数据、结果包和效率复盘。\n\n**需要你确认的缺口**\n\n- Pipeline 边界是否包含结果释放和效率复盘。\n- 输入包是否同时包含文件、表记录和负责人语言补充。\n- 审批节点是否统一为审批人、审批类型和资料包。\n- 工单和回调是否作为节点 I/O 记录。\n- QC 不通过时是返工、隔离继续，还是终止。\n- 节点负责人和资产权限默认规则。\n\n我先不画 DAG，先把这些缺口逐项确认。',
-    contentBlocks: [limsEvidenceExtractionRun],
+    replayRunInspector: limsBuildReplayProgress([], 2),
+    contentBlocks: [
+      {
+        ...limsEvidenceExtractionRun,
+        replayRunInspector: limsBuildReplayProgress([1, 2]),
+      },
+    ],
   },
   {
     id: 'lims-pipeline-build-turn-003',
     role: 'mainAgent',
     markdown:
       '这里我需要先确认流程边界。我从资料里能确定，上一轮最终做到了结果包和效率复盘，但不确定这是否要固化进 Pipeline。\n\n**推荐 A：** 覆盖完整 LIMS 执行闭环，从输入确认、启动审批、样本注册、资源锁定、工单派发、构建、表达、纯化、检测、QC gate、数据入库、结果释放到效率复盘。\n\nB：只覆盖湿实验执行段，到检测数据回传为止。\n\nC：覆盖到下一轮分子设计建议。\n\n我建议选 A，因为真实运行已经产生了结果释放和效率复盘数据，不放进 Pipeline，负责人后续仍然要手工拼接运行表现。',
+    replayRunInspector: limsBuildReplayProgress([1, 2], 3),
   },
   {
     id: 'lims-pipeline-build-turn-004',
     role: 'user',
     markdown: '选 A。这个 Pipeline 就覆盖完整 LIMS 执行闭环，不进入下一轮分子设计。',
+    replayRunInspector: limsBuildReplayProgress([3]),
   },
   {
     id: 'lims-pipeline-build-turn-005',
     role: 'mainAgent',
     markdown:
       '第二个缺口是输入包。资料里有文件，也有 LIMS 表记录，但我担心只把文件当输入会漏掉库存、设备窗口和负责人补充的返工边界。\n\n**推荐 A：** 输入包由文件、表记录和负责人语言补充共同组成。\n\nB：只使用文件，表记录在执行时再读取。\n\nC：只使用结构化表记录，不把复盘文档作为输入。\n\n我建议选 A，因为这次记录并不完整，真实的返工边界和结果释放规则需要负责人补充才能固化。',
+    replayRunInspector: limsBuildReplayProgress([1, 2, 3], 4),
   },
   {
     id: 'lims-pipeline-build-turn-006',
     role: 'user',
     markdown:
       '选 A。工单和回调记录能用就用，不完整的部分我补充。比如当时构建异常只返工了 5 个样本，不是整批重做。',
+    replayRunInspector: limsBuildReplayProgress([4]),
   },
   {
     id: 'lims-pipeline-build-turn-007',
     role: 'mainAgent',
     markdown:
       '第三个缺口是审批节点。我看到三个审批事件，但不想把每个审批的 checklist 写死，否则后续换审批系统会很难改。\n\n**推荐 A：** 审批节点统一抽象为审批人、审批类型和资料包；外部审批系统返回审批结果、结果资料包和执行记录。\n\nB：每个审批节点都内置具体 checklist。\n\nC：只保留启动审批，质检和结果释放放到普通节点里。\n\n我建议选 A，因为它能把 `run_start`、`rework_authorization`、`result_release` 都统一进 DAG，同时保留审批通过和不通过两条线。',
+    replayRunInspector: limsBuildReplayProgress([1, 2, 3, 4], 5),
   },
   {
     id: 'lims-pipeline-build-turn-008',
     role: 'user',
     markdown:
       '选 A。审批节点就按审批人、审批类型和资料包处理。具体审批系统返回什么，由外部审批系统负责。',
+    replayRunInspector: limsBuildReplayProgress([5]),
   },
   {
     id: 'lims-pipeline-build-turn-009',
     role: 'mainAgent',
     markdown:
       '第四个缺口是工单和回调。我看到构建、表达、纯化、检测都有工单，也有 ELN 和设备回调。如果每个回调都拆成独立节点，DAG 会变得很碎。\n\n**推荐 A：** 工单和回调不完全拆开，但在每个执行节点的 I/O 里明确工单记录、设备/人员/ELN 回调数据和执行记录。\n\nB：每个执行节点拆成派单、等待回调、解析回调三个节点。\n\nC：只保留一个大工单执行节点。\n\n我建议选 A，因为它既能表达真实 LIMS 回调，又不会把编排图堆成日志清单。',
+    replayRunInspector: limsBuildReplayProgress([1, 2, 3, 4, 5], 6),
   },
   {
     id: 'lims-pipeline-build-turn-010',
     role: 'user',
     markdown:
       '选 A。DAG 节点保持清楚，但节点背后的 I/O 要能让后续执行时读到工单、回调和执行记录。',
+    replayRunInspector: limsBuildReplayProgress([6]),
   },
   {
     id: 'lims-pipeline-build-turn-011',
     role: 'mainAgent',
     markdown:
       '第五个缺口是 QC 不通过后的路由。复盘资料里有构建 QC 异常，但不是整轮失败。我担心如果把 QC 不通过直接写成“重跑上一步”，后续会浪费样本和设备窗口。\n\n**推荐 A：** 区分返工和隔离继续。异常样本进入质检审批；审批通过只返工受影响样本，审批不通过就隔离异常样本，其余样本继续。\n\nB：所有 QC 不通过都回到上一个实验节点重跑。\n\nC：所有 QC 不通过都终止 Pipeline。\n\n我建议选 A，因为这符合上一轮真实处理方式，也能保留人的判断空间。',
+    replayRunInspector: limsBuildReplayProgress([1, 2, 3, 4, 5, 6], 7),
   },
   {
     id: 'lims-pipeline-build-turn-012',
     role: 'user',
     markdown:
       '选 A。节点名字叫质检审批，不要叫返工审批。审批通过才返工受影响样本，不通过就隔离继续。',
+    replayRunInspector: limsBuildReplayProgress([7]),
   },
   {
     id: 'lims-pipeline-build-turn-013',
     role: 'mainAgent',
     markdown:
       '最后一个缺口是权限和资产。节点输出会包含对象存储文件、表记录和执行记录，但不是每个下游负责人都需要看到全部内容。\n\n**推荐 A：** 发起人默认 owner；节点负责人默认拥有所需 read 权限；只有特殊限制才在节点 I/O 中声明。\n\nB：每条边都显式声明权限。\n\nC：所有节点共享同一权限。\n\n我建议选 A，因为它能保持 Pipeline JSON 完整，又不会让每条边都被权限配置淹没。',
+    replayRunInspector: limsBuildReplayProgress([1, 2, 3, 4, 5, 6, 7], 8),
   },
   {
     id: 'lims-pipeline-build-turn-014',
     role: 'user',
     markdown:
       '选 A。发起人默认 owner，节点负责人默认 read。只有特殊限制才写清楚。',
+    replayRunInspector: limsBuildReplayProgress([8]),
   },
   {
     id: 'lims-pipeline-build-turn-015',
     role: 'mainAgent',
     markdown:
       '六个缺口已经锁定。我先生成第一版 DAG。它会覆盖输入包、审批、样本注册、资源准备、工单、构建、表达、纯化、检测、数据入库、结果释放和效率复盘。\n\n我会特别标出一个风险点：数据完整性检查现在只依赖 ELN 回调和结果包 schema，可能还不够。',
+    replayRunInspector: limsBuildReplayProgress([1, 2, 3, 4, 5, 6, 7, 8], 9),
     contentBlocks: [
-      limsDraftDagRun,
+      {
+        ...limsDraftDagRun,
+        replayRunInspector: limsBuildReplayProgress([9]),
+      },
       {
         type: 'pipelineDag',
         title: 'LIMS 酶合成执行 Pipeline DAG',
@@ -1019,14 +1066,19 @@ const limsPipelineBuildTranscript: ConversationTurn[] = [
     role: 'user',
     markdown:
       '这里要改。数据完整性 QC 不能只等 ELN 和结果包 schema。上一轮仪器读数回传慢，差点提前入库。这里必须等 ELN 回调、仪器读数和工单状态三方一致，再进入数据入库。',
+    replayRunInspector: limsBuildReplayProgress([1, 2, 3, 4, 5, 6, 7, 8, 9], 10),
   },
   {
     id: 'lims-pipeline-build-turn-017',
     role: 'mainAgent',
     markdown:
       '已改。数据完整性检查现在要求 ELN 回调、仪器读数和工单状态三方一致；如果任意一方缺失或冲突，就进入补充回调，不生成结果包。',
+    replayRunInspector: limsBuildReplayProgress([1, 2, 3, 4, 5, 6, 7, 8, 9], 10),
     contentBlocks: [
-      limsIntegrityRevisionRun,
+      {
+        ...limsIntegrityRevisionRun,
+        replayRunInspector: limsBuildReplayProgress([10]),
+      },
       {
         type: 'pipelineDag',
         title: 'LIMS 酶合成执行 Pipeline DAG',
@@ -1042,18 +1094,26 @@ const limsPipelineBuildTranscript: ConversationTurn[] = [
     role: 'mainAgent',
     markdown:
       '保存前我做 5 类校验：DAG 拓扑、节点 I/O、审批契约、权限契约和上一轮真实运行 dry-run。\n\n结果都通过：没有孤立节点，每个节点都有输出；启动审批、质检审批和结果释放审批都具备审批人、审批类型和资料包；权限默认规则可执行；上一轮记录可以跑到结果释放。',
-    contentBlocks: [limsValidationRun],
+    replayRunInspector: limsBuildReplayProgress([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 11),
+    contentBlocks: [
+      {
+        ...limsValidationRun,
+        replayRunInspector: limsBuildReplayProgress([11]),
+      },
+    ],
   },
   {
     id: 'lims-pipeline-build-turn-019',
     role: 'mainAgent',
     markdown:
       '最后只确认保存。\n\n**推荐 A：** 保存为 `LIMS 酶合成执行 Pipeline v1.0`，来源为自建，并允许后续 Thread 调用。\n\nB：保存为草稿，只保留当前对话可见。\n\nC：只导出 DAG，不登记到 Pipelines。\n\n我建议选 A，因为 DAG、I/O、审批、权限和真实运行 dry-run 都已经通过。',
+    replayRunInspector: limsBuildReplayProgress([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], 12),
   },
   {
     id: 'lims-pipeline-build-turn-020',
     role: 'user',
     markdown: '确认保存。按这个版本进入 Pipelines。',
+    replayRunInspector: limsBuildReplayProgress([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], 12),
     contentBlocks: [
       {
         type: 'humanConfirmation',
@@ -1061,6 +1121,7 @@ const limsPipelineBuildTranscript: ConversationTurn[] = [
         confirmedBy: 'LabOps Owner',
         confirmedAt: '2026-06-04 10:38',
         decision: '保存为 LIMS 酶合成执行 Pipeline v1.0，并允许后续 Thread 调用。',
+        replayRunInspector: limsBuildReplayProgress([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], 12),
       },
     ],
   },
@@ -1069,8 +1130,12 @@ const limsPipelineBuildTranscript: ConversationTurn[] = [
     role: 'mainAgent',
     markdown:
       '已保存到 Pipelines，来源为自建，版本 v1.0。\n\n保存条目：`LIMS 酶合成执行 Pipeline v1.0`',
+    replayRunInspector: limsBuildReplayProgress([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], 12),
     contentBlocks: [
-      limsSaveRun,
+      {
+        ...limsSaveRun,
+        replayRunInspector: limsBuildReplayProgress([12]),
+      },
       {
         type: 'projectFile',
         fileName: 'LIMS_Enzyme_Synthesis_Pipeline_v1.0.json',

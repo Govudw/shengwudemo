@@ -56,11 +56,17 @@ export type RunInspectorCapabilityRunItem = {
   }>
 }
 
+export type ReplayRunInspectorMarker = {
+  completedProgressIds?: string[]
+  activeProgressId?: string
+}
+
 export type ConversationTurn = {
   id: string
   role: ConversationRole
   markdown?: string
   contentBlocks?: ConversationBlock[]
+  replayRunInspector?: ReplayRunInspectorMarker
 }
 
 export type ConversationBlock =
@@ -184,6 +190,7 @@ export type CapabilityRunReplayBlock = {
     kind: 'json' | 'csv' | 'xlsx' | 'md' | 'png' | 'pdb' | 'fasta'
     description: string
   }>
+  replayRunInspector?: ReplayRunInspectorMarker
 }
 
 export type HumanConfirmationBlock = {
@@ -192,6 +199,7 @@ export type HumanConfirmationBlock = {
   confirmedBy: string
   confirmedAt: string
   decision: string
+  replayRunInspector?: ReplayRunInspectorMarker
 }
 
 export type ApprovalRequestReplayBlock = {

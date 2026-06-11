@@ -28,6 +28,7 @@ import { pipelineBuildThreads } from './pipelineBuildMockData'
 
 export type Thread = {
   id: string
+  routeId?: string
   title: string
   lastActivity: string
   transcript?: ConversationTurn[]
@@ -3570,6 +3571,16 @@ export const her2PostExperimentAnalysisRunInspector: RunInspectorData = {
 
 export const projects: Project[] = [
   {
+    id: 'pipeline-build',
+    name: 'Pipeline Build',
+    threads: pipelineBuildThreads,
+  },
+  {
+    id: 'enzyme-synthesis-ops',
+    name: 'Enzyme Synthesis Ops',
+    threads: enzymeSynthesisOpsThreads,
+  },
+  {
     id: 'antibody-optimization',
     name: 'Antibody Optimization',
     threads: [
@@ -3609,16 +3620,6 @@ export const projects: Project[] = [
     id: 'enzyme-discovery',
     name: 'Industrial Enzyme Design',
     threads: industrialEnzymeThreads,
-  },
-  {
-    id: 'pipeline-build',
-    name: 'Pipeline Build',
-    threads: pipelineBuildThreads,
-  },
-  {
-    id: 'enzyme-synthesis-ops',
-    name: 'Enzyme Synthesis Ops',
-    threads: enzymeSynthesisOpsThreads,
   },
   {
     id: 'data-assetization',

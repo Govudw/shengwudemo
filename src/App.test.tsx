@@ -177,6 +177,189 @@ describe('App Product Management Platform route', () => {
   })
 })
 
+describe('App Thread URL route', () => {
+  it('opens a Workspace Thread from a direct /c route id URL', () => {
+    const thread = getStoreThread(
+      'pipeline-build',
+      'pipeline-build-lims-enzyme-synthesis',
+    )
+    window.history.replaceState(null, '', `/c/${thread.routeId}`)
+
+    const { container, root } = renderApp()
+
+    expect(window.location.pathname).toBe(`/c/${thread.routeId}`)
+    expect(container.querySelector('.product-platform-page')).toBeNull()
+    expect(container.querySelector('.workspace-main--thread')).not.toBeNull()
+    expect(container.textContent).toContain('LIMS 酶合成执行编排')
+    expect(useDemoStore.getState().selectedProjectId).toBe('pipeline-build')
+    expect(useDemoStore.getState().expandedProjectIds).toContain('pipeline-build')
+
+    root.unmount()
+  })
+
+  it('keeps legacy root route id URLs compatible', () => {
+    const thread = getStoreThread(
+      'pipeline-build',
+      'pipeline-build-lims-enzyme-synthesis',
+    )
+    window.history.replaceState(null, '', `/${thread.routeId}`)
+
+    const { container, root } = renderApp()
+
+    expect(window.location.pathname).toBe(`/${thread.routeId}`)
+    expect(container.querySelector('.workspace-main--thread')).not.toBeNull()
+    expect(container.textContent).toContain('LIMS 酶合成执行编排')
+
+    root.unmount()
+  })
+
+  it('treats the root URL as the Workspace new conversation even with persisted navigation state', () => {
+    const thread = getStoreThread(
+      'pipeline-build',
+      'pipeline-build-lims-enzyme-synthesis',
+    )
+    act(() => {
+      useDemoStore.setState({
+        activeTopNav: 'Projects',
+        selectedProjectId: 'pipeline-build',
+        selectedThreadId: thread.id,
+        isDraftingNewThread: false,
+      })
+    })
+
+    const { container, root } = renderApp()
+
+    expect(window.location.pathname).toBe('/')
+    expect(useDemoStore.getState().activeTopNav).toBe('Workspace')
+    expect(useDemoStore.getState().selectedThreadId).toBeNull()
+    expect(container.querySelector('.workspace-main--thread')).toBeNull()
+    expect(container.querySelector('.composer')).not.toBeNull()
+
+    root.unmount()
+  })
+
+  it('updates the browser URL when selecting a Thread from the sidebar', () => {
+    const thread = getStoreThread(
+      'pipeline-build',
+      'pipeline-build-lims-enzyme-synthesis',
+    )
+    const { container, root } = renderApp()
+
+    act(() => {
+      getSidebarThreadButton(container, 'LIMS 酶合成执行编排').click()
+    })
+
+    expect(window.location.pathname).toBe(`/c/${thread.routeId}`)
+    expect(container.querySelector('.workspace-main--thread')).not.toBeNull()
+
+    root.unmount()
+  })
+
+  it('navigates a newly submitted Thread draft to its route id URL', () => {
+    const { container, root } = renderApp()
+
+    setTextarea(container, '研发目标或对话内容', '新建一个 URL 化测试 Thread')
+    act(() => {
+      getButton(container, 'Send').click()
+    })
+
+    const state = useDemoStore.getState()
+    const selectedThread = state.projects
+      .flatMap((project) => project.threads)
+      .find((thread) => thread.id === state.selectedThreadId)
+
+    expect(selectedThread?.routeId).toMatch(/^[a-z0-9]{16}$/)
+    expect(window.location.pathname).toBe(`/c/${selectedThread?.routeId}`)
+    expect(container.querySelector('.workspace-main--thread')).not.toBeNull()
+
+    root.unmount()
+  })
+
+  it('uses browser back to return from a Thread URL to the new conversation route', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getSidebarThreadButton(container, 'LIMS 酶合成执行编排').click()
+    })
+    act(() => {
+      window.history.back()
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+
+    expect(window.location.pathname).toBe('/')
+    expect(container.querySelector('.workspace-main--thread')).toBeNull()
+    expect(container.querySelector('.composer')).not.toBeNull()
+
+    root.unmount()
+  })
+
+  it('returns to the root URL when starting a new conversation from a Thread URL', () => {
+    const thread = getStoreThread(
+      'pipeline-build',
+      'pipeline-build-lims-enzyme-synthesis',
+    )
+    window.history.replaceState(null, '', `/c/${thread.routeId}`)
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, '新对话').click()
+    })
+
+    expect(window.location.pathname).toBe('/')
+    expect(container.querySelector('.workspace-main--thread')).toBeNull()
+    expect(container.querySelector('.composer')).not.toBeNull()
+
+    root.unmount()
+  })
+
+  it('keeps Product Management Platform routes out of Thread routing', () => {
+    window.history.replaceState(null, '', '/product-management-platform')
+    const { container, root } = renderApp()
+
+    expect(container.querySelector('.product-platform-page')).not.toBeNull()
+    expect(window.location.pathname).toBe('/product-management-platform')
+
+    root.unmount()
+  })
+
+  it('does not let the root URL sync steal top navigation from a Thread URL', () => {
+    const thread = getStoreThread(
+      'pipeline-build',
+      'pipeline-build-lims-enzyme-synthesis',
+    )
+    window.history.replaceState(null, '', `/c/${thread.routeId}`)
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Projects').click()
+    })
+
+    expect(window.location.pathname).toBe('/')
+    expect(container.querySelector('.projects-page')).not.toBeNull()
+    expect(useDemoStore.getState().activeTopNav).toBe('Projects')
+
+    act(() => {
+      getButton(container, 'Workspace').click()
+    })
+
+    expect(window.location.pathname).toBe(`/c/${thread.routeId}`)
+    expect(container.querySelector('.workspace-main--thread')).not.toBeNull()
+
+    root.unmount()
+  })
+
+  it('returns to the root URL when a route id does not match a Thread', () => {
+    window.history.replaceState(null, '', '/c/0000000000000000')
+    const { container, root } = renderApp()
+
+    expect(window.location.pathname).toBe('/')
+    expect(container.querySelector('.workspace-main--thread')).toBeNull()
+    expect(getStatus(container).textContent).toContain('Thread 不存在或已被删除')
+
+    root.unmount()
+  })
+})
+
 describe('App Projects management', () => {
   it('opens the Projects management full page from the top navigation', () => {
     const { container, root } = renderApp()
@@ -1189,6 +1372,33 @@ function renderApp() {
   return { container, root }
 }
 
+function getStoreThread(projectId: string, threadId: string) {
+  const thread = useDemoStore
+    .getState()
+    .projects.find((project) => project.id === projectId)
+    ?.threads.find((currentThread) => currentThread.id === threadId)
+
+  if (!thread) {
+    throw new Error(`Thread fixture not found: ${projectId}/${threadId}`)
+  }
+
+  return thread
+}
+
+function getSidebarThreadButton(container: HTMLElement, title: string) {
+  const button = Array.from(
+    container.querySelectorAll<HTMLButtonElement>('.sidebar__thread-select'),
+  ).find((element) =>
+    element.querySelector('.sidebar__thread-title')?.textContent?.trim() === title,
+  )
+
+  if (!button) {
+    throw new Error(`Sidebar thread button not found: ${title}`)
+  }
+
+  return button
+}
+
 function findButton(container: HTMLElement, name: string) {
   return Array.from(container.querySelectorAll('button')).find(
     (element) =>
@@ -1329,6 +1539,24 @@ function setTextInput(container: HTMLElement, label: string, value: string) {
     )?.set
     valueSetter?.call(input, value)
     input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: value,
+        inputType: 'insertText',
+      }),
+    )
+  })
+}
+
+function setTextarea(container: HTMLElement, label: string, value: string) {
+  act(() => {
+    const textarea = getTextarea(container, label)
+    const valueSetter = Object.getOwnPropertyDescriptor(
+      HTMLTextAreaElement.prototype,
+      'value',
+    )?.set
+    valueSetter?.call(textarea, value)
+    textarea.dispatchEvent(
       new InputEvent('input', {
         bubbles: true,
         data: value,

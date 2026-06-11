@@ -13,6 +13,7 @@ import ThreadWorkspace from './ThreadWorkspace'
 
 const thread: DemoThread = {
   id: 'egfr-affinity',
+  routeId: 'aaaaaaaaaaaaaaaa',
   title: 'EGFR 抗体亲和力优化',
   lastActivityAt: 0,
   pinned: false,

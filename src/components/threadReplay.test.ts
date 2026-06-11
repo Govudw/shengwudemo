@@ -5,6 +5,7 @@ import type {
   RunInspectorData,
 } from '../data/conversationTypes'
 import { enzymeSynthesisLimsDag, enzymeSynthesisOpsThreads } from '../data/enzymeSynthesisOpsMockData'
+import { pipelineBuildThreads } from '../data/pipelineBuildMockData'
 import {
   buildThreadReplaySteps,
   deriveReplayRunInspector,
@@ -870,6 +871,151 @@ describe('deriveReplayRunInspector', () => {
       })
       if (step.block.activeNodeId && !completedIds.has(step.block.activeNodeId)) {
         expect(visibleProgress.get(step.block.activeNodeId)).toBe('active')
+      }
+    })
+  })
+
+  it('keeps LIMS pipeline build replay run progress aligned with the build conversation', () => {
+    const limsBuildThread = pipelineBuildThreads.find(
+      (thread) => thread.id === 'pipeline-build-lims-enzyme-synthesis',
+    )
+    const limsBuildSteps = buildThreadReplaySteps(
+      limsBuildThread?.transcript ?? [],
+    )
+
+    expect(limsBuildThread?.runInspector?.progress.map((item) => item.id)).toEqual([
+      'lims-pipeline-build-progress-01',
+      'lims-pipeline-build-progress-02',
+      'lims-pipeline-build-progress-03',
+      'lims-pipeline-build-progress-04',
+      'lims-pipeline-build-progress-05',
+      'lims-pipeline-build-progress-06',
+      'lims-pipeline-build-progress-07',
+      'lims-pipeline-build-progress-08',
+      'lims-pipeline-build-progress-09',
+      'lims-pipeline-build-progress-10',
+      'lims-pipeline-build-progress-11',
+      'lims-pipeline-build-progress-12',
+    ])
+
+    const checkpointExpectations = [
+      {
+        stepId: 'lims-pipeline-build-turn-001:markdown:0',
+        done: [],
+        active: 'lims-pipeline-build-progress-01',
+      },
+      {
+        stepId: 'lims-pipeline-build-turn-002:block:0',
+        done: [
+          'lims-pipeline-build-progress-01',
+          'lims-pipeline-build-progress-02',
+        ],
+      },
+      {
+        stepId: 'lims-pipeline-build-turn-004:markdown:0',
+        done: [
+          'lims-pipeline-build-progress-01',
+          'lims-pipeline-build-progress-02',
+          'lims-pipeline-build-progress-03',
+        ],
+      },
+      {
+        stepId: 'lims-pipeline-build-turn-014:markdown:0',
+        done: [
+          'lims-pipeline-build-progress-01',
+          'lims-pipeline-build-progress-02',
+          'lims-pipeline-build-progress-03',
+          'lims-pipeline-build-progress-04',
+          'lims-pipeline-build-progress-05',
+          'lims-pipeline-build-progress-06',
+          'lims-pipeline-build-progress-07',
+          'lims-pipeline-build-progress-08',
+        ],
+      },
+      {
+        stepId: 'lims-pipeline-build-turn-015:block:0',
+        done: [
+          'lims-pipeline-build-progress-01',
+          'lims-pipeline-build-progress-02',
+          'lims-pipeline-build-progress-03',
+          'lims-pipeline-build-progress-04',
+          'lims-pipeline-build-progress-05',
+          'lims-pipeline-build-progress-06',
+          'lims-pipeline-build-progress-07',
+          'lims-pipeline-build-progress-08',
+          'lims-pipeline-build-progress-09',
+        ],
+      },
+      {
+        stepId: 'lims-pipeline-build-turn-017:block:0',
+        done: [
+          'lims-pipeline-build-progress-01',
+          'lims-pipeline-build-progress-02',
+          'lims-pipeline-build-progress-03',
+          'lims-pipeline-build-progress-04',
+          'lims-pipeline-build-progress-05',
+          'lims-pipeline-build-progress-06',
+          'lims-pipeline-build-progress-07',
+          'lims-pipeline-build-progress-08',
+          'lims-pipeline-build-progress-09',
+          'lims-pipeline-build-progress-10',
+        ],
+      },
+      {
+        stepId: 'lims-pipeline-build-turn-018:block:0',
+        done: [
+          'lims-pipeline-build-progress-01',
+          'lims-pipeline-build-progress-02',
+          'lims-pipeline-build-progress-03',
+          'lims-pipeline-build-progress-04',
+          'lims-pipeline-build-progress-05',
+          'lims-pipeline-build-progress-06',
+          'lims-pipeline-build-progress-07',
+          'lims-pipeline-build-progress-08',
+          'lims-pipeline-build-progress-09',
+          'lims-pipeline-build-progress-10',
+          'lims-pipeline-build-progress-11',
+        ],
+      },
+      {
+        stepId: 'lims-pipeline-build-turn-021:block:0',
+        done: [
+          'lims-pipeline-build-progress-01',
+          'lims-pipeline-build-progress-02',
+          'lims-pipeline-build-progress-03',
+          'lims-pipeline-build-progress-04',
+          'lims-pipeline-build-progress-05',
+          'lims-pipeline-build-progress-06',
+          'lims-pipeline-build-progress-07',
+          'lims-pipeline-build-progress-08',
+          'lims-pipeline-build-progress-09',
+          'lims-pipeline-build-progress-10',
+          'lims-pipeline-build-progress-11',
+          'lims-pipeline-build-progress-12',
+        ],
+      },
+    ]
+
+    checkpointExpectations.forEach(({ stepId, done, active }) => {
+      const visibleCount =
+        limsBuildSteps.findIndex((item) => item.id === stepId) + 1
+      const inspector = deriveReplayRunInspector(
+        limsBuildThread?.runInspector,
+        limsBuildSteps,
+        visibleCount,
+      )
+      const visibleProgress = new Map(
+        inspector?.progress.map((item) => [item.id, item.status]) ?? [],
+      )
+
+      expect(visibleCount).toBeGreaterThan(0)
+      expect(inspector?.summary.totalSteps).toBe(12)
+      expect(inspector?.summary.completedSteps).toBe(done.length)
+      done.forEach((id) => {
+        expect(visibleProgress.get(id)).toBe('done')
+      })
+      if (active) {
+        expect(visibleProgress.get(active)).toBe('active')
       }
     })
   })

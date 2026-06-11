@@ -5,6 +5,7 @@ import {
   createInitialDemoState,
   deleteThreadSnapshot,
   findThreadById,
+  findThreadByRouteId,
   formatRelativeActivity,
   getPinnedThreadEntries,
   getRecentThreadEntries,
@@ -116,11 +117,50 @@ function collectStringValues(value: unknown): string[] {
 }
 
 describe('demo store logic', () => {
+  it('hydrates every seed Thread with a unique URL route id', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const routeIds = state.projects.flatMap((project) =>
+      project.threads.map((thread) => thread.routeId),
+    )
+
+    expect(routeIds.every((routeId) => /^[a-z0-9]{16}$/.test(routeId))).toBe(
+      true,
+    )
+    expect(new Set(routeIds).size).toBe(routeIds.length)
+  })
+
+  it('finds a non-archived Thread by URL route id', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const egfrThread = findThreadById(state.projects, 'egfr-affinity')?.thread
+
+    expect(egfrThread?.routeId).toMatch(/^[a-z0-9]{16}$/)
+    expect(
+      findThreadByRouteId(state.projects, egfrThread?.routeId ?? '')?.thread.id,
+    ).toBe('egfr-affinity')
+
+    const archived = archiveThreadSnapshot(state, 'egfr-affinity')
+    expect(
+      findThreadByRouteId(archived.projects, egfrThread?.routeId ?? ''),
+    ).toBeUndefined()
+  })
+
+  it('places Pipeline Build and Enzyme Synthesis Ops at the top of the workspace sidebar', () => {
+    const state = createInitialDemoState(seedProjects, now)
+
+    expect(state.projects.slice(0, 2).map((project) => project.id)).toEqual([
+      'pipeline-build',
+      'enzyme-synthesis-ops',
+    ])
+  })
+
   it('creates demo state from seed projects without mutating seed data', () => {
     const state = createInitialDemoState(seedProjects, now)
-    const firstThread = state.projects[0].threads[0]
+    const egfrThread = findThreadById(state.projects, 'egfr-affinity')?.thread
+    const egfrSeedThread = seedProjects
+      .find((project) => project.id === 'antibody-optimization')
+      ?.threads.find((thread) => thread.id === 'egfr-affinity')
 
-    expect(state.selectedProjectId).toBe('antibody-optimization')
+    expect(state.selectedProjectId).toBe('pipeline-build')
     expect(state.selectedThreadId).toBeNull()
     expect(state.isDraftingNewThread).toBe(true)
     expect(state.sidebarCollapsed).toBe(false)
@@ -131,18 +171,20 @@ describe('demo store logic', () => {
     expect(state.assetsExperimentViewMode).toBe('grid')
     expect(state.assetsOpenFolderId).toBeNull()
     expect(state.expandedProjectIds).toEqual(seedProjects.map((project) => project.id))
-    expect(firstThread).toMatchObject({
+    expect(egfrThread).toMatchObject({
       id: 'egfr-affinity',
       title: 'EGFR 抗体亲和力优化',
       pinned: false,
       pinnedAt: null,
       archived: false,
     })
-    expect(firstThread.lastActivityAt).toBe(now - 2 * 60 * 1000)
-    expect(formatRelativeActivity(firstThread.lastActivityAt, now)).toBe('2 分钟')
-    expect('pinned' in seedProjects[0].threads[0]).toBe(false)
-    expect(firstThread.transcript.length).toBeGreaterThan(0)
-    expect(firstThread.transcript).not.toBe(seedProjects[0].threads[0].transcript)
+    expect(egfrThread?.lastActivityAt).toBe(now - 2 * 60 * 1000)
+    expect(formatRelativeActivity(egfrThread?.lastActivityAt ?? 0, now)).toBe(
+      '2 分钟',
+    )
+    expect('pinned' in (egfrSeedThread ?? {})).toBe(false)
+    expect(egfrThread?.transcript.length).toBeGreaterThan(0)
+    expect(egfrThread?.transcript).not.toBe(egfrSeedThread?.transcript)
   })
 
   it('switches between Workspace, Projects and Assets without changing conversation state', () => {
@@ -847,7 +889,7 @@ describe('demo store logic', () => {
       ),
     )
 
-    expect(seedProjects[0]?.id).toBe('antibody-optimization')
+    expect(seedProjects[0]?.id).toBe('pipeline-build')
     expect(state.selectedThreadId).toBeNull()
     expect(state.isDraftingNewThread).toBe(true)
     expect(pipelineProject?.name).toBe('Pipeline Build')
@@ -1307,6 +1349,7 @@ describe('demo store logic', () => {
 
     expect(firstThread).toMatchObject({
       id: 'thread-new',
+      routeId: expect.stringMatching(/^[a-z0-9]{16}$/),
       title: '评估 EGFR 新候选抗体',
       lastActivityAt: now + 1000,
       pinned: false,
@@ -1343,22 +1386,28 @@ describe('demo store logic', () => {
       ),
       draft: draftText,
     }
-    const beforeCount = selected.projects[1].threads.length
+    const beforeCount =
+      selected.projects.find((project) => project.id === 'enzyme-discovery')
+        ?.threads.length ?? 0
 
     const next = submitDraftSnapshot(selected, now + 5000, () => 'unused-id')
+    const enzymeProject = next.projects.find(
+      (project) => project.id === 'enzyme-discovery',
+    )
+    const selectedThread = findThreadById(next.projects, 'enzyme-full-loop')?.thread
 
-    expect(next.projects[1].threads).toHaveLength(beforeCount)
-    expect(next.projects[1].threads[0].id).toBe('enzyme-full-loop')
-    expect(next.projects[1].threads[0].lastActivityAt).toBe(now + 5000)
+    expect(enzymeProject?.threads).toHaveLength(beforeCount)
+    expect(selectedThread?.id).toBe('enzyme-full-loop')
+    expect(selectedThread?.lastActivityAt).toBe(now + 5000)
     expect(next.selectedThreadId).toBe('enzyme-full-loop')
     expect(next.isDraftingNewThread).toBe(false)
     expect(next.draft).toBe('')
     expect(next.statusMessage).toBe('')
-    expect(next.projects[1].threads[0].transcript.at(-2)).toMatchObject({
+    expect(selectedThread?.transcript.at(-2)).toMatchObject({
       role: 'user',
       markdown: draftText,
     })
-    expect(next.projects[1].threads[0].transcript.at(-1)).toMatchObject({
+    expect(selectedThread?.transcript.at(-1)).toMatchObject({
       role: 'mainAgent',
       markdown:
         '已记录到当前对话。本次输入已加入线程历史，当前未触发新的 BioMap OS 操作。',

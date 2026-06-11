@@ -1,6 +1,7 @@
 import type {
   ConversationBlock,
   ConversationRole,
+  ReplayRunInspectorMarker,
   ConversationTurn,
   RunInspectorApprovalItem,
   RunInspectorData,
@@ -13,6 +14,7 @@ export type ThreadReplayStep =
       turnId: string
       role: ConversationRole
       kind: 'turn'
+      replayRunInspector?: ReplayRunInspectorMarker
     }
   | {
       id: string
@@ -20,6 +22,7 @@ export type ThreadReplayStep =
       role: ConversationRole
       kind: 'markdown'
       markdownSegmentIndex: number
+      replayRunInspector?: ReplayRunInspectorMarker
     }
   | {
       id: string
@@ -28,6 +31,7 @@ export type ThreadReplayStep =
       kind: 'block'
       blockIndex: number
       block: ConversationBlock
+      replayRunInspector?: ReplayRunInspectorMarker
     }
 
 export type MarkdownSegment =
@@ -80,6 +84,7 @@ export function buildThreadReplaySteps(
           role: turn.role,
           kind: 'markdown',
           markdownSegmentIndex: index,
+          replayRunInspector: turn.replayRunInspector,
         }) satisfies ThreadReplayStep,
     )
     const blockSteps =
@@ -92,6 +97,10 @@ export function buildThreadReplaySteps(
             kind: 'block',
             blockIndex: index,
             block,
+            replayRunInspector: mergeReplayRunInspectorMarkers(
+              turn.replayRunInspector,
+              getBlockReplayRunInspectorMarker(block),
+            ),
         }) satisfies ThreadReplayStep,
       ) ?? []
     const steps: ThreadReplayStep[] = [...markdownSteps, ...blockSteps]
@@ -106,6 +115,7 @@ export function buildThreadReplaySteps(
         turnId: turn.id,
         role: turn.role,
         kind: 'turn',
+        replayRunInspector: turn.replayRunInspector,
       } satisfies ThreadReplayStep,
     ]
   })
@@ -206,8 +216,8 @@ export function deriveReplayRunInspector(
     return fullInspector
   }
 
-  const visibleBlocks = steps
-    .slice(0, Math.max(0, visibleCount))
+  const visibleSteps = steps.slice(0, Math.max(0, visibleCount))
+  const visibleBlocks = visibleSteps
     .filter((step): step is Extract<ThreadReplayStep, { kind: 'block' }> => {
       return step.kind === 'block'
     })
@@ -218,6 +228,15 @@ export function deriveReplayRunInspector(
   const visibleApprovalSpecs: VisibleApprovalSpec[] = []
   const completedProgressIdentifiers = new Set<string>()
   let activeProgressIdentifier: string | undefined
+
+  visibleSteps.forEach((step) => {
+    step.replayRunInspector?.completedProgressIds?.forEach((id) => {
+      completedProgressIdentifiers.add(id)
+    })
+    if (step.replayRunInspector?.activeProgressId) {
+      activeProgressIdentifier = step.replayRunInspector.activeProgressId
+    }
+  })
 
   visibleBlocks.forEach((block) => {
     if (block.type === 'capabilityRunReplay') {
@@ -282,6 +301,40 @@ export function deriveReplayRunInspector(
     outputs,
     approvals,
     capabilityRuns,
+  }
+}
+
+function getBlockReplayRunInspectorMarker(
+  block: ConversationBlock,
+): ReplayRunInspectorMarker | undefined {
+  if (
+    block.type === 'capabilityRunReplay' ||
+    block.type === 'humanConfirmation'
+  ) {
+    return block.replayRunInspector
+  }
+
+  return undefined
+}
+
+function mergeReplayRunInspectorMarkers(
+  turnMarker: ReplayRunInspectorMarker | undefined,
+  blockMarker: ReplayRunInspectorMarker | undefined,
+): ReplayRunInspectorMarker | undefined {
+  const completedProgressIds = [
+    ...(turnMarker?.completedProgressIds ?? []),
+    ...(blockMarker?.completedProgressIds ?? []),
+  ]
+  const activeProgressId =
+    blockMarker?.activeProgressId ?? turnMarker?.activeProgressId
+
+  if (!completedProgressIds.length && !activeProgressId) {
+    return undefined
+  }
+
+  return {
+    ...(completedProgressIds.length ? { completedProgressIds } : {}),
+    ...(activeProgressId ? { activeProgressId } : {}),
   }
 }
 
