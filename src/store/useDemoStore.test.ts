@@ -307,6 +307,30 @@ describe('demo store persistence', () => {
     expect(useDemoStore.getState().assetsExperimentViewMode).toBe('grid')
   })
 
+  it('persists Knowledge Base asset navigation and sanitizes invalid pairs during hydrate', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        activeTopNav: 'Assets',
+        assetsActiveSection: 'knowledge',
+        assetsActiveItem: 'project-files',
+      },
+      version: demoStorePersistVersion,
+    })
+
+    expect(useDemoStore.getState().assetsActiveSection).toBe('knowledge')
+    expect(useDemoStore.getState().assetsActiveItem).toBe('all-knowledge')
+
+    useDemoStore.getState().setAssetsSelection('knowledge', 'rag')
+
+    const { demoStorePersistKey } = await import('./useDemoStore')
+    const persistedPayload = JSON.parse(localStorage.getItem(demoStorePersistKey) ?? '{}')
+
+    expect(persistedPayload.state.assetsActiveSection).toBe('knowledge')
+    expect(persistedPayload.state.assetsActiveItem).toBe('rag')
+  })
+
   it('hydrates Projects as a valid top navigation destination', async () => {
     const { demoStorePersistVersion } = await import('./useDemoStore')
     const { useDemoStore } = await loadStoreWithPersistedState({

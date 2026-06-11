@@ -4,6 +4,7 @@ import type {
   DataAssetItemId,
   ExperimentAssetItemId,
   FileAssetItemId,
+  KnowledgeAssetItemId,
   ModelAssetItemId,
 } from '../store/demoStoreLogic'
 
@@ -52,6 +53,41 @@ export type DataAssetRecord = {
   rows: string
   updatedAt: string
   description: string
+}
+
+export type KnowledgeBaseKind = 'rag' | 'knowledgeGraph' | 'graphRag'
+export type KnowledgeBaseStatus = '已构建' | '构建中' | '需重建' | '失败'
+
+export type KnowledgeBaseSourceFile = {
+  name: string
+  kind: string
+  role: string
+  updatedAt: string
+}
+
+export type KnowledgeBaseVersion = {
+  version: string
+  builtAt: string
+  changeSummary: string
+  status: KnowledgeBaseStatus
+}
+
+export type KnowledgeBaseRecord = {
+  id: string
+  name: string
+  category: Exclude<KnowledgeAssetItemId, 'all-knowledge'>
+  kind: KnowledgeBaseKind
+  scope: AssetScope
+  projectName?: string
+  owner: string
+  status: KnowledgeBaseStatus
+  updatedAt: string
+  description: string
+  overview: string
+  entitySummary: string
+  relationshipSummary: string
+  sourceFiles: KnowledgeBaseSourceFile[]
+  versions: KnowledgeBaseVersion[]
 }
 
 export type ExperimentAssetKind =
@@ -297,6 +333,17 @@ export const assetMenuSections: AssetMenuSection[] = [
     ],
   },
   {
+    id: 'knowledge',
+    label: '知识库',
+    description: 'RAG、知识图谱与 GraphRAG 知识资产',
+    items: [
+      { id: 'all-knowledge', label: '全部知识库' },
+      { id: 'rag', label: 'RAG' },
+      { id: 'knowledge-graph', label: '知识图谱' },
+      { id: 'graph-rag', label: 'GraphRAG' },
+    ],
+  },
+  {
     id: 'data',
     label: '数据',
     description: '结构化数据资产',
@@ -518,6 +565,336 @@ export const dataAssetRecords: DataAssetRecord[] = [
     rows: '186 entries',
     updatedAt: '昨天',
     description: '组织内可复用的抗体、蛋白与实验数据目录',
+  },
+]
+
+export const knowledgeBaseRecords: KnowledgeBaseRecord[] = [
+  {
+    id: 'kb-egfr-antibody-affinity-graphrag',
+    name: 'EGFR 抗体亲和力优化知识库',
+    category: 'graph-rag',
+    kind: 'graphRag',
+    scope: 'project',
+    projectName: 'Antibody Optimization',
+    owner: 'Main Agent',
+    status: '已构建',
+    updatedAt: '18 分钟前',
+    description: '面向 EGFR 抗体亲和力成熟的候选、实验、报告与配方 GraphRAG 知识资产。',
+    overview:
+      '将 parent antibody 基线、BLI 复测、SEC-HPLC 质控、多目标优化候选和 CRO 订单草稿统一索引，供 BioMap Agent 回答候选排序、实验追溯和下一轮设计问题。',
+    entitySummary:
+      '覆盖 EGFR-P0、AF-14、AF-21、AF-38、AF-52 等抗体实体，包含 KD、ka/kd、monomer%、表达量、CDR 突变位点、订单、报告与配方节点。',
+    relationshipSummary:
+      '连接候选分子、测定批次、BLI 曲线、SEC-HPLC 图、MOO 评分和实验订单，支持从设计理由追溯到湿实验读数和文件证据。',
+    sourceFiles: [
+      {
+        name: 'EGFR_parent_antibody_baseline.xlsx',
+        kind: 'xlsx',
+        role: 'parent antibody 基线与历史读数',
+        updatedAt: '2 分钟前',
+      },
+      {
+        name: 'BLI_run_0528.csv',
+        kind: 'csv',
+        role: 'BLI sensorgram 原始曲线',
+        updatedAt: '16 分钟前',
+      },
+      {
+        name: 'EGFR_MOO_candidate_summary.parquet',
+        kind: 'parquet',
+        role: '多目标优化候选摘要',
+        updatedAt: '32 分钟前',
+      },
+      {
+        name: 'BM-LAB-EGFR-20260528-001_draft.md',
+        kind: 'md',
+        role: '湿实验订单草稿',
+        updatedAt: '39 分钟前',
+      },
+      {
+        name: 'SEC_HPLC_overlay.png',
+        kind: 'png',
+        role: '聚集峰对齐图',
+        updatedAt: '1 小时前',
+      },
+      {
+        name: 'BLI_KD_v2_recipe.md',
+        kind: 'md',
+        role: 'BLI KD 测定配方',
+        updatedAt: '昨天',
+      },
+    ],
+    versions: [
+      {
+        version: 'v1.3',
+        builtAt: '2026-06-02 18:12',
+        changeSummary: '加入 AF-52 BLI 复测曲线和 SEC-HPLC overlay 证据。',
+        status: '已构建',
+      },
+      {
+        version: 'v1.2',
+        builtAt: '2026-05-31 21:40',
+        changeSummary: '接入 MOO candidate summary 与 CRO 订单草稿。',
+        status: '已构建',
+      },
+    ],
+  },
+  {
+    id: 'kb-xtrimo-api-model-calls',
+    name: 'xTrimo API 与模型调用知识库',
+    category: 'rag',
+    kind: 'rag',
+    scope: 'public',
+    owner: 'Model Team',
+    status: '已构建',
+    updatedAt: '2 小时前',
+    description: '组织级 xTrimo 模型 API、输入输出 schema、配额和调用示例 RAG。',
+    overview:
+      '汇总 xTrimo Gene、Monomer、Ab Affinity、Aggregation、EnzymeKcat 等模型的调用规范，帮助 Agent 选择模型、校验输入并生成可执行请求。',
+    entitySummary:
+      '包含模型名称、版本、输入实体类型、输出字段、限制、token 配额、错误码和示例 payload。',
+    relationshipSummary:
+      '建立任务意图、模型能力、输入数据资产和返回 artifact 之间的检索关系，支持从自然语言请求定位可调用模型。',
+    sourceFiles: [
+      {
+        name: 'xTrimo_API_Guide.pdf',
+        kind: 'pdf',
+        role: 'API 总览与鉴权说明',
+        updatedAt: '2 天前',
+      },
+      {
+        name: 'xTrimo_model_io_schema.json',
+        kind: 'json',
+        role: '模型输入输出 schema',
+        updatedAt: '昨天',
+      },
+      {
+        name: 'xTrimo_agent_call_examples.md',
+        kind: 'md',
+        role: 'Agent 调用示例',
+        updatedAt: '昨天',
+      },
+    ],
+    versions: [
+      {
+        version: 'v2.1',
+        builtAt: '2026-06-02 16:20',
+        changeSummary: '新增 antibody naturalness 与 patentability 调用示例。',
+        status: '已构建',
+      },
+      {
+        version: 'v2.0',
+        builtAt: '2026-05-29 10:15',
+        changeSummary: '对齐 Model Hub 最新模型列表和错误码。',
+        status: '已构建',
+      },
+    ],
+  },
+  {
+    id: 'kb-cro-service-order-sop',
+    name: 'CRO 实验服务与订单 SOP',
+    category: 'rag',
+    kind: 'rag',
+    scope: 'public',
+    owner: 'CRO Ops',
+    status: '已构建',
+    updatedAt: '昨天',
+    description: 'CRO 服务目录、订单字段、审批节点和回传格式的公共 SOP 知识库。',
+    overview:
+      '为 Agent 生成湿实验订单、检查样本边界、解释 CRO SLA 和回传文件格式提供标准化检索依据。',
+    entitySummary:
+      '包含 BLI、SEC-HPLC、DSF、表达纯化、细胞活性等服务项，以及订单模板、审批角色、样本要求和交付物类型。',
+    relationshipSummary:
+      '关联实验服务、读数指标、样本类型、设备路线、SLA、价格区间和结果包 schema，支持订单草稿自动校验。',
+    sourceFiles: [
+      {
+        name: 'CRO_Assay_Catalog.xlsx',
+        kind: 'xlsx',
+        role: '服务目录与价格区间',
+        updatedAt: '昨天',
+      },
+      {
+        name: 'CRO_order_submission_sop.md',
+        kind: 'md',
+        role: '订单提交 SOP',
+        updatedAt: '2 天前',
+      },
+      {
+        name: 'wetlab_result_package_schema.json',
+        kind: 'json',
+        role: '结果包 schema',
+        updatedAt: '3 天前',
+      },
+    ],
+    versions: [
+      {
+        version: 'v1.4',
+        builtAt: '2026-06-01 09:30',
+        changeSummary: '更新 BLI KD v2 和 SEC-HPLC QC 交付物要求。',
+        status: '已构建',
+      },
+      {
+        version: 'v1.3',
+        builtAt: '2026-05-24 14:10',
+        changeSummary: '补充 CRO 接单状态与审批节点说明。',
+        status: '已构建',
+      },
+    ],
+  },
+  {
+    id: 'kb-antibody-developability-kg',
+    name: '抗体 Developability 知识图谱',
+    category: 'knowledge-graph',
+    kind: 'knowledgeGraph',
+    scope: 'public',
+    owner: 'Biologics Platform',
+    status: '已构建',
+    updatedAt: '3 小时前',
+    description: '抗体可开发性风险、序列特征、实验指标和缓解策略的公共知识图谱。',
+    overview:
+      '沉淀抗体工程项目中的 developability 规则，支持 Agent 解释聚集、疏水、免疫原性、表达和稳定性风险。',
+    entitySummary:
+      '包含 CDR/FR 区域、疏水 patch、糖基化位点、等电点、TM、aggregation、expression titer、PTM 和风险标签。',
+    relationshipSummary:
+      '连接序列 motif、结构区域、实验 readout、风险等级和优化策略，支持从候选序列推理到设计建议。',
+    sourceFiles: [
+      {
+        name: 'antibody_developability_rules.xlsx',
+        kind: 'xlsx',
+        role: '规则与阈值表',
+        updatedAt: '3 小时前',
+      },
+      {
+        name: 'developability_risk_examples.md',
+        kind: 'md',
+        role: '风险解释案例',
+        updatedAt: '昨天',
+      },
+      {
+        name: 'ab_feature_graph_edges.parquet',
+        kind: 'parquet',
+        role: '图谱边表',
+        updatedAt: '昨天',
+      },
+    ],
+    versions: [
+      {
+        version: 'v3.0',
+        builtAt: '2026-06-02 15:05',
+        changeSummary: '加入 antibody specificity 与 patentability 风险关系。',
+        status: '已构建',
+      },
+      {
+        version: 'v2.8',
+        builtAt: '2026-05-27 12:00',
+        changeSummary: '更新 aggregation 和 hydrophobicity 阈值。',
+        status: '已构建',
+      },
+    ],
+  },
+  {
+    id: 'kb-enzyme-family-annotation-graphrag',
+    name: '酶家族功能注释知识库',
+    category: 'graph-rag',
+    kind: 'graphRag',
+    scope: 'project',
+    projectName: 'Enzyme Discovery',
+    owner: 'Enzyme Agent',
+    status: '构建中',
+    updatedAt: '25 分钟前',
+    description: '酶家族序列、结构、底物谱和活性证据的项目级 GraphRAG。',
+    overview:
+      '围绕工业酶发现项目，把家族聚类、保守位点、底物适配、结构模型和活性筛选记录串联为可检索知识资产。',
+    entitySummary:
+      '包含 enzyme family、UniProt hit、active-site residue、substrate、pH/Tm、kcat、structure model 和 assay batch 节点。',
+    relationshipSummary:
+      '连接序列簇、功能注释、结构口袋、底物类别和实验活性，用于解释候选酶排名和下一轮突变设计。',
+    sourceFiles: [
+      {
+        name: 'enzyme_family_hits.fasta',
+        kind: 'fasta',
+        role: '候选酶序列集合',
+        updatedAt: '25 分钟前',
+      },
+      {
+        name: 'enzyme_activity_screen.csv',
+        kind: 'csv',
+        role: '初筛活性数据',
+        updatedAt: '42 分钟前',
+      },
+      {
+        name: 'enzyme_structure_models.pdb.zip',
+        kind: 'zip',
+        role: '结构模型归档',
+        updatedAt: '1 小时前',
+      },
+    ],
+    versions: [
+      {
+        version: 'v0.7',
+        builtAt: '2026-06-02 17:58',
+        changeSummary: '正在抽取活性位点和底物谱关系。',
+        status: '构建中',
+      },
+      {
+        version: 'v0.6',
+        builtAt: '2026-06-01 22:45',
+        changeSummary: '完成序列聚类和 UniProt 注释导入。',
+        status: '已构建',
+      },
+    ],
+  },
+  {
+    id: 'kb-sec-hplc-bli-interpretation',
+    name: 'SEC-HPLC 与 BLI 数据解释知识库',
+    category: 'rag',
+    kind: 'rag',
+    scope: 'project',
+    projectName: 'Data Assetization',
+    owner: 'Data Agent',
+    status: '需重建',
+    updatedAt: '1 小时前',
+    description: 'SEC-HPLC 与 BLI 数据质控、曲线解释和报告模板的项目级 RAG。',
+    overview:
+      '服务数据资产化 demo，将原始曲线、QC summary、解释模板和异常案例组织为可追溯检索资产；因新增曲线拟合字段，当前需重建索引。',
+    entitySummary:
+      '包含 sensorgram、KD、ka、kd、Rmax、monomer%、aggregate peak、baseline drift、QC flag 和 report section。',
+    relationshipSummary:
+      '关联原始读数、拟合参数、异常类型、图表证据和报告段落，帮助 Agent 解释数据质量与候选可信度。',
+    sourceFiles: [
+      {
+        name: 'BLI_sensorgram_curves.csv',
+        kind: 'csv',
+        role: 'BLI 曲线明细',
+        updatedAt: '1 小时前',
+      },
+      {
+        name: 'SEC_HPLC_QC_summary.xlsx',
+        kind: 'xlsx',
+        role: 'SEC-HPLC 质控汇总',
+        updatedAt: '1 小时前',
+      },
+      {
+        name: 'BLI_SEC_interpretation_templates.md',
+        kind: 'md',
+        role: '解释模板',
+        updatedAt: '2 天前',
+      },
+    ],
+    versions: [
+      {
+        version: 'v1.1',
+        builtAt: '2026-06-01 18:30',
+        changeSummary: '新增 baseline drift 异常案例后等待重建。',
+        status: '需重建',
+      },
+      {
+        version: 'v1.0',
+        builtAt: '2026-05-28 11:20',
+        changeSummary: '初始导入 BLI 与 SEC-HPLC 解释模板。',
+        status: '已构建',
+      },
+    ],
   },
 ]
 

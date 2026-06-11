@@ -10,6 +10,7 @@ import {
   getRecentThreadEntries,
   getSearchView,
   renameThreadSnapshot,
+  sanitizeDemoState,
   selectTopNavSnapshot,
   selectThreadSnapshot,
   setAssetsExperimentViewModeSnapshot,
@@ -179,6 +180,33 @@ describe('demo store logic', () => {
     expect(selectedExperiment.assetsActiveItem).toBe('execution')
     expect(gridMode.assetsFileViewMode).toBe('grid')
     expect(experimentTableMode.assetsExperimentViewMode).toBe('table')
+  })
+
+  it('selects Knowledge Base asset menu items as plain state', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const allKnowledge = setAssetsSelectionSnapshot(
+      state,
+      'knowledge',
+      'all-knowledge',
+    )
+    const rag = setAssetsSelectionSnapshot(allKnowledge, 'knowledge', 'rag')
+
+    expect(allKnowledge.assetsActiveSection).toBe('knowledge')
+    expect(allKnowledge.assetsActiveItem).toBe('all-knowledge')
+    expect(rag.assetsActiveSection).toBe('knowledge')
+    expect(rag.assetsActiveItem).toBe('rag')
+  })
+
+  it('sanitizes invalid persisted Knowledge Base asset menu pairs', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const sanitized = sanitizeDemoState({
+      ...state,
+      assetsActiveSection: 'knowledge',
+      assetsActiveItem: 'project-files',
+    })
+
+    expect(sanitized.assetsActiveSection).toBe('knowledge')
+    expect(sanitized.assetsActiveItem).toBe('all-knowledge')
   })
 
   it('toggles the persisted sidebar collapsed state without changing Thread selection', () => {

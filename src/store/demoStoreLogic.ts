@@ -39,13 +39,19 @@ export type DemoStateSnapshot = {
 
 export type ActiveTopNav = 'Workspace' | 'Projects' | 'Assets' | 'Capabilities'
 
-export type AssetsSection = 'file' | 'data' | 'experiment' | 'model'
+export type AssetsSection = 'file' | 'knowledge' | 'data' | 'experiment' | 'model'
 
 export type FileAssetItemId =
   | 'public-files'
   | 'project-files'
   | 'recent-uploads'
   | 'archived-files'
+
+export type KnowledgeAssetItemId =
+  | 'all-knowledge'
+  | 'rag'
+  | 'knowledge-graph'
+  | 'graph-rag'
 
 export type DataAssetItemId =
   | 'datasets'
@@ -68,6 +74,7 @@ export type ModelAssetItemId =
 
 export type AssetMenuItemId =
   | FileAssetItemId
+  | KnowledgeAssetItemId
   | DataAssetItemId
   | ExperimentAssetItemId
   | ModelAssetItemId
@@ -90,11 +97,12 @@ const minute = 60 * 1000
 const hour = 60 * minute
 const day = 24 * hour
 const activeTopNavItems = ['Workspace', 'Projects', 'Assets', 'Capabilities'] as const
-const assetsSections = ['file', 'data', 'experiment', 'model'] as const
+const assetsSections = ['file', 'knowledge', 'data', 'experiment', 'model'] as const
 const assetsFileViewModes = ['list', 'grid'] as const
 const assetsExperimentViewModes = ['grid', 'table'] as const
 const assetMenuItemsBySection = {
   file: ['public-files', 'project-files', 'recent-uploads', 'archived-files'],
+  knowledge: ['all-knowledge', 'rag', 'knowledge-graph', 'graph-rag'],
   data: ['datasets', 'tables', 'analysis-results', 'catalog'],
   experiment: ['experiment-list', 'execution', 'inventory', 'equipment', 'recipe'],
   model: ['xtrimo', 'public-models', 'project-models', 'oracles'],
