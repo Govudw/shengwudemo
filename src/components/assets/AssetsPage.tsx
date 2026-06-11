@@ -6,6 +6,7 @@ import {
   fileAssetRecords,
   getAssetMenuItem,
   isFileAssetItem,
+  knowledgeBaseRecords,
   modelAssetRecords,
   projectFileFolders,
   xtrimoModelRecords,
@@ -15,6 +16,9 @@ import type {
   ExperimentAssetRecord,
   ExperimentAssetKind,
   FileAssetRecord,
+  KnowledgeBaseKind,
+  KnowledgeBaseRecord,
+  KnowledgeBaseStatus,
   ModelAssetRecord,
   XtrimoCapability,
   XtrimoEntity,
@@ -26,6 +30,7 @@ import type {
   AssetsExperimentViewMode,
   AssetsFileViewMode,
   AssetsSection,
+  KnowledgeAssetItemId,
 } from '../../store/demoStoreLogic'
 import {
   ArchiveIcon,
@@ -58,6 +63,8 @@ const assetScopeLabel = {
   project: '项目范围',
 } as const
 
+type KnowledgeDetailTab = 'overview' | 'files' | 'versions'
+
 function AssetsPage({
   activeSection,
   activeItem,
@@ -74,15 +81,23 @@ function AssetsPage({
   const [newMenuOpen, setNewMenuOpen] = useState(false)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
+  const [selectedKnowledgeBaseId, setSelectedKnowledgeBaseId] = useState<string | null>(
+    null,
+  )
+  const [selectedKnowledgeTab, setSelectedKnowledgeTab] =
+    useState<KnowledgeDetailTab>('overview')
   const activeItemMeta = getAssetMenuItem(activeSection, activeItem)
   const isXtrimoView = activeSection === 'model' && activeItem === 'xtrimo'
   const isExperimentView = activeSection === 'experiment'
+  const isKnowledgeView = activeSection === 'knowledge'
   const newAssetActions = getNewAssetMenuActions(activeSection, activeItem)
 
   function handleSelection(section: AssetsSection, item: AssetMenuItemId) {
     setQuery('')
     setNewMenuOpen(false)
     setMoreMenuOpen(false)
+    setSelectedKnowledgeBaseId(null)
+    setSelectedKnowledgeTab('overview')
     onSelectionChange(section, item)
   }
 
@@ -231,9 +246,21 @@ function AssetsPage({
             <label className="assets-search">
               <SearchIcon className="assets-search__icon" />
               <input
-                aria-label={isExperimentView ? '搜索实验资产' : '搜索当前资产'}
+                aria-label={
+                  isKnowledgeView
+                    ? '搜索知识库'
+                    : isExperimentView
+                      ? '搜索实验资产'
+                      : '搜索当前资产'
+                }
                 value={query}
-                placeholder={isExperimentView ? '搜索实验资产' : '搜索当前资产'}
+                placeholder={
+                  isKnowledgeView
+                    ? '搜索知识库'
+                    : isExperimentView
+                      ? '搜索实验资产'
+                      : '搜索当前资产'
+                }
                 onChange={(event) => setQuery(event.target.value)}
               />
             </label>
@@ -283,6 +310,17 @@ function AssetsPage({
           experimentViewMode={experimentViewMode}
           openFolderId={openFolderId}
           query={query}
+          selectedKnowledgeBaseId={selectedKnowledgeBaseId}
+          selectedKnowledgeTab={selectedKnowledgeTab}
+          onKnowledgeBaseSelect={(recordId) => {
+            setSelectedKnowledgeBaseId(recordId)
+            setSelectedKnowledgeTab('overview')
+          }}
+          onKnowledgeBaseBack={() => {
+            setSelectedKnowledgeBaseId(null)
+            setSelectedKnowledgeTab('overview')
+          }}
+          onKnowledgeTabChange={setSelectedKnowledgeTab}
           onQueryChange={setQuery}
           onOpenFolderChange={onOpenFolderChange}
           onNotify={onNotify}
@@ -346,6 +384,11 @@ function AssetContent({
   experimentViewMode,
   openFolderId,
   query,
+  selectedKnowledgeBaseId,
+  selectedKnowledgeTab,
+  onKnowledgeBaseSelect,
+  onKnowledgeBaseBack,
+  onKnowledgeTabChange,
   onQueryChange,
   onOpenFolderChange,
   onNotify,
@@ -355,6 +398,11 @@ function AssetContent({
   experimentViewMode: AssetsExperimentViewMode
   openFolderId: string | null
   query: string
+  selectedKnowledgeBaseId: string | null
+  selectedKnowledgeTab: KnowledgeDetailTab
+  onKnowledgeBaseSelect: (recordId: string) => void
+  onKnowledgeBaseBack: () => void
+  onKnowledgeTabChange: (tab: KnowledgeDetailTab) => void
   onQueryChange: (query: string) => void
   onOpenFolderChange: (folderId: string | null) => void
   onNotify: (message: string) => void
@@ -367,6 +415,21 @@ function AssetContent({
         openFolderId={openFolderId}
         query={query}
         onOpenFolderChange={onOpenFolderChange}
+        onNotify={onNotify}
+      />
+    )
+  }
+
+  if (isKnowledgeBaseItem(activeItem)) {
+    return (
+      <KnowledgeBaseAssetsView
+        item={activeItem}
+        query={query}
+        selectedRecordId={selectedKnowledgeBaseId}
+        selectedTab={selectedKnowledgeTab}
+        onRecordSelect={onKnowledgeBaseSelect}
+        onBack={onKnowledgeBaseBack}
+        onTabChange={onKnowledgeTabChange}
         onNotify={onNotify}
       />
     )
@@ -536,6 +599,350 @@ function DataAssetsView({
       </div>
       {records.length === 0 ? <EmptyState /> : null}
     </section>
+  )
+}
+
+const knowledgeKindLabels: Record<KnowledgeBaseKind, string> = {
+  rag: 'RAG',
+  knowledgeGraph: '知识图谱',
+  graphRag: 'GraphRAG',
+}
+
+const knowledgeStatusOptions: (KnowledgeBaseStatus | 'all')[] = [
+  'all',
+  '已构建',
+  '构建中',
+  '需重建',
+  '失败',
+]
+
+function KnowledgeBaseAssetsView({
+  item,
+  query,
+  selectedRecordId,
+  selectedTab,
+  onRecordSelect,
+  onBack,
+  onTabChange,
+  onNotify,
+}: {
+  item: KnowledgeAssetItemId
+  query: string
+  selectedRecordId: string | null
+  selectedTab: KnowledgeDetailTab
+  onRecordSelect: (recordId: string) => void
+  onBack: () => void
+  onTabChange: (tab: KnowledgeDetailTab) => void
+  onNotify: (message: string) => void
+}) {
+  const [selectedScope, setSelectedScope] = useState<KnowledgeBaseRecord['scope'] | 'all'>(
+    'all',
+  )
+  const [selectedStatus, setSelectedStatus] = useState<KnowledgeBaseStatus | 'all'>(
+    'all',
+  )
+  const selectedRecord = selectedRecordId
+    ? knowledgeBaseRecords.find((record) => record.id === selectedRecordId)
+    : null
+
+  if (selectedRecord) {
+    return (
+      <KnowledgeBaseDetailView
+        record={selectedRecord}
+        selectedTab={selectedTab}
+        onBack={onBack}
+        onTabChange={onTabChange}
+      />
+    )
+  }
+
+  const records = knowledgeBaseRecords.filter(
+    (record) =>
+      (item === 'all-knowledge' || record.category === item) &&
+      (selectedScope === 'all' || record.scope === selectedScope) &&
+      (selectedStatus === 'all' || record.status === selectedStatus) &&
+      knowledgeBaseMatches(record, query),
+  )
+
+  return (
+    <section className="assets-content knowledge-assets">
+      <div className="knowledge-filter-bar" aria-label="知识库筛选">
+        <div className="knowledge-filter-row">
+          <span>范围</span>
+          <button
+            type="button"
+            className={selectedScope === 'all' ? 'active' : ''}
+            aria-pressed={selectedScope === 'all'}
+            onClick={() => setSelectedScope('all')}
+          >
+            全部范围
+          </button>
+          <button
+            type="button"
+            className={selectedScope === 'public' ? 'active' : ''}
+            aria-pressed={selectedScope === 'public'}
+            onClick={() => setSelectedScope('public')}
+          >
+            公开范围
+          </button>
+          <button
+            type="button"
+            className={selectedScope === 'project' ? 'active' : ''}
+            aria-pressed={selectedScope === 'project'}
+            onClick={() => setSelectedScope('project')}
+          >
+            项目范围
+          </button>
+        </div>
+        <div className="knowledge-filter-row">
+          <span>状态</span>
+          {knowledgeStatusOptions.map((status) => (
+            <button
+              type="button"
+              key={status}
+              className={selectedStatus === status ? 'active' : ''}
+              aria-pressed={selectedStatus === status}
+              onClick={() => setSelectedStatus(status)}
+            >
+              {status === 'all' ? '全部状态' : status}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <AssetListHeader title={getKnowledgeListTitle(item)} count={records.length} />
+      <div
+        className="assets-table knowledge-assets-table"
+        role="table"
+        aria-label="知识库列表"
+      >
+        <div className="assets-table__row assets-table__row--head knowledge-assets-table__row" role="row">
+          <span role="columnheader">名称</span>
+          <span role="columnheader">类型</span>
+          <span role="columnheader">范围</span>
+          <span role="columnheader">关联项目</span>
+          <span role="columnheader">文件数</span>
+          <span role="columnheader">实体 / 关系</span>
+          <span role="columnheader">最近构建</span>
+          <span role="columnheader">状态</span>
+          <span role="columnheader">操作</span>
+        </div>
+        {records.map((record) => (
+          <div
+            className="assets-table__row knowledge-assets-table__row knowledge-assets-table__row--body"
+            role="row"
+            key={record.id}
+            tabIndex={0}
+            onClick={() => onRecordSelect(record.id)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onRecordSelect(record.id)
+              }
+            }}
+          >
+            <span className="assets-table__name" role="cell">
+              <DatabaseIcon className="assets-record-card__icon" />
+              <span>
+                <strong>{record.name}</strong>
+                <small>{record.description}</small>
+              </span>
+            </span>
+            <span role="cell">{knowledgeKindLabels[record.kind]}</span>
+            <span role="cell">{assetScopeLabel[record.scope]}</span>
+            <span role="cell">{record.projectName ?? '公共资产'}</span>
+            <span role="cell">{record.sourceFiles.length}</span>
+            <span role="cell">{getKnowledgeEntityRelationSummary(record)}</span>
+            <span role="cell">{record.updatedAt}</span>
+            <span role="cell">
+              <span className={`knowledge-status knowledge-status--${getKnowledgeStatusTone(record.status)}`}>
+                {record.status}
+              </span>
+            </span>
+            <span role="cell">
+              <button
+                type="button"
+                className="assets-record-card__action knowledge-row-open"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onRecordSelect(record.id)
+                }}
+              >
+                打开 {record.name}
+              </button>
+            </span>
+          </div>
+        ))}
+      </div>
+      {records.length === 0 ? <EmptyState /> : null}
+      <button
+        type="button"
+        className="assets-record-card__action knowledge-build-placeholder"
+        onClick={() => onNotify('知识库构建尚未接入当前工作区')}
+      >
+        构建设置
+      </button>
+    </section>
+  )
+}
+
+function KnowledgeBaseDetailView({
+  record,
+  selectedTab,
+  onBack,
+  onTabChange,
+}: {
+  record: KnowledgeBaseRecord
+  selectedTab: KnowledgeDetailTab
+  onBack: () => void
+  onTabChange: (tab: KnowledgeDetailTab) => void
+}) {
+  return (
+    <section className="assets-content knowledge-detail">
+      <button
+        type="button"
+        className="assets-record-card__action knowledge-detail__back"
+        onClick={onBack}
+      >
+        返回知识库列表
+      </button>
+
+      <div className="knowledge-detail__summary">
+        <div>
+          <span className="knowledge-detail__eyebrow">
+            {knowledgeKindLabels[record.kind]} · {assetScopeLabel[record.scope]}
+          </span>
+          <h2>{record.name}</h2>
+          <p>{record.description}</p>
+        </div>
+        <div className="knowledge-detail__stats" aria-label="知识库摘要">
+          <span>
+            <strong>{record.sourceFiles.length}</strong>
+            文件
+          </span>
+          <span>
+            <strong>{record.versions[0]?.version ?? '-'}</strong>
+            当前版本
+          </span>
+          <span>
+            <strong>{record.status}</strong>
+            状态
+          </span>
+        </div>
+      </div>
+
+      <div className="knowledge-tabs" role="tablist" aria-label="知识库详情">
+        {knowledgeDetailTabs.map((tab) => (
+          <button
+            type="button"
+            role="tab"
+            key={tab.id}
+            aria-selected={selectedTab === tab.id}
+            className={selectedTab === tab.id ? 'active' : ''}
+            onClick={() => onTabChange(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {selectedTab === 'overview' ? <KnowledgeOverview record={record} /> : null}
+      {selectedTab === 'files' ? <KnowledgeSourceFilesTable record={record} /> : null}
+      {selectedTab === 'versions' ? <KnowledgeVersionsTable record={record} /> : null}
+    </section>
+  )
+}
+
+const knowledgeDetailTabs: { id: KnowledgeDetailTab; label: string }[] = [
+  { id: 'overview', label: '知识库概览' },
+  { id: 'files', label: '使用文件' },
+  { id: 'versions', label: '版本记录' },
+]
+
+function KnowledgeOverview({ record }: { record: KnowledgeBaseRecord }) {
+  return (
+    <div className="knowledge-detail-panel knowledge-overview">
+      <div className="knowledge-overview__bullets">
+        {splitKnowledgeOverview(record.overview).map((item) => (
+          <p key={item}>{item}</p>
+        ))}
+      </div>
+      <div className="knowledge-overview__summary">
+        <section>
+          <h3>实体摘要</h3>
+          <p>{record.entitySummary}</p>
+        </section>
+        <section>
+          <h3>关系摘要</h3>
+          <p>{record.relationshipSummary}</p>
+        </section>
+      </div>
+    </div>
+  )
+}
+
+function KnowledgeSourceFilesTable({ record }: { record: KnowledgeBaseRecord }) {
+  return (
+    <div
+      className="assets-table knowledge-detail-table"
+      role="table"
+      aria-label="知识库使用文件"
+    >
+      <div className="assets-table__row assets-table__row--head knowledge-detail-table__row" role="row">
+        <span role="columnheader">文件名</span>
+        <span role="columnheader">类型</span>
+        <span role="columnheader">用途</span>
+        <span role="columnheader">更新时间</span>
+      </div>
+      {record.sourceFiles.map((file) => (
+        <div
+          className="assets-table__row knowledge-detail-table__row"
+          role="row"
+          key={file.name}
+        >
+          <span className="assets-table__name" role="cell">
+            <FileKindIcon kind="projectFile" />
+            <span>
+              <strong>{file.name}</strong>
+            </span>
+          </span>
+          <span role="cell">{file.kind.toUpperCase()}</span>
+          <span role="cell">{file.role}</span>
+          <span role="cell">{file.updatedAt}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function KnowledgeVersionsTable({ record }: { record: KnowledgeBaseRecord }) {
+  return (
+    <div
+      className="assets-table knowledge-detail-table knowledge-versions-table"
+      role="table"
+      aria-label="知识库版本记录"
+    >
+      <div className="assets-table__row assets-table__row--head knowledge-detail-table__row" role="row">
+        <span role="columnheader">版本</span>
+        <span role="columnheader">构建轮次</span>
+        <span role="columnheader">构建时间</span>
+        <span role="columnheader">变更摘要</span>
+        <span role="columnheader">状态</span>
+      </div>
+      {record.versions.map((version) => (
+        <div
+          className="assets-table__row knowledge-detail-table__row"
+          role="row"
+          key={version.version}
+        >
+          <span role="cell">{version.version}</span>
+          <span role="cell">{getKnowledgeVersionBuildLabel(version.version)}</span>
+          <span role="cell">{version.builtAt}</span>
+          <span role="cell">{version.changeSummary}</span>
+          <span role="cell">{version.status}</span>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -1287,6 +1694,20 @@ function getNewAssetMenuActions(
   section: AssetsSection,
   item: AssetMenuItemId,
 ): { label: string; message: string }[] {
+  if (section === 'knowledge' && isKnowledgeBaseItem(item)) {
+    return [
+      { label: '新建 RAG 知识库', message: '新建 RAG 知识库尚未接入当前工作区' },
+      {
+        label: '新建知识图谱',
+        message: '新建知识图谱尚未接入当前工作区',
+      },
+      {
+        label: '新建 GraphRAG',
+        message: '新建 GraphRAG 尚未接入当前工作区',
+      },
+    ]
+  }
+
   if (section === 'experiment' && isExperimentAssetItem(item)) {
     if (item === 'experiment-list') {
       return [
@@ -1393,6 +1814,25 @@ function experimentMatches(record: ExperimentAssetRecord, query: string) {
   )
 }
 
+function knowledgeBaseMatches(record: KnowledgeBaseRecord, query: string) {
+  return matchesQuery(
+    [
+      record.name,
+      record.description,
+      record.overview,
+      record.entitySummary,
+      record.relationshipSummary,
+      record.owner,
+      record.status,
+      record.scope,
+      record.projectName ?? '',
+      knowledgeKindLabels[record.kind],
+      ...record.sourceFiles.map((file) => file.name),
+    ],
+    query,
+  )
+}
+
 function modelMatches(record: ModelAssetRecord, query: string) {
   return matchesQuery(
     [record.name, record.description, record.owner, record.status, record.scope],
@@ -1424,6 +1864,55 @@ function matchesQuery(values: string[], query: string) {
   return values.some((value) => value.toLowerCase().includes(normalizedQuery))
 }
 
+function getKnowledgeListTitle(item: KnowledgeAssetItemId) {
+  if (item === 'rag') {
+    return 'RAG 知识库'
+  }
+
+  if (item === 'knowledge-graph') {
+    return '知识图谱'
+  }
+
+  if (item === 'graph-rag') {
+    return 'GraphRAG 知识库'
+  }
+
+  return '全部知识库'
+}
+
+function getKnowledgeEntityRelationSummary(record: KnowledgeBaseRecord) {
+  return `${record.entitySummary.split('，')[0]} / ${record.relationshipSummary.split('，')[0]}`
+}
+
+function getKnowledgeStatusTone(status: KnowledgeBaseStatus) {
+  if (status === '已构建') {
+    return 'ready'
+  }
+
+  if (status === '构建中') {
+    return 'building'
+  }
+
+  if (status === '失败') {
+    return 'failed'
+  }
+
+  return 'stale'
+}
+
+function getKnowledgeVersionBuildLabel(version: string) {
+  const minorVersion = /^v\d+\.(\d+)/.exec(version)?.[1]
+
+  return minorVersion ? `v${minorVersion}` : version
+}
+
+function splitKnowledgeOverview(overview: string) {
+  return overview
+    .split('，')
+    .map((part) => part.trim())
+    .filter(Boolean)
+}
+
 type FileAssetRecordMenuItem = Extract<
   AssetMenuItemId,
   'public-files' | 'project-files' | 'recent-uploads' | 'archived-files'
@@ -1436,6 +1925,10 @@ function isExperimentAssetItem(
   return ['experiment-list', 'execution', 'inventory', 'equipment', 'recipe'].includes(
     item,
   )
+}
+
+function isKnowledgeBaseItem(item: AssetMenuItemId): item is KnowledgeAssetItemId {
+  return ['all-knowledge', 'rag', 'knowledge-graph', 'graph-rag'].includes(item)
 }
 
 export default AssetsPage

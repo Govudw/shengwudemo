@@ -816,6 +816,102 @@ describe('App Assets navigation', () => {
 
     root.unmount()
   })
+
+  it('renders the Knowledge Base asset list from the Assets navigation', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '知识库').click()
+    })
+
+    const assetsMain = getAssetsMain(container)
+    expect(assetsMain.querySelector('.assets-main__title h1')?.textContent).toBe(
+      '全部知识库',
+    )
+    expect(assetsMain.querySelector('.knowledge-assets-table')).not.toBeNull()
+    expect(assetsMain.textContent).toContain('EGFR 抗体亲和力优化知识库')
+    expect(assetsMain.textContent).toContain('GraphRAG')
+
+    root.unmount()
+  })
+
+  it('filters Knowledge Base assets from the RAG menu item', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '知识库').click()
+    })
+    act(() => {
+      getButton(container, 'RAG').click()
+    })
+
+    const assetsMain = getAssetsMain(container)
+    expect(assetsMain.querySelector('.knowledge-assets-table')).not.toBeNull()
+    expect(assetsMain.textContent).toContain('xTrimo API 与模型调用知识库')
+    expect(assetsMain.textContent).toContain('RAG')
+    expect(assetsMain.textContent).not.toContain('EGFR 抗体亲和力优化知识库')
+
+    root.unmount()
+  })
+
+  it('opens Knowledge Base detail tabs and returns to the list', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '知识库').click()
+    })
+    act(() => {
+      getButton(container, '打开 EGFR 抗体亲和力优化知识库').click()
+    })
+
+    let assetsMain = getAssetsMain(container)
+    expect(assetsMain.querySelector('[role="tablist"]')).not.toBeNull()
+    expect(getButton(assetsMain, '知识库概览').getAttribute('aria-selected')).toBe(
+      'true',
+    )
+    expect(assetsMain.textContent).toContain('覆盖 EGFR-P0')
+
+    act(() => {
+      getButton(assetsMain, '使用文件').click()
+    })
+
+    assetsMain = getAssetsMain(container)
+    expect(getButton(assetsMain, '使用文件').getAttribute('aria-selected')).toBe(
+      'true',
+    )
+    expect(assetsMain.textContent).toContain('EGFR_parent_antibody_baseline.xlsx')
+
+    act(() => {
+      getButton(assetsMain, '版本记录').click()
+    })
+
+    assetsMain = getAssetsMain(container)
+    expect(getButton(assetsMain, '版本记录').getAttribute('aria-selected')).toBe(
+      'true',
+    )
+    expect(assetsMain.textContent).toContain('v3')
+
+    act(() => {
+      getButton(assetsMain, '返回知识库列表').click()
+    })
+
+    assetsMain = getAssetsMain(container)
+    expect(assetsMain.querySelector('.assets-main__title h1')?.textContent).toBe(
+      '全部知识库',
+    )
+    expect(assetsMain.querySelector('.knowledge-assets-table')).not.toBeNull()
+
+    root.unmount()
+  })
 })
 
 describe('xTrimo model assets', () => {
@@ -1109,6 +1205,16 @@ function getButton(container: HTMLElement, name: string) {
   }
 
   return button
+}
+
+function getAssetsMain(container: HTMLElement) {
+  const assetsMain = container.querySelector<HTMLElement>('.assets-main')
+
+  if (!assetsMain) {
+    throw new Error('Assets main pane not found')
+  }
+
+  return assetsMain
 }
 
 function getComposerProjectButton(container: HTMLElement) {
