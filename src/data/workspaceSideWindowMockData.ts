@@ -1855,12 +1855,485 @@ The main delay is construction and QC wait: QC approval and sample barcode confi
   },
 ]
 
+const targetXDiscoveryFiles: SideWindowFileSeed[] = [
+  {
+    fileName: 'TargetX_research_brief.md',
+    directory: 'Design',
+    sourceLabel: 'Project Owner',
+    sizeLabel: '22 KB',
+    updatedAt: '2026-06-06 10:05',
+    statusLabel: '已保存',
+    content: `# Target-X Research Brief
+
+Objective: discover blocking IgG1 candidates against Target-X with human-like sequence space and low developability risk.
+
+Scope:
+- Build target profile from sequence, structure, epitope and antibody evidence.
+- Treat D2/D3 as an internal blocking hypothesis, not validated truth.
+- Prioritize D2/D3 binders while keeping full-length ECD binding.
+- Return 20 primary candidates, 4 backups and 4 controls for R1 wet lab execution.
+
+Hard constraints:
+- Do not auto-start R2 before R1 data returns.
+- Do not place high public-family similarity candidates in the primary set.
+- Preserve all uncertainty notes in the release package.`,
+  },
+  {
+    fileName: 'TargetX_target_profile.json',
+    directory: 'Design',
+    sourceLabel: 'BioDB Agent',
+    sizeLabel: '42 KB',
+    updatedAt: '2026-06-06 10:18',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        target: 'Target-X',
+        domains: ['D1', 'D2', 'D3'],
+        priorityEpitopeRegion: 'D2/D3',
+        structureAssets: 2,
+        homologCounterScreen: ['Family-Y ECD', 'Family-Z ECD'],
+        antigenStrategy: ['Ag-01 full ECD', 'Ag-02 D2/D3', 'Ag-03 homolog ECD', 'Ag-04 epitope mutant'],
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_evidence_network.json',
+    directory: 'Design',
+    sourceLabel: 'Evidence Graph Agent',
+    sizeLabel: '58 KB',
+    updatedAt: '2026-06-06 10:44',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        projectId: 'AB-Discovery-Target-X-001',
+        nodes: [
+          { id: 'internal_d2d3_note', type: 'internal_biology', confidence: 'hypothesis' },
+          { id: 'structure_d1d2d3', type: 'structure', confidence: 'mixed' },
+          { id: 'public_antibody_space', type: 'antibody_database', confidence: 'context' },
+          { id: 'patent_similarity', type: 'fto_guardrail', confidence: 'risk_control' },
+        ],
+        uncertainClaims: [
+          'D2/D3 functional blocking relevance requires wet-lab validation',
+          'Ag-02 fragment may lose conformational context',
+        ],
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_patent_similarity_review.md',
+    directory: 'Reports',
+    sourceLabel: 'Patent Intel Agent',
+    sizeLabel: '31 KB',
+    updatedAt: '2026-06-06 10:58',
+    statusLabel: '已保存',
+    content: `# Target-X Patent Similarity Review
+
+Policy for R1:
+- Public-family-inspired patterns can be used only as weak constraints.
+- High-similarity CDRH3 motifs are blocked from the primary set.
+- Two public families are marked as no-near-neighbor regions.
+
+Effect on candidates:
+- ABX-041 retained as backup only.
+- ABX-014, ABX-027 and ABX-033 remain primary candidates because similarity flags are low.`,
+  },
+  {
+    fileName: 'TargetX_antigen_strategy.md',
+    directory: 'Design',
+    sourceLabel: 'Design Agent',
+    sizeLabel: '34 KB',
+    updatedAt: '2026-06-06 11:02',
+    statusLabel: '已保存',
+    content: `# Target-X Antigen and Epitope Strategy
+
+Approved strategy:
+
+| Antigen | Role | Note |
+| --- | --- | --- |
+| Ag-01 full ECD | Conformational validation | Preserve native-like context |
+| Ag-02 D2/D3 | Primary screen | Blocking epitope focus |
+| Ag-03 homolog ECD | Counter-screen | Specificity control |
+| Ag-04 epitope mutant | Epitope grouping | Functional interpretation |
+
+The candidate package is locked for R1 transfer and does not authorize automatic next-round design.`,
+  },
+  {
+    fileName: 'TargetX_counter_screen_plan.json',
+    directory: 'Design',
+    sourceLabel: 'Design Agent',
+    sizeLabel: '24 KB',
+    updatedAt: '2026-06-06 11:08',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        counterScreens: [
+          { antigen: 'Ag-03 Family-Y ECD', purpose: 'homolog specificity exclusion' },
+          { antigen: 'Family-Z ECD', purpose: 'secondary homolog risk check' },
+        ],
+        rule: 'counter-screen only excludes risk; it does not increase main screening score',
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_epitope_hypothesis.json',
+    directory: 'Design',
+    sourceLabel: 'Epitope Agent',
+    sizeLabel: '28 KB',
+    updatedAt: '2026-06-06 11:24',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        epitopeClasses: [
+          { id: 'E1', label: 'blocking-core hypothesis', status: 'requires R1 validation' },
+          { id: 'E2', label: 'adjacent / allosteric hypothesis', status: 'backup' },
+          { id: 'E3', label: 'non-blocking control hypothesis', status: 'control only' },
+        ],
+        warning: 'No epitope class is treated as wet-lab validated before R1 assays',
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_candidate_pool_manifest.json',
+    directory: 'Design',
+    sourceLabel: 'Candidate Generation Agent',
+    sizeLabel: '84 KB',
+    updatedAt: '2026-06-06 12:18',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        rawPairings: 175000,
+        nonRedundantCandidates: 4380,
+        familyClusters: 86,
+        sources: {
+          naturalLike: 50000,
+          structureGuided: 20000,
+          publicInspired: 5000,
+          syntheticDiversity: 100000,
+        },
+        hardFilters: ['public-family high similarity', 'high aggregation risk', 'homolog non-specific risk'],
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_developability_filter_log.csv',
+    directory: 'Results',
+    sourceLabel: 'Developability Agent',
+    sizeLabel: '156 KB',
+    updatedAt: '2026-06-06 13:40',
+    statusLabel: '已保存',
+  },
+  {
+    fileName: 'TargetX_candidate_ranking.xlsx',
+    directory: 'Results',
+    sourceLabel: 'Ranking Agent',
+    sizeLabel: '328 KB',
+    updatedAt: '2026-06-06 15:22',
+    statusLabel: '只读',
+  },
+  {
+    fileName: 'TargetX_candidate_decision_log.md',
+    directory: 'Reports',
+    sourceLabel: 'Current Thread',
+    sizeLabel: '26 KB',
+    updatedAt: '2026-06-06 15:34',
+    statusLabel: '已保存',
+    content: `# Target-X Candidate Decision Log
+
+Human decisions:
+- D2/D3 is an internal biology hypothesis, not a validated blocking fact.
+- Ag-01 full ECD and Ag-02 D2/D3 must both enter R1.
+- Public-family high similarity is a hard exclusion for primary candidates.
+- ABX-041 is excluded from primary 20.
+- E3 candidates are controls only.
+- R2 must not start automatically before R1 results return.`,
+  },
+  {
+    fileName: 'TargetX_top28_release_package.json',
+    directory: 'Design',
+    sourceLabel: 'Current Thread',
+    sizeLabel: '92 KB',
+    updatedAt: '2026-06-06 15:42',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        packageId: 'TargetX-Top28-v1.0',
+        primary: 20,
+        backups: 4,
+        controls: 4,
+        leadCandidates: ['ABX-014', 'ABX-027', 'ABX-033'],
+        excludedFromPrimary: [{ candidate: 'ABX-041', reason: 'FTO similarity and aggregation risk stack' }],
+        autoNextRound: false,
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_R1_LIMS_Submission_Payload.json',
+    directory: 'Execution',
+    sourceLabel: 'Current Thread',
+    sizeLabel: '29 KB',
+    updatedAt: '2026-06-06 15:48',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        limsProject: 'LIMS-ABX-R1-001',
+        sourceManifest: 'TargetX_CandidateManifest_v1.0.json',
+        round: 'WetLab-R1',
+        candidateCount: 28,
+        automaticExecution: false,
+        requiredApproval: 'Project Owner',
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_discovery_evidence_index.json',
+    directory: 'Reports',
+    sourceLabel: 'Current Thread',
+    sizeLabel: '45 KB',
+    updatedAt: '2026-06-06 15:49',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        indexId: 'TargetX-discovery-evidence-index-v1',
+        evidenceFiles: [
+          'TargetX_research_brief.md',
+          'TargetX_target_profile.json',
+          'TargetX_evidence_network.json',
+          'TargetX_antigen_strategy.md',
+          'TargetX_candidate_ranking.xlsx',
+        ],
+        approval: 'Target-X R1 candidate package release approved',
+        downstreamPayload: 'TargetX_R1_LIMS_Submission_Payload.json',
+      },
+      null,
+      2,
+    ),
+  },
+]
+
+const targetXLimsExecutionFiles: SideWindowFileSeed[] = [
+  {
+    fileName: 'TargetX_R1_order_summary.md',
+    directory: 'Execution',
+    sourceLabel: 'Current Thread',
+    sizeLabel: '44 KB',
+    updatedAt: '2026-06-07 09:24',
+    statusLabel: '已保存',
+    content: `# Target-X R1 Order Summary
+
+Order: LIMS-ABX-R1-001
+
+The order executes only the approved Top 28 candidate package.
+
+| Section | Locked value |
+| --- | --- |
+| Candidates | 20 primary + 4 backups + 4 controls |
+| Antigens | Ag-01, Ag-02, Ag-03, Ag-04 |
+| Assays | Expression, purification, SEC, ELISA, BLI/SPR, blocking, counter-screen, cell binding |
+| Result package | TargetX_R1_ResultBundle.xlsx |`,
+  },
+  {
+    fileName: 'TargetX_R1_order_payload.json',
+    directory: 'Execution',
+    sourceLabel: 'LIMS/LISM Agent',
+    sizeLabel: '26 KB',
+    updatedAt: '2026-06-07 09:27',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        orderId: 'LIMS-ABX-R1-001',
+        libraryId: 'TargetX-Top28-v1.0',
+        workOrderGroups: ['gene', 'clone', 'expression', 'purification', 'qc', 'binding', 'function'],
+        sampleScopeLocked: true,
+        plateMapApprovalRequired: true,
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_R1_sample_manifest.xlsx',
+    directory: 'Execution',
+    sourceLabel: 'LIMS/LISM Agent',
+    sizeLabel: '214 KB',
+    updatedAt: '2026-06-07 09:40',
+    statusLabel: '已保存',
+  },
+  {
+    fileName: 'TargetX_R1_plate_map.csv',
+    directory: 'Execution',
+    sourceLabel: 'Scheduler Agent',
+    sizeLabel: '52 KB',
+    updatedAt: '2026-06-07 10:10',
+    statusLabel: '已保存',
+  },
+  {
+    fileName: 'TargetX_R1_execution_audit_log.json',
+    directory: 'Execution',
+    sourceLabel: 'Wet Lab Operations',
+    sizeLabel: '38 KB',
+    updatedAt: '2026-06-10 15:44',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        project: 'LIMS-ABX-R1-001',
+        anomalies: [
+          { sample: 'ABX-017', issue: 'purification data delayed', action: 'flagged' },
+          { sample: 'ABX-041', issue: 'BLI fit failed', action: 'raw curve retained' },
+        ],
+        rawReadingsDeleted: false,
+        notebook: 'ELN-TX-R1-001',
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_R1_ResultBundle.xlsx',
+    directory: 'Results',
+    sourceLabel: 'QC Agent',
+    sizeLabel: '612 KB',
+    updatedAt: '2026-06-10 16:10',
+    statusLabel: '已保存',
+  },
+]
+
+const targetXModelFineTuneFiles: SideWindowFileSeed[] = [
+  {
+    fileName: 'DataCurationLog_R1_v1.1.md',
+    directory: 'Reports',
+    sourceLabel: 'Data Agent',
+    sizeLabel: '36 KB',
+    updatedAt: '2026-06-11 09:24',
+    statusLabel: '已保存',
+    content: `# Data Curation Log R1 v1.1
+
+Applied rules:
+- Preserve all raw readings.
+- Mark ABX-041 BLI fit as low confidence.
+- Keep ABX-017 in pending queue until purification data arrives.
+- Normalize P-BLOCK-01 using internal plate controls.
+
+The curated dataset can be used for model selection and active-learning recommendations, not final biological claims.`,
+  },
+  {
+    fileName: 'TargetX_R1_training_dataset.jsonl',
+    directory: 'Results',
+    sourceLabel: 'Training Agent',
+    sizeLabel: '118 KB',
+    updatedAt: '2026-06-11 09:58',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        format: 'jsonl preview',
+        rows: 28,
+        fields: ['candidate_id', 'vh', 'vl', 'cdr_features', 'assay_labels', 'label_confidence'],
+        excludedFromPrimaryTraining: ['ABX-041'],
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'R1_MultiObjectiveRanking.csv',
+    directory: 'Results',
+    sourceLabel: 'Analysis Agent',
+    sizeLabel: '92 KB',
+    updatedAt: '2026-06-11 09:46',
+    statusLabel: '已保存',
+  },
+  {
+    fileName: 'ModelCard_FT-ABX-R1-IgBert-001.md',
+    directory: 'Reports',
+    sourceLabel: 'Training Agent',
+    sizeLabel: '48 KB',
+    updatedAt: '2026-06-11 10:38',
+    statusLabel: '已保存',
+    content: `# ModelCard FT-ABX-R1-IgBert-001
+
+Purpose: small-sample Target-X R1 ranking support for R2 active learning.
+
+Inputs:
+- VH/VL sequence features
+- CDR annotations
+- Binding, blocking and counter-screen labels
+- Label confidence from data curation
+
+Limitations:
+- R1 sample size is small.
+- Low-confidence labels are not used as primary affinity truth.
+- R2 candidates require wet lab validation before any final decision.`,
+  },
+  {
+    fileName: 'R2_CandidateManifest_v1.0.json',
+    directory: 'Design',
+    sourceLabel: 'Design Agent',
+    sizeLabel: '86 KB',
+    updatedAt: '2026-06-11 11:02',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        sourceRun: 'FT-ABX-R1-IgBert-001',
+        recommendedForR2: 24,
+        generated: 32,
+        parents: ['ABX-014', 'ABX-027', 'ABX-033'],
+        requiresHumanStart: true,
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'R2_ModelScores.csv',
+    directory: 'Results',
+    sourceLabel: 'Model Selection Agent',
+    sizeLabel: '74 KB',
+    updatedAt: '2026-06-11 11:04',
+    statusLabel: '已保存',
+  },
+  {
+    fileName: 'R2_LIMS_Submission_Payload.json',
+    directory: 'Execution',
+    sourceLabel: 'Current Thread',
+    sizeLabel: '28 KB',
+    updatedAt: '2026-06-11 11:08',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        payload: 'R2_LIMS_Submission_Payload',
+        candidates: 24,
+        sourceModelRun: 'FT-ABX-R1-IgBert-001',
+        autoCreateWorkOrders: false,
+        awaitingApproval: 'Experiment Owner',
+      },
+      null,
+      2,
+    ),
+  },
+]
+
 const threadFileSeeds: Record<string, SideWindowFileSeed[]> = {
   'enzyme-experiment-execution': executionThreadFiles,
   'enzyme-full-loop': executionThreadFiles.slice(0, 14),
   'enzyme-design-breakdown': executionThreadFiles.slice(0, 9),
   'enzyme-analysis-iteration': executionThreadFiles.slice(14, 24),
   'lims-flow-run': limsFlowRunFiles,
+  'targetx-antibody-discovery': targetXDiscoveryFiles,
+  'targetx-r1-lims-execution': targetXLimsExecutionFiles,
+  'targetx-data-model-finetune': targetXModelFineTuneFiles,
 }
 
 export function getPreviewKindByExtension(
@@ -1895,6 +2368,97 @@ function getSpreadsheetPreviewByFileName(
   fileName: string,
 ): SideWindowSpreadsheetPreview | undefined {
   const spreadsheetPreviews: Record<string, SideWindowSpreadsheetPreview> = {
+    'TargetX_candidate_ranking.xlsx': {
+      sheetName: 'Candidate Ranking',
+      summary: 'Target-X Top 候选的表位、阻断代理分、可开发性风险和推进建议。',
+      columns: ['candidate_id', 'tier', 'epitope', 'blocking_proxy', 'human_likeness', 'recommendation'],
+      totalRows: 28,
+      rows: [
+        ['ABX-014', 'Tier 1', 'E1 / D2-D3', 'strong', '0.91', 'Go'],
+        ['ABX-027', 'Tier 1', 'E1 adjacent', 'medium-high', '0.88', 'Go'],
+        ['ABX-033', 'Tier 1', 'E1 / D3', 'strong', '0.86', 'Go'],
+        ['ABX-041', 'Backup', 'E2', 'medium', '0.84', 'Backup'],
+        ['ABX-052', 'Control', 'non-blocking', 'weak', '0.89', 'Tool control'],
+      ],
+    },
+    'TargetX_developability_filter_log.csv': {
+      sheetName: 'Developability Filter',
+      summary: 'Target-X 候选池的可开发性过滤记录，保留降级原因和人工复核标签。',
+      columns: ['candidate_id', 'cluster', 'aggregation_risk', 'motif_flag', 'public_similarity', 'decision'],
+      totalRows: 4380,
+      rows: [
+        ['ABX-014', 'C07', 'low', 'none', 'low', 'primary_keep'],
+        ['ABX-027', 'C11', 'low', 'minor CDRL1', 'low', 'primary_keep'],
+        ['ABX-033', 'C19', 'medium-low', 'none', 'low', 'primary_keep'],
+        ['ABX-041', 'C23', 'medium', 'CDRH3 patch', 'medium-high', 'backup_only'],
+        ['ABX-118', 'C40', 'high', 'hydrophobic patch', 'low', 'exclude'],
+      ],
+    },
+    'TargetX_R1_sample_manifest.xlsx': {
+      sheetName: 'Sample Manifest',
+      summary: 'R1 样本、条码、候选来源、抗原和执行状态。',
+      columns: ['sample_id', 'candidate_id', 'sample_type', 'barcode', 'antigen_panel', 'status'],
+      totalRows: 196,
+      rows: [
+        ['ASY-R1-ABX-014-BLI', 'ABX-014', 'assay sample', 'BC-TX-014-BLI', 'Ag-01/Ag-02', 'ready'],
+        ['ASY-R1-ABX-027-BLOCK', 'ABX-027', 'assay sample', 'BC-TX-027-BLOCK', 'Ag-02', 'ready'],
+        ['PUR-R1-ABX-017', 'ABX-017', 'purified antibody', 'BC-TX-017-PUR', 'n/a', 'delayed'],
+        ['ASY-R1-ABX-041-BLI', 'ABX-041', 'assay sample', 'BC-TX-041-BLI', 'Ag-01/Ag-02', 'fit review'],
+        ['CTRL-R1-ISO', 'isotype control', 'control', 'BC-TX-CTRL-ISO', 'all', 'ready'],
+      ],
+    },
+    'TargetX_R1_plate_map.csv': {
+      sheetName: 'Plate Map',
+      summary: 'R1 96 孔板布局，包含候选孔、重复孔和对照孔。',
+      columns: ['plate_id', 'well', 'sample_id', 'group', 'replicate', 'assay'],
+      totalRows: 384,
+      rows: [
+        ['P-BLI-01', 'A01', 'positive ref', 'Positive control', '1', 'BLI'],
+        ['P-BLI-01', 'A02', 'isotype', 'Negative control', '1', 'BLI'],
+        ['P-BLI-01', 'B03', 'ABX-014', 'Primary candidate', '1', 'BLI'],
+        ['P-BLOCK-01', 'C05', 'ABX-027', 'Primary candidate', '2', 'Blocking'],
+        ['P-COUNTER-01', 'H12', 'blank', 'Blank control', '1', 'Counter-screen'],
+      ],
+    },
+    'TargetX_R1_ResultBundle.xlsx': {
+      sheetName: 'Release Summary',
+      summary: 'R1 结果包释放摘要，包含完整率、异常和分析可读性。',
+      columns: ['section', 'expected', 'received', 'status', 'note'],
+      totalRows: 10,
+      rows: [
+        ['candidate_manifest', '28', '28', 'pass', 'locked v1.0'],
+        ['expression_qc', '28', '28', 'pass', 'all candidates expressed'],
+        ['purification_qc', '28', '27', 'flagged', 'ABX-017 delayed'],
+        ['bli_spr_fit', '24', '23', 'flagged', 'ABX-041 low confidence'],
+        ['blocking_assay', '24', '24', 'pass', 'plate normalized'],
+      ],
+    },
+    'R1_MultiObjectiveRanking.csv': {
+      sheetName: 'R1 Ranking',
+      summary: 'R1 候选的多目标评分和训练标签使用策略。',
+      columns: ['candidate_id', 'tier', 'blocking_score', 'selectivity', 'developability', 'model_label_use'],
+      totalRows: 28,
+      rows: [
+        ['ABX-014', 'Tier 1', '92', 'high', 'low risk', 'primary'],
+        ['ABX-027', 'Tier 1', '87', 'high', 'low risk', 'primary'],
+        ['ABX-033', 'Tier 1', '85', 'medium-high', 'low risk', 'primary'],
+        ['ABX-017', 'Pending', '72', 'medium', 'pending purification', 'holdout'],
+        ['ABX-041', 'No-Go label', '61', 'medium', 'fit failed', 'excluded'],
+      ],
+    },
+    'R2_ModelScores.csv': {
+      sheetName: 'R2 Scores',
+      summary: 'R2 候选的模型评分、探索策略和回写状态。',
+      columns: ['candidate_id', 'parent', 'strategy', 'predicted_blocking', 'risk_flag', 'lims_writeback'],
+      totalRows: 32,
+      rows: [
+        ['ABX-R2-001', 'ABX-014', 'exploit', '0.91', 'low', 'ready'],
+        ['ABX-R2-006', 'ABX-014', 'exploit', '0.88', 'low', 'ready'],
+        ['ABX-R2-014', 'ABX-027', 'explore', '0.82', 'low', 'ready'],
+        ['ABX-R2-022', 'ABX-033', 'explore', '0.79', 'medium', 'review'],
+        ['ABX-R2-031', 'ABX-027', 'diversity', '0.71', 'medium', 'backup'],
+      ],
+    },
     'ENZ-MUT-001_to_048_variant_table.xlsx': {
       sheetName: 'Variant Boundary',
       summary: '48 个候选突变体的设计边界、突变区域和是否进入实验执行。',

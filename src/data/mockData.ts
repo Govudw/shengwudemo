@@ -22,6 +22,7 @@ import her2ResultPackageQcOverview from '../assets/mock-science/her2-post-analys
 import her2StructuralHypothesisMap from '../assets/mock-science/her2-post-analysis/her2-structural-hypothesis-map.png'
 import her2UncertaintySensitivityAnalysis from '../assets/mock-science/her2-post-analysis/her2-uncertainty-sensitivity-analysis.png'
 import type { ConversationTurn, RunInspectorData } from './conversationTypes'
+import { antibodyTargetXThreads } from './antibodyTargetXMockData'
 import { enzymeSynthesisOpsThreads } from './enzymeSynthesisOpsMockData'
 import { industrialEnzymeThreads } from './enzymeMockData'
 import { pipelineBuildThreads } from './pipelineBuildMockData'
@@ -3591,6 +3592,7 @@ export const projects: Project[] = [
         transcript: egfrAffinityTranscript,
         runInspector: egfrRunInspector,
       },
+      ...antibodyTargetXThreads,
       {
         id: 'il17a-affinity-design',
         title: 'IL-17A 亲和力成熟实验设计',

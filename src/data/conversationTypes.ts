@@ -83,6 +83,7 @@ export type ConversationBlock =
   | ApprovalRequestReplayBlock
   | ElapsedWorkReplayBlock
   | ScientificFigureBlock
+  | ScientificDiagramBlock
   | PipelineDagBlock
   | DesignHandoffBriefBlock
   | ExperimentOrderSummaryBlock
@@ -234,6 +235,13 @@ export type ScientificFigureBlock = {
   alt: string
 }
 
+export type ScientificDiagramBlock = {
+  type: 'scientificDiagram'
+  diagramKind: 'targetxEvidenceNetwork' | 'targetxEpitopeHypothesis'
+  title: string
+  description: string
+}
+
 export type PipelineDagBlock = {
   type: 'pipelineDag'
   title: string
@@ -266,6 +274,7 @@ export type ExperimentOrderSummaryBlock = {
   reviewStatus: string
   projectId: string
   libraryId: string
+  subjectLabel?: string
   parentEnzyme: string
   purpose: string
   scopeLock: string

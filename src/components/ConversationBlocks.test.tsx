@@ -143,6 +143,38 @@ describe('ConversationBlocks data charts', () => {
   })
 })
 
+describe('ConversationBlocks scientific diagrams', () => {
+  it('renders Target-X scientific diagrams as frontend components instead of image assets', () => {
+    const { container, root } = renderConversationBlocks([
+      {
+        type: 'scientificDiagram',
+        diagramKind: 'targetxEvidenceNetwork',
+        title: 'Target-X Evidence Network',
+        description:
+          'Evidence is consolidated as research context, not treated as wet-lab proof.',
+      } as unknown as ConversationBlock,
+      {
+        type: 'scientificDiagram',
+        diagramKind: 'targetxEpitopeHypothesis',
+        title: 'Target-X ECD Epitope Hypothesis',
+        description:
+          'D1-D2-D3 extracellular domain map; epitope classes are hypotheses for R1 validation.',
+      } as unknown as ConversationBlock,
+    ])
+
+    expect(container.querySelectorAll('.scientific-diagram-block')).toHaveLength(2)
+    expect(container.querySelectorAll('.scientific-diagram-block img')).toHaveLength(0)
+    expect(container.querySelector('[data-diagram-kind="targetxEvidenceNetwork"]')).not.toBeNull()
+    expect(container.querySelector('[data-diagram-kind="targetxEpitopeHypothesis"]')).not.toBeNull()
+    expect(container.textContent).toContain('Internal Biology')
+    expect(container.textContent).toContain('Patent / FTO')
+    expect(container.textContent).toContain('E1 · blocking-core hypothesis')
+    expect(container.textContent).toContain('E3 · non-blocking control')
+
+    root.unmount()
+  })
+})
+
 describe('ConversationBlocks Pipeline DAG progress', () => {
   it('renders collapsed progress summaries and completed node markers', () => {
     const dag: PipelineDag = {
@@ -202,6 +234,36 @@ describe('ConversationBlocks Pipeline DAG progress', () => {
     expect(
       container.querySelectorAll('.capabilities-dag-node--completed'),
     ).toHaveLength(2)
+
+    root.unmount()
+  })
+})
+
+describe('ConversationBlocks experiment order summary', () => {
+  it('allows non-enzyme order summaries to use a domain-specific subject label', () => {
+    const { container, root } = renderConversationBlocks([
+      {
+        type: 'experimentOrderSummary',
+        title: 'Target-X R1 experiment order',
+        orderId: 'LIMS-ABX-R1-001',
+        status: 'draft',
+        reviewStatus: 'pending',
+        projectId: 'AB-Discovery-Target-X-001',
+        libraryId: 'TargetX-Top28-v1.0',
+        subjectLabel: 'Campaign',
+        parentEnzyme: 'Target-X antibody campaign',
+        purpose: 'Run R1 wet-lab validation.',
+        scopeLock: 'Only approved Top 28 candidates.',
+        owner: 'Wet Lab Operations',
+        createdAt: '2026-06-07 09:20',
+        dueAt: '2026-06-10 18:00',
+        rows: [],
+      },
+    ])
+
+    expect(container.textContent).toContain('Campaign')
+    expect(container.textContent).toContain('Target-X antibody campaign')
+    expect(container.textContent).not.toContain('Parent enzyme')
 
     root.unmount()
   })
