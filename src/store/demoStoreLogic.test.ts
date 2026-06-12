@@ -1390,7 +1390,7 @@ describe('demo store logic', () => {
       ...project,
       threads: project.threads.map((thread, index) => ({
         ...thread,
-        lastActivityAt: now + index,
+        lastActivityAt: thread.id === 'enzyme-full-loop' ? now + 10_000 : now + index,
         archived: thread.id === 'egfr-affinity',
         pinned: thread.id === 'enzyme-full-loop',
         pinnedAt: thread.id === 'enzyme-full-loop' ? now + 100_000 : null,

@@ -2,6 +2,7 @@ import type { ConversationBlock } from '../data/conversationTypes'
 import { memo } from 'react'
 import EChartDataChart from './EChartDataChart'
 import PipelineDagBlock from './PipelineDagBlock'
+import ScientificDiagramBlock from './ScientificDiagramBlock'
 
 type ConversationBlocksProps = {
   blocks: ConversationBlock[]
@@ -420,6 +421,9 @@ function ConversationBlockView({
         </figure>
       )
 
+    case 'scientificDiagram':
+      return <ScientificDiagramBlock block={block} />
+
     case 'pipelineDag':
       return <PipelineDagBlock block={block} />
   }
@@ -497,7 +501,7 @@ function ExperimentOrderSummary({
         rows={[
           ['Project', block.projectId],
           ['Library', block.libraryId],
-          ['Parent enzyme', block.parentEnzyme],
+          [block.subjectLabel ?? 'Parent enzyme', block.parentEnzyme],
           ['Owner', block.owner],
           ['Created', block.createdAt],
           ['Due', block.dueAt],
