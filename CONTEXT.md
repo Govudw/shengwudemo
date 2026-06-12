@@ -28,6 +28,58 @@ _Avoid_: File panel, execution window, sidebar
 The right-side contextual window opened from a Thread header for auxiliary tools such as file browsing and side chat. It is not the Run Inspector and not a menu.
 _Avoid_: Extra window, popup, dropdown, menu
 
+**Product Management Platform**:
+A full-screen enterprise management surface for product, commodity, cost, target, and billing operations. It is separate from the main BioMap Agent workspace shell and uses operational management language.
+_Avoid_: Marketing site, workspace page, project page
+
+**Product**:
+A product-line object such as 虚拟细胞, 蛋白药物, 合成生物, 农业智能, or BioMap Agent. A Product owns business targets, cost models, and one or more Commodities.
+_Avoid_: Commodity, billing item, project
+
+**Commodity**:
+A sellable commercial package under a Product, such as SaaS, private deployment, maintenance, or labor service. A Commodity contains Billing Items and references cost and discount views.
+_Avoid_: Product, SKU when it hides product ownership
+
+**Billing Item**:
+A measurable charging component inside a Commodity, such as a resource package, monthly subscription, model call, storage unit, or service day. A Billing Item is the unit that can be priced, costed, and instantiated for billing.
+_Avoid_: Bill, invoice, commodity
+
+**Billing Instance**:
+A customer-specific instance created from a Billing Item after order placement or backend provisioning. A Billing Instance receives usage and produces Bills over time.
+_Avoid_: Billing item definition, product instance
+
+**Bill**:
+A recorded charge line generated from a Billing Instance or imported manually for a customer and billing period.
+_Avoid_: Invoice when referring to internal charge records
+
+**Cost Center**:
+The management surface for cost items, cost models, allocation rules, target cost versions, and gross margin analysis. It explains how product and commodity costs are calculated.
+_Avoid_: Billing center, finance approval system
+
+**Cost Item**:
+The smallest managed cost component used by cost models, such as GPU resource cost, storage cost, L1 human-day cost, delivery human-day cost, or third-party service cost.
+_Avoid_: Billing item, bill
+
+**Cost Model**:
+The cost composition attached to a Billing Item, Commodity, or Product. It combines Cost Items, measurement assumptions, allocation rules, and a versioned cost basis to calculate target cost and margin.
+_Avoid_: Discount table, price table
+
+**Cost Allocation Rule**:
+A rule for assigning shared or indirect costs to Products, Commodities, or Billing Items using a driver such as revenue, usage, seats, storage, or delivery effort.
+_Avoid_: Permission rule, pricing rule
+
+**Quarterly Product Target**:
+A quarterly business target for one Product, including revenue target, cost budget, target gross margin, actual attainment, forecast, and risk status.
+_Avoid_: Project milestone, OKR when financial target is meant
+
+**Target Actual**:
+The achieved value measured against a Quarterly Product Target, including actual revenue, confirmed cost, gross profit, gross margin, and forecast attainment.
+_Avoid_: Target definition, raw bill
+
+**Gross Margin**:
+Revenue minus cost, shown as both gross profit amount and gross margin rate. Gross margin views must state whether they use target, actual, forecast, or discount-line assumptions.
+_Avoid_: Net profit, cash flow
+
 **Project File**:
 A file-like asset produced, uploaded, or referenced inside a Project. A Project File can appear in Thread messages, Run Inspector outputs, and object storage views.
 _Avoid_: Attachment when it refers to durable project storage

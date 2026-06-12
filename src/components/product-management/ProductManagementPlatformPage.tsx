@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react'
 import logoSrc from '../../assets/biomap-agent-logo.png'
 import { SearchIcon } from '../icons'
+import { CostManagementView } from './CostManagementViews'
+import { TargetManagementView } from './TargetManagementViews'
+import { costSections, type CostSection } from './costManagementMockData'
 import {
   billRecords,
   billPageSize,
@@ -42,6 +45,7 @@ import {
   type ProductStage,
   type ProductType,
 } from './productManagementMockData'
+import { targetSections, type TargetSection } from './targetManagementMockData'
 
 type ProductManagementPlatformPageProps = {
   initialCommodityId?: string | null
@@ -99,6 +103,10 @@ function ProductManagementPlatformPage({
   const [ownerFilter, setOwnerFilter] = useState<string | CommodityFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [activeCostSection, setActiveCostSection] =
+    useState<CostSection>('overview')
+  const [activeTargetSection, setActiveTargetSection] =
+    useState<TargetSection>('overview')
   const [activeBillingSection, setActiveBillingSection] =
     useState<BillingSection>('instances')
   const [billingInstanceAccountFilter, setBillingInstanceAccountFilter] = useState<
@@ -559,12 +567,62 @@ function ProductManagementPlatformPage({
               </button>
             </nav>
           ) : null}
+          {activeTab === 'cost' ? (
+            <nav
+              className="product-platform-side-menu"
+              aria-label="成本管理左侧导航"
+            >
+              {costSections.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`product-platform-side-menu__item${
+                    activeCostSection === item.id
+                      ? ' product-platform-side-menu__item--active'
+                      : ''
+                  }`}
+                  aria-current={
+                    activeCostSection === item.id ? 'page' : undefined
+                  }
+                  onClick={() => setActiveCostSection(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+          ) : null}
+          {activeTab === 'target' ? (
+            <nav
+              className="product-platform-side-menu"
+              aria-label="目标管理左侧导航"
+            >
+              {targetSections.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`product-platform-side-menu__item${
+                    activeTargetSection === item.id
+                      ? ' product-platform-side-menu__item--active'
+                      : ''
+                  }`}
+                  aria-current={
+                    activeTargetSection === item.id ? 'page' : undefined
+                  }
+                  onClick={() => setActiveTargetSection(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+          ) : null}
         </aside>
         <section
           className={`product-platform-canvas${
             activeTab === 'commodity' ? ' product-platform-canvas--commodity' : ''
           }${activeTab === 'product' ? ' product-platform-canvas--product' : ''}${
             activeTab === 'billing' ? ' product-platform-canvas--billing' : ''
+          }${activeTab === 'cost' ? ' product-platform-canvas--cost' : ''}${
+            activeTab === 'target' ? ' product-platform-canvas--target' : ''
           }`}
           aria-label="产品管理平台内容区"
         >
@@ -641,6 +699,12 @@ function ProductManagementPlatformPage({
                 onRecordAction={handleCommodityAction}
               />
             )
+          ) : null}
+          {activeTab === 'cost' ? (
+            <CostManagementView activeSection={activeCostSection} />
+          ) : null}
+          {activeTab === 'target' ? (
+            <TargetManagementView activeSection={activeTargetSection} />
           ) : null}
           {activeTab === 'billing' && activeBillingSection === 'instances' ? (
             <BillingInstanceManagementView

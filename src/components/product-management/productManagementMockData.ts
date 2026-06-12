@@ -1,4 +1,9 @@
-export type ProductPlatformTab = 'product' | 'commodity' | 'cost' | 'billing'
+export type ProductPlatformTab =
+  | 'product'
+  | 'commodity'
+  | 'cost'
+  | 'target'
+  | 'billing'
 export type CommodityStatus = '未发布' | '已发布' | '下架中' | '下架'
 export type CommodityFilter = 'all'
 export type ProductStage = '待发布' | 'Alpha' | 'Beta' | 'GA'
@@ -163,6 +168,7 @@ export const productPlatformTabs: { id: ProductPlatformTab; label: string }[] = 
   { id: 'product', label: '产品管理' },
   { id: 'commodity', label: '商品管理' },
   { id: 'cost', label: '成本管理' },
+  { id: 'target', label: '目标管理' },
   { id: 'billing', label: '费用中心' },
 ]
 
@@ -269,6 +275,24 @@ export const productRecords: ProductRecord[] = [
     createdAt: '2026-04-20 09:50',
   },
 ]
+
+export const productTypeByProductId: Record<string, ProductType> = {
+  'product-virtual-cell': '虚拟细胞',
+  'product-protein-drug': '蛋白药物',
+  'product-synbio': '合成生物',
+  'product-agriculture': '农业智能',
+  'product-biomap-agent': '通用产品',
+}
+
+export function getProductTypeByProductId(productId: string): ProductType {
+  const productType = productTypeByProductId[productId]
+
+  if (!productType) {
+    throw new Error(`Product type not found for product ${productId}`)
+  }
+
+  return productType
+}
 
 export const commodityRecords: CommodityRecord[] = [
   {
@@ -754,11 +778,7 @@ function createProductVersionRecords(record: ProductRecord): ProductVersionRecor
 }
 
 function getProductTypeForRecord(record: ProductRecord): ProductType {
-  if (record.name === 'BioMap Agent') {
-    return '通用产品'
-  }
-
-  return record.name as ProductType
+  return getProductTypeByProductId(record.id)
 }
 
 function getProductBusinessLine(productType: ProductType) {

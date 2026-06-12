@@ -4,6 +4,25 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ProductManagementPlatformPage from './ProductManagementPlatformPage'
+import {
+  costAllocationRecords,
+  costItemRecords,
+  costModelRecords,
+  costSubjects,
+  costVersionRecords,
+} from './costManagementMockData'
+import {
+  targetCommodityContributionRecords,
+  targetDetailsById,
+  targetMarginVarianceRecords,
+  targetVersionRecords,
+  quarterlyTargetRecords,
+} from './targetManagementMockData'
+import {
+  commodityRecords,
+  productPlatformTabs,
+  productRecords,
+} from './productManagementMockData'
 
 beforeEach(() => {
   ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
@@ -15,6 +34,202 @@ afterEach(() => {
 })
 
 describe('ProductManagementPlatformPage', () => {
+  it('defines product platform tabs in the product, commodity, cost, target, billing order', () => {
+    expect(productPlatformTabs.map((tab) => tab.label)).toEqual([
+      '产品管理',
+      '商品管理',
+      '成本管理',
+      '目标管理',
+      '费用中心',
+    ])
+  })
+
+  it('keeps cost and target mock data aligned with products, commodities, and virtual cell billing items', () => {
+    expect(costItemRecords.length).toBeGreaterThanOrEqual(24)
+    expect(costModelRecords.length).toBeGreaterThanOrEqual(20)
+    expect(costAllocationRecords.length).toBeGreaterThanOrEqual(12)
+    expect(costVersionRecords.length).toBeGreaterThanOrEqual(18)
+    expect(quarterlyTargetRecords.length).toBeGreaterThanOrEqual(10)
+    expect(targetCommodityContributionRecords.length).toBeGreaterThanOrEqual(17)
+    expect(targetMarginVarianceRecords.length).toBeGreaterThanOrEqual(10)
+    expect(targetVersionRecords.length).toBeGreaterThanOrEqual(15)
+
+    const productIds = new Set(productRecords.map((record) => record.id))
+    const commodityIds = new Set(commodityRecords.map((record) => record.id))
+
+    expect(new Set(costModelRecords.map((record) => record.productId))).toEqual(
+      productIds,
+    )
+    expect(
+      commodityRecords.every((commodity) =>
+        costModelRecords.some((model) => model.commodityId === commodity.id),
+      ),
+    ).toBe(true)
+    expect(
+      commodityRecords.every((commodity) =>
+        targetCommodityContributionRecords.some(
+          (contribution) => contribution.commodityId === commodity.id,
+        ),
+      ),
+    ).toBe(true)
+
+    costModelRecords.forEach((record) => {
+      expect(productIds.has(record.productId)).toBe(true)
+      expect(commodityIds.has(record.commodityId)).toBe(true)
+      expect(record.billingItemCode.length).toBeGreaterThan(0)
+      expect(record.costModelId.length).toBeGreaterThan(0)
+      expect(record.costVersion.length).toBeGreaterThan(0)
+    })
+    costVersionRecords.forEach((record) => {
+      expect(productIds.has(record.productId)).toBe(true)
+      expect(commodityIds.has(record.commodityId)).toBe(true)
+      expect(record.billingItemCode.length).toBeGreaterThan(0)
+      expect(record.costModelId.length).toBeGreaterThan(0)
+      expect(record.costVersion.length).toBeGreaterThan(0)
+    })
+
+    const targetIds = new Set(quarterlyTargetRecords.map((record) => record.targetId))
+
+    quarterlyTargetRecords
+      .filter((record) => record.quarter === 'Q3')
+      .forEach((record) => {
+        expect(['0', '-']).toContain(record.achievedRevenue)
+        expect(['0', '-']).toContain(record.attainmentRate)
+        expect(['0', '-']).toContain(record.confirmedCost)
+        expect(['0', '-']).toContain(record.costUsageRate)
+        expect(['0', '-']).toContain(record.actualGrossProfit)
+        expect(['0', '-']).toContain(record.actualGrossMargin)
+      })
+
+    targetCommodityContributionRecords.forEach((record) => {
+      expect(targetIds.has(record.targetId)).toBe(true)
+      expect(productIds.has(record.productId)).toBe(true)
+      expect(commodityIds.has(record.commodityId)).toBe(true)
+      expect(record.billingItemCode.length).toBeGreaterThan(0)
+      expect(record.costModelId.length).toBeGreaterThan(0)
+      expect(record.costVersion.length).toBeGreaterThan(0)
+    })
+    targetMarginVarianceRecords.forEach((record) => {
+      expect(targetIds.has(record.targetId)).toBe(true)
+      expect(productIds.has(record.productId)).toBe(true)
+      expect(commodityIds.has(record.commodityId)).toBe(true)
+      expect(record.billingItemCode.length).toBeGreaterThan(0)
+      expect(record.costModelId.length).toBeGreaterThan(0)
+      expect(record.costVersion.length).toBeGreaterThan(0)
+    })
+    targetVersionRecords.forEach((record) => {
+      expect(targetIds.has(record.targetId)).toBe(true)
+      expect(productIds.has(record.productId)).toBe(true)
+      expect(commodityIds.has(record.commodityId)).toBe(true)
+      expect(record.billingItemCode.length).toBeGreaterThan(0)
+      expect(record.costModelId.length).toBeGreaterThan(0)
+      expect(record.costVersion.length).toBeGreaterThan(0)
+    })
+
+    const firstThreeModelNames = costModelRecords
+      .slice(0, 3)
+      .map((record) => record.billingItemName)
+    expect(firstThreeModelNames).toEqual([
+      '虚拟细胞积分资源包-10000',
+      '虚拟细胞积分资源包-50000',
+      '虚拟细胞积分资源包-100000',
+    ])
+
+    const virtualCellSaasModels = costModelRecords.filter(
+      (record) => record.commodityId === 'commodity-virtual-cell-saas',
+    )
+    expect(virtualCellSaasModels.map((record) => record.billingItemCode)).toEqual([
+      'VCELL-COMM-001-BI-001',
+      'VCELL-COMM-001-BI-002',
+      'VCELL-COMM-001-BI-003',
+      'VCELL-COMM-001-BI-004',
+      'VCELL-COMM-001-BI-005',
+      'VCELL-COMM-001-BI-006',
+      'VCELL-COMM-001-BI-007',
+    ])
+  })
+
+  it('keeps target detail mock data complete for drill-down sections', () => {
+    expect(Object.keys(targetDetailsById).sort()).toEqual(
+      quarterlyTargetRecords.map((record) => record.targetId).sort(),
+    )
+    expect(costSubjects).toHaveLength(6)
+
+    Object.values(targetDetailsById).forEach((detail) => {
+      const monthlyTrends = readDetailArray(detail, 'monthlyTrends')
+      const commodityContributions = readDetailArray(
+        detail,
+        'commodityContributions',
+      )
+      const costStructure = readDetailArray(detail, 'costStructure')
+      const versions = readDetailArray(detail, 'versions')
+      const riskNotes = readDetailArray(detail, 'riskNotes')
+
+      expect(monthlyTrends.length).toBeGreaterThanOrEqual(3)
+      expect(commodityContributions.length).toBeGreaterThanOrEqual(3)
+      expect(costStructure).toHaveLength(6)
+      expect(versions.length).toBeGreaterThanOrEqual(3)
+      expect(riskNotes.length).toBeGreaterThanOrEqual(1)
+      expectRowsTargetId(monthlyTrends, detail.targetId)
+      expectRowsTargetId(commodityContributions, detail.targetId)
+      expectRowsTargetId(costStructure, detail.targetId)
+      expectRowsTargetId(versions, detail.targetId)
+      expectRowsTargetId(riskNotes, detail.targetId)
+      expect(
+        new Set(
+          costStructure.map(
+            (record) => (record as { costSubject?: unknown }).costSubject,
+          ),
+        ),
+      ).toEqual(new Set(costSubjects))
+    })
+
+    const virtualCellQ2Target = quarterlyTargetRecords.find(
+      (record) => record.productName === '虚拟细胞' && record.quarter === 'Q2',
+    )
+    expect(virtualCellQ2Target).toBeDefined()
+
+    const virtualCellCommodityIds = commodityRecords
+      .filter((record) => record.productType === '虚拟细胞')
+      .map((record) => record.id)
+    const contributionIds = new Set(
+      readDetailArray(
+        targetDetailsById[virtualCellQ2Target!.targetId],
+        'commodityContributions',
+      ).map((record) => (record as { commodityId?: string }).commodityId),
+    )
+
+    expect(virtualCellCommodityIds).toHaveLength(5)
+    virtualCellCommodityIds.forEach((commodityId) => {
+      expect(contributionIds.has(commodityId)).toBe(true)
+    })
+  })
+
+  it('keeps commodity contribution shares within each product target', () => {
+    const targetsById = new Map(
+      quarterlyTargetRecords.map((record) => [record.targetId, record]),
+    )
+    const totalsByTarget = new Map<string, number>()
+
+    targetCommodityContributionRecords.forEach((record) => {
+      totalsByTarget.set(
+        record.targetId,
+        (totalsByTarget.get(record.targetId) ?? 0) +
+          parseCurrencyValue(record.revenueTarget),
+      )
+    })
+
+    totalsByTarget.forEach((totalContribution, targetId) => {
+      const target = targetsById.get(targetId)
+      expect(target).toBeDefined()
+
+      const targetTotal = parseCurrencyValue(target!.revenueTarget)
+      expect(Math.round((totalContribution / targetTotal) * 100)).toBeLessThanOrEqual(
+        101,
+      )
+    })
+  })
+
   it('renders the product platform shell with 产品管理 selected by default', () => {
     const { container, root } = renderProductManagementPlatformPage()
 
@@ -138,7 +353,7 @@ describe('ProductManagementPlatformPage', () => {
     root.unmount()
   })
 
-  it('switches the active top tab without adding left navigation content', () => {
+  it('renders cost management navigation instead of the old empty cost tab', () => {
     const { container, root } = renderProductManagementPlatformPage()
 
     act(() => {
@@ -148,9 +363,592 @@ describe('ProductManagementPlatformPage', () => {
     expect(getTabButton(container, '成本管理').getAttribute('aria-selected')).toBe(
       'true',
     )
-    expect(container.querySelector('.product-platform-sidebar')?.textContent).toBe(
-      '',
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '成本总览',
     )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '成本项管理',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '成本模型',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '成本分摊规则',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '成本版本记录',
+    )
+    expect(getButton(container, '成本总览').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(container.textContent).toContain('成本总览')
+
+    act(() => {
+      getButton(container, '成本项管理').click()
+    })
+
+    expect(getButton(container, '成本项管理').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(getButton(container, '成本总览').getAttribute('aria-current')).toBeNull()
+    expect(container.textContent).toContain('成本项管理')
+
+    root.unmount()
+  })
+
+  it('renders cost overview metrics, product margin rows, and risk rows', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '成本管理').click()
+    })
+
+    expect(container.textContent).toContain('本季度目标成本')
+    expect(container.textContent).toContain('成本模型覆盖率')
+    expect(container.textContent).toContain('产品成本与毛利')
+    expect(container.textContent).toContain('虚拟细胞')
+    expect(container.textContent).toContain('BioMap Agent')
+    expect(container.textContent).toContain('高风险计费项')
+    expect(getSelectOptions(container, '筛选成本年度')).toEqual(['2026'])
+    expect(getSelectOptions(container, '筛选成本季度')).toEqual(['Q2', 'Q3'])
+    expect(getSelectOptions(container, '筛选成本产品')).toContain('虚拟细胞')
+    expect(getSelectOptions(container, '筛选成本口径')).toContain('标准用量')
+    expect(getSelectOptions(container, '筛选成本总览风险')).toContain('关注')
+
+    setSelect(container, '筛选成本产品', 'BioMap Agent')
+    expect(getCommodityRowTexts(container).some((text) => text.includes('BioMap Agent'))).toBe(
+      true,
+    )
+    expect(getCommodityRowTexts(container).some((text) => text.includes('虚拟细胞'))).toBe(
+      false,
+    )
+
+    root.unmount()
+  })
+
+  it('filters cost items by subject and searches cost model resource packages', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '成本管理').click()
+    })
+    act(() => {
+      getButton(container, '成本项管理').click()
+    })
+
+    expect(getTableHeaders(container)).toContain('成本项名称')
+    expect(getSelectOptions(container, '筛选成本科目')).toContain('资源成本')
+    setSelect(container, '筛选成本科目', '资源成本')
+    expect(getCommodityRowTexts(container).length).toBeGreaterThan(0)
+    expect(getCommodityRowTexts(container).every((text) => text.includes('资源成本'))).toBe(
+      true,
+    )
+
+    act(() => {
+      getButton(container, '成本模型').click()
+    })
+    setSearchInput(container, '搜索成本模型', '虚拟细胞积分资源包')
+    expect(
+      getCommodityRowTexts(container)
+        .slice(0, 3)
+        .map((text) => text.match(/虚拟细胞积分资源包-\d+/)?.[0]),
+    ).toEqual([
+      '虚拟细胞积分资源包-10000',
+      '虚拟细胞积分资源包-50000',
+      '虚拟细胞积分资源包-100000',
+    ])
+
+    root.unmount()
+  })
+
+  it('opens a read-only cost model detail with breakdown, pricing simulation, and versions', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '成本管理').click()
+    })
+    act(() => {
+      getButton(container, '成本模型').click()
+    })
+    act(() => {
+      getButtons(container, '查看')[0].click()
+    })
+
+    expect(container.textContent).toContain('成本模型详情')
+    expect(container.textContent).toContain('模型概览')
+    expect(container.textContent).toContain('成本拆解')
+    expect(container.textContent).toContain('毛利试算')
+    expect(container.textContent).toContain('版本记录')
+    expect(container.textContent).toContain('VCELL-COMM-001-BI-001')
+    expect(container.textContent).toContain('草稿')
+
+    act(() => {
+      getButton(container, '返回成本模型列表').click()
+    })
+
+    expect(container.textContent).toContain('成本模型名称')
+    expect(container.textContent).not.toContain('成本模型详情')
+
+    root.unmount()
+  })
+
+  it('keeps cost pagination and reset behavior stable after filtering', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '成本管理').click()
+    })
+    act(() => {
+      getButton(container, '成本项管理').click()
+    })
+
+    expect(container.textContent).toContain('1 / 3')
+
+    act(() => {
+      getButton(container, '下一页').click()
+    })
+
+    expect(container.textContent).toContain('2 / 3')
+
+    setSelect(container, '筛选成本科目', '共享成本')
+
+    expect(container.textContent).toContain('1 / 1')
+    expect(getCommodityRowTexts(container).every((text) => text.includes('共享成本'))).toBe(
+      true,
+    )
+
+    root.unmount()
+  })
+
+  it('renders allocation rules and cost version records', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '成本管理').click()
+    })
+    act(() => {
+      getButton(container, '成本分摊规则').click()
+    })
+    expect(getTableHeaders(container)).toContain('共享成本项')
+    expect(container.textContent).toContain('分摊完整度')
+
+    act(() => {
+      getButton(container, '成本版本记录').click()
+    })
+    expect(getTableHeaders(container)).toContain('版本号')
+    expect(container.textContent).toContain('口径锁定')
+
+    root.unmount()
+  })
+
+  it('renders target management as a top-level tab with its own navigation', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+
+    expect(getTabButton(container, '目标管理').getAttribute('aria-selected')).toBe(
+      'true',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '目标总览',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '季度目标',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '商品贡献',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '成本与毛利',
+    )
+    expect(container.querySelector('.product-platform-sidebar')?.textContent).toContain(
+      '目标版本记录',
+    )
+    expect(getButton(container, '目标总览').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(container.textContent).toContain('目标总览')
+    expect(container.textContent).toContain('本季度业绩目标')
+    expect(container.textContent).toContain('产品目标达成表')
+    expect(container.textContent).toContain('月度趋势表')
+    expect(container.textContent).toContain('风险说明表')
+    expect(getTableHeaders(container)).toContain('目标毛利率')
+
+    act(() => {
+      getButton(container, '季度目标').click()
+    })
+
+    expect(getButton(container, '季度目标').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(getButton(container, '目标总览').getAttribute('aria-current')).toBeNull()
+    expect(container.textContent).toContain('季度目标')
+
+    root.unmount()
+  })
+
+  it('renders the quarterly target list with core financial and status fields', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '季度目标').click()
+    })
+
+    expect(getTableHeaders(container)).toEqual([
+      '目标名称',
+      '目标编号',
+      '产品名称',
+      '产品负责人',
+      '年度',
+      '季度',
+      '业绩目标',
+      '已达成业绩',
+      '达成率',
+      '成本预算',
+      '已确认成本',
+      '成本使用率',
+      '目标毛利率',
+      '实际毛利率',
+      '预测达成率',
+      '风险状态',
+      '目标状态',
+      '更新时间',
+      '操作',
+    ])
+    expect(getCommodityRowTexts(container)).toHaveLength(5)
+    expect(container.textContent).toContain('虚拟细胞 2026 Q2 经营目标')
+    expect(container.textContent).toContain('BioMap Agent 2026 Q2 经营目标')
+    expect(container.textContent).toContain('2026')
+    expect(container.textContent).toContain('Q2')
+    expect(container.textContent).toContain('达成率')
+    expect(container.textContent).toContain('成本使用率')
+    expect(container.textContent).toContain('目标毛利率')
+    expect(container.textContent).toContain('实际毛利率')
+    expect(container.textContent).toContain('目标状态')
+    expect(container.textContent).toContain('进行中')
+    expect(container.textContent).toContain('2026-06-10')
+    expect((getButton(container, '+ 新建目标') as HTMLButtonElement).disabled).toBe(
+      true,
+    )
+
+    root.unmount()
+  })
+
+  it('opens quarterly target detail with overview, monthly, contribution, cost, and version sections', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+    const virtualCellQ2Target = quarterlyTargetRecords.find(
+      (record) => record.productName === '虚拟细胞' && record.quarter === 'Q2',
+    )
+    expect(virtualCellQ2Target).toBeDefined()
+    const expectedCommodityNames = commodityRecords
+      .filter((record) => record.productType === '虚拟细胞')
+      .map((record) => record.name)
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '季度目标').click()
+    })
+    act(() => {
+      getButtons(container, '查看')[0].click()
+    })
+
+    expect(container.textContent).toContain('目标详情')
+    expect(container.textContent).toContain('目标概览')
+    expect(container.textContent).toContain('月度拆分')
+    expect(container.textContent).toContain('商品贡献')
+    expect(container.textContent).toContain('成本结构')
+    expect(container.textContent).toContain('版本记录')
+    expect(container.textContent).toContain('风险说明')
+    expect(getTableHeaders(container)).toEqual(
+      expect.arrayContaining([
+        '商品类型',
+        '贡献占比',
+        '毛利额',
+        '关联计费项数量',
+      ]),
+    )
+    expect(container.textContent).toContain(virtualCellQ2Target!.targetCode)
+    expectedCommodityNames.forEach((name) => {
+      expect(container.textContent).toContain(name)
+    })
+
+    act(() => {
+      getButton(container, '返回季度目标').click()
+    })
+
+    expect(container.textContent).toContain('季度目标')
+    expect(container.textContent).not.toContain('目标详情')
+
+    root.unmount()
+  })
+
+  it('renders target commodity contribution rows including BioMap Agent SaaS', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '商品贡献').click()
+    })
+
+    expect(getTableHeaders(container)).toEqual(expect.arrayContaining([
+      '商品名称',
+      '所属产品',
+      '商品类型',
+      '产品负责人',
+      '季度目标贡献',
+      '实际贡献',
+      '贡献达成率',
+      '成本贡献',
+      '毛利额',
+      '毛利率',
+      '贡献占比',
+      '主要计费项',
+      '风险状态',
+      '更新时间',
+      '操作',
+    ]))
+    setSearchInput(container, '搜索商品贡献', 'BioMap Agent')
+    expect(getCommodityRowTexts(container)).toHaveLength(1)
+    expect(container.textContent).toContain('BioMap Agent - SaaS')
+
+    root.unmount()
+  })
+
+  it('keeps Q3 target contribution filters populated with planning rows', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '商品贡献').click()
+    })
+    setSelect(container, '筛选贡献季度', 'Q3')
+
+    expect(getCommodityRowTexts(container)).toHaveLength(10)
+    expect(container.textContent).toContain('共 17 条')
+    expect(container.textContent).toContain('1 / 2')
+    expect(getCommodityRowTexts(container).every((row) => row.includes('0'))).toBe(
+      true,
+    )
+    expect(getCommodityRowTexts(container).some((row) => row.includes('-'))).toBe(
+      true,
+    )
+
+    root.unmount()
+  })
+
+  it('renders target margin variance with variance type and suggested actions', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '成本与毛利').click()
+    })
+
+    expect(getTableHeaders(container)).toEqual(
+      expect.arrayContaining([
+        '产品名称',
+        '业绩目标',
+        '已达成业绩',
+        '成本预算',
+        '已确认成本',
+        '目标毛利额',
+        '实际毛利额',
+        '差异类型',
+        '建议动作',
+      ]),
+    )
+    expect(getTableHeaders(container)).not.toContain('商品名称')
+    expect(getTableHeaders(container)).not.toContain('计费项名称')
+    expect(getCommodityRowTexts(container)).toHaveLength(5)
+    expect(container.textContent).toContain('正向')
+    expect(container.textContent).toContain('复核高消耗租户')
+
+    root.unmount()
+  })
+
+  it('keeps Q3 margin filters populated with product-level planning rows', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '成本与毛利').click()
+    })
+    setSelect(container, '筛选毛利季度', 'Q3')
+
+    expect(getCommodityRowTexts(container)).toHaveLength(5)
+    expect(getCommodityRowTexts(container).every((row) => row.includes('Q3'))).toBe(
+      true,
+    )
+    expect(getCommodityRowTexts(container).every((row) => row.includes('0'))).toBe(
+      true,
+    )
+    expect(getCommodityRowTexts(container).every((row) => row.includes('-'))).toBe(
+      true,
+    )
+
+    root.unmount()
+  })
+
+  it('offers complete margin variance type filters and keeps Q3 mild-negative rows visible', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '成本与毛利').click()
+    })
+
+    expect(getSelectOptions(container, '筛选差异类型')).toEqual([
+      '全部差异类型',
+      '正向',
+      '轻微负向',
+      '重大负向',
+    ])
+
+    setSelect(container, '筛选毛利季度', 'Q3')
+    setSelect(container, '筛选差异类型', '轻微负向')
+
+    expect(getCommodityRowTexts(container).length).toBeGreaterThan(0)
+    expect(getCommodityRowTexts(container).every((row) => row.includes('Q3'))).toBe(
+      true,
+    )
+    expect(
+      getCommodityRowTexts(container).every((row) => row.includes('轻微负向')),
+    ).toBe(true)
+
+    root.unmount()
+  })
+
+  it('renders target version records with statuses and change types', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '目标版本记录').click()
+    })
+
+    expect(getTableHeaders(container)).toEqual(expect.arrayContaining([
+      '版本号',
+      '目标编号',
+      '产品名称',
+      '年度',
+      '季度',
+      '变更类型',
+      '变更前目标',
+      '变更后目标',
+      '变更前毛利率',
+      '变更后毛利率',
+      '状态',
+      '创建人',
+      '创建时间',
+      '说明',
+      '操作',
+    ]))
+    expect(getSelectOptions(container, '筛选目标变更类型')).toEqual([
+      '全部变更类型',
+      '创建',
+      '目标调整',
+      '成本预算调整',
+      '预测调整',
+      '锁定',
+      '复盘',
+    ])
+    expect(container.textContent).toContain('已生效')
+    expect(container.textContent).toContain('创建')
+    expect(container.textContent).toContain('目标调整')
+    expect(container.textContent).toContain('成本预算调整')
+    expect(container.textContent).toContain('预测调整')
+    expect(container.textContent).toContain('锁定')
+    expect(container.textContent).toContain('复盘')
+
+    root.unmount()
+  })
+
+  it('keeps Q3 target version filters populated with planning records', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '目标版本记录').click()
+    })
+    setSelect(container, '筛选版本季度', 'Q3')
+
+    expect(getCommodityRowTexts(container)).toHaveLength(10)
+    expect(container.textContent).toContain('共 15 条')
+    expect(container.textContent).toContain('1 / 2')
+    expect(getCommodityRowTexts(container).every((row) => row.includes('Q3'))).toBe(
+      true,
+    )
+    expect(container.textContent).toContain('TG-2026-Q3')
+
+    root.unmount()
+  })
+
+  it('limits target contribution list to 10 rows per page and paginates results', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '商品贡献').click()
+    })
+
+    expect(getCommodityRowTexts(container)).toHaveLength(10)
+    expect(container.textContent).toContain('共 17 条')
+    expect(container.textContent).toContain('1 / 2')
+    expect(container.textContent).not.toContain('BioMap Agent - SaaS')
+
+    act(() => {
+      getButton(container, '下一页').click()
+    })
+
+    expect(getCommodityRowTexts(container)).toHaveLength(7)
+    expect(container.textContent).toContain('2 / 2')
+    expect(container.textContent).toContain('BioMap Agent - SaaS')
+
+    root.unmount()
+  })
+
+  it('shows Q3 target actual values as zero or empty placeholders', () => {
+    const { container, root } = renderProductManagementPlatformPage()
+
+    act(() => {
+      getTabButton(container, '目标管理').click()
+    })
+    act(() => {
+      getButton(container, '季度目标').click()
+    })
+    setSelect(container, '筛选目标季度', 'Q3')
+
+    const rows = getCommodityRowTexts(container)
+    expect(rows).toHaveLength(5)
+    rows.forEach((row) => {
+      expect(row).toContain('Q3')
+      expect(row).toContain('0')
+      expect(row).toContain('-')
+      expect(row).toContain('草稿')
+    })
 
     root.unmount()
   })
@@ -812,6 +1610,21 @@ function getFirstCellText(rowText: string) {
   return match
 }
 
+function readDetailArray(record: unknown, key: string) {
+  expect(record).toHaveProperty(key)
+
+  const value = (record as Record<string, unknown>)[key]
+  expect(Array.isArray(value)).toBe(true)
+
+  return value as unknown[]
+}
+
+function expectRowsTargetId(records: unknown[], targetId: string) {
+  records.forEach((record) => {
+    expect((record as { targetId?: unknown }).targetId).toBe(targetId)
+  })
+}
+
 function getSelectOptions(container: HTMLElement, label: string) {
   const select = container.querySelector<HTMLSelectElement>(
     `select[aria-label="${label}"]`,
@@ -862,4 +1675,10 @@ function setSearchInput(container: HTMLElement, label: string, value: string) {
       }),
     )
   })
+}
+
+function parseCurrencyValue(value: string) {
+  const parsedValue = Number(value.replace(/[^\d.-]/g, ''))
+
+  return Number.isFinite(parsedValue) ? parsedValue : 0
 }
