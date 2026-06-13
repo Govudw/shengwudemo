@@ -140,6 +140,66 @@ describe('Target-X antibody demo threads', () => {
     )
   })
 
+  it('adds xTrimo and open-source model call comparisons to the discovery thread', () => {
+    const blocks = getBlocks('targetx-antibody-discovery')
+    const modelBlocks = blocks.filter((block) => block.type === 'modelCallComparison')
+
+    expect(modelBlocks.length).toBeGreaterThanOrEqual(5)
+    expect(modelBlocks.map((block) => block.primaryModel.name)).toEqual(
+      expect.arrayContaining([
+        'xTrimoFold',
+        'xTrimoAbFold',
+        'xTrimoAbAgDock',
+        'xTrimoAbGen',
+        'xTrimoAbAggregation',
+      ]),
+    )
+    expect(modelBlocks.every((block) => block.primaryModel.provider.includes('xTrimo'))).toBe(
+      true,
+    )
+    expect(modelBlocks.every((block) => block.comparatorModel.provider.includes('Open-source'))).toBe(
+      true,
+    )
+    expect(modelBlocks.every((block) => (block.artifacts?.length ?? 0) > 0)).toBe(true)
+    expect(JSON.stringify(modelBlocks)).toContain('wet-lab validation')
+  })
+
+  it('tracks Target-X model workbench outputs in the run inspector', () => {
+    const thread = getAntibodyThread('targetx-antibody-discovery')
+    const progressTitles = thread.runInspector?.progress.map((item) => item.title) ?? []
+    const outputNames = thread.runInspector?.outputs.map((output) => output.name) ?? []
+
+    expect(progressTitles).toEqual(
+      expect.arrayContaining([
+        '模型输入包',
+        '抗原结构交叉校验',
+        'Fv 结构交叉校验',
+        'Docking 与表位一致性',
+        '候选生成模型对照',
+        '可开发性模型栈',
+        '模型共识矩阵',
+      ]),
+    )
+    expect(outputNames).toEqual(
+      expect.arrayContaining([
+        'TargetX_model_input_batch.json',
+        'TargetX_xtrimo_fold_antigen.json',
+        'TargetX_esmfold_antigen_crosscheck.json',
+        'TargetX_xtrimo_abfold_results.json',
+        'TargetX_igfold_crosscheck.json',
+        'TargetX_xtrimo_abagdock_results.json',
+        'TargetX_haddock_crosscheck.json',
+        'TargetX_abgen_candidate_batch.json',
+        'TargetX_iglm_plausibility_check.csv',
+        'TargetX_xtrimo_aggregation_risk.json',
+        'TargetX_developability_rule_flags.csv',
+        'TargetX_model_consensus_matrix.csv',
+        'TargetX_model_call_audit.json',
+        'TargetX_candidate_model_decision_log.md',
+      ]),
+    )
+  })
+
   it('provides object-storage files for the side window of each Target-X thread', () => {
     for (const threadId of antibodyThreadIds) {
       const files = buildThreadObjectStorageFiles('Antibody Optimization', threadId)
@@ -160,6 +220,9 @@ describe('Target-X antibody demo threads', () => {
       'targetx-antibody-discovery',
     )
     const fileNames = files.map((file) => file.fileName)
+    const modelArtifactNames = getBlocks('targetx-antibody-discovery')
+      .filter((block) => block.type === 'modelCallComparison')
+      .flatMap((block) => block.artifacts?.map((artifact) => artifact.name) ?? [])
 
     expect(fileNames).toEqual(
       expect.arrayContaining([
@@ -177,8 +240,36 @@ describe('Target-X antibody demo threads', () => {
         'TargetX_top28_release_package.json',
         'TargetX_R1_LIMS_Submission_Payload.json',
         'TargetX_discovery_evidence_index.json',
+        'TargetX_model_input_batch.json',
+        'TargetX_xtrimo_fold_antigen.json',
+        'TargetX_esmfold_antigen_crosscheck.json',
+        'TargetX_xtrimo_abfold_results.json',
+        'TargetX_igfold_crosscheck.json',
+        'TargetX_xtrimo_abagdock_results.json',
+        'TargetX_haddock_crosscheck.json',
+        'TargetX_abgen_candidate_batch.json',
+        'TargetX_iglm_plausibility_check.csv',
+        'TargetX_xtrimo_aggregation_risk.json',
+        'TargetX_developability_rule_flags.csv',
+        'TargetX_model_consensus_matrix.csv',
+        'TargetX_model_call_audit.json',
+        'TargetX_candidate_model_decision_log.md',
       ]),
     )
+    expect(fileNames).toEqual(expect.arrayContaining(modelArtifactNames))
+  })
+
+  it('keeps the Target-X model workbench language production-like', () => {
+    const thread = getAntibodyThread('targetx-antibody-discovery')
+    const files = buildThreadObjectStorageFiles(
+      'Antibody Optimization',
+      'targetx-antibody-discovery',
+    )
+    const serializedModelWorkbench = JSON.stringify({ thread, files })
+
+    expect(serializedModelWorkbench).not.toContain('mockOnly')
+    expect(serializedModelWorkbench).not.toContain('noRealApiCall')
+    expect(serializedModelWorkbench).not.toContain('mock-2026.06')
   })
 })
 

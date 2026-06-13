@@ -43,6 +43,35 @@ const approvalStatusLabels: Record<
   blocked: 'BLOCKED',
 }
 
+const modelDecisionLabels: Record<
+  BlockOf<'modelCallComparison'>['decision'],
+  string
+> = {
+  primary: 'PRIMARY',
+  backup: 'BACKUP',
+  review: 'REVIEW',
+  reject: 'REJECT',
+  control: 'CONTROL',
+}
+
+const modelAgreementLabels: Record<
+  BlockOf<'modelCallComparison'>['metrics'][number]['agreement'],
+  string
+> = {
+  agree: 'agree',
+  partial: 'partial',
+  disagree: 'disagree',
+}
+
+const modelStatusLabels: Record<
+  BlockOf<'modelCallComparison'>['primaryModel']['status'],
+  string
+> = {
+  success: 'success',
+  warning: 'warning',
+  failed: 'failed',
+}
+
 function ConversationBlocks({
   blocks,
   onProjectFileOpen,
@@ -424,9 +453,128 @@ function ConversationBlockView({
     case 'scientificDiagram':
       return <ScientificDiagramBlock block={block} />
 
+    case 'modelCallComparison':
+      return <ModelCallComparison block={block} />
+
     case 'pipelineDag':
       return <PipelineDagBlock block={block} />
   }
+}
+
+function ModelCallComparison({
+  block,
+}: {
+  block: BlockOf<'modelCallComparison'>
+}) {
+  return (
+    <section
+      className={`model-call-comparison-block model-call-comparison-block--${block.decision}`}
+      aria-label={block.title}
+    >
+      <header className="model-call-comparison-block__header">
+        <div>
+          <div className="model-call-comparison-block__eyebrow">
+            Model Call Comparison
+          </div>
+          <h3>{block.title}</h3>
+          <p>{block.subtitle}</p>
+        </div>
+        <span className="model-call-comparison-block__decision">
+          {modelDecisionLabels[block.decision]}
+        </span>
+      </header>
+
+      <div className="model-call-comparison-block__models">
+        <ModelCallSummaryCard label="Primary" model={block.primaryModel} />
+        <ModelCallSummaryCard label="Comparator" model={block.comparatorModel} />
+      </div>
+
+      <div className="model-call-comparison-block__table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>{block.primaryModel.name}</th>
+              <th>{block.comparatorModel.name}</th>
+              <th>Agreement</th>
+              <th>Interpretation</th>
+            </tr>
+          </thead>
+          <tbody>
+            {block.metrics.map((metric) => (
+              <tr key={metric.metric}>
+                <td>{metric.metric}</td>
+                <td>{metric.primaryValue}</td>
+                <td>{metric.comparatorValue}</td>
+                <td>
+                  <span
+                    className={`model-call-comparison-block__agreement model-call-comparison-block__agreement--${metric.agreement}`}
+                  >
+                    {modelAgreementLabels[metric.agreement]}
+                  </span>
+                </td>
+                <td>{metric.interpretation}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="model-call-comparison-block__footer">
+        <p>{block.decisionText}</p>
+        <span>{block.riskNote}</span>
+      </div>
+
+      {block.artifacts?.length ? (
+        <div className="model-call-comparison-block__artifacts">
+          {block.artifacts.map((artifact) => (
+            <span key={artifact.name}>
+              {artifact.kind.toUpperCase()} · {artifact.name}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+function ModelCallSummaryCard({
+  label,
+  model,
+}: {
+  label: string
+  model: BlockOf<'modelCallComparison'>['primaryModel']
+}) {
+  return (
+    <article
+      className={`model-call-comparison-block__model model-call-comparison-block__model--${model.status}`}
+    >
+      <div className="model-call-comparison-block__model-topline">
+        <span className="model-call-comparison-block__model-label">{label}</span>
+        <span className="model-call-comparison-block__status">
+          {modelStatusLabels[model.status]}
+        </span>
+      </div>
+      <h4>{model.name}</h4>
+      <p>
+        {model.provider} · {model.version}
+      </p>
+      <dl>
+        <div>
+          <dt>Purpose</dt>
+          <dd>{model.purpose}</dd>
+        </div>
+        <div>
+          <dt>Input</dt>
+          <dd>{model.inputSummary}</dd>
+        </div>
+        <div>
+          <dt>Output</dt>
+          <dd>{model.outputSummary}</dd>
+        </div>
+      </dl>
+    </article>
+  )
 }
 
 function ReplayDetail({
