@@ -20,6 +20,7 @@ import {
 } from './targetManagementMockData'
 import {
   commodityRecords,
+  productLineRecords,
   productPlatformTabs,
   productRecords,
 } from './productManagementMockData'
@@ -149,6 +150,46 @@ describe('ProductManagementPlatformPage', () => {
     ])
   })
 
+  it('keeps product line mock data aligned with products and commodities', () => {
+    expect(productLineRecords.map((record) => record.name)).toEqual([
+      '抗体蛋白',
+      '细胞',
+      '合成生物学',
+      '农业',
+      '通用产品',
+      '智能实验室',
+    ])
+
+    const lineNames = new Set(productLineRecords.map((record) => record.name))
+    expect(productRecords.every((record) => lineNames.has(record.productLine))).toBe(
+      true,
+    )
+
+    expect(
+      productLineRecords.find((record) => record.name === '细胞'),
+    ).toMatchObject({
+      owner: '别西',
+      productCount: 1,
+      commodityCount: 5,
+      stage: '运营中',
+    })
+    expect(
+      productLineRecords.find((record) => record.name === '通用产品'),
+    ).toMatchObject({
+      owner: '宋旭政俊',
+      productCount: 1,
+      commodityCount: 1,
+      externalVisible: '否',
+    })
+    expect(
+      productLineRecords.find((record) => record.name === '智能实验室'),
+    ).toMatchObject({
+      productCount: 0,
+      commodityCount: 0,
+      stage: '规划中',
+    })
+  })
+
   it('keeps target detail mock data complete for drill-down sections', () => {
     expect(Object.keys(targetDetailsById).sort()).toEqual(
       quarterlyTargetRecords.map((record) => record.targetId).sort(),
@@ -241,6 +282,10 @@ describe('ProductManagementPlatformPage', () => {
       'false',
     )
     expect(container.querySelector('.product-platform-sidebar')).not.toBeNull()
+    expect(getSideMenuLabels(container)).toEqual(['产品线管理', '产品管理'])
+    expect(getSideMenuButton(container, '产品管理').getAttribute('aria-current')).toBe(
+      'page',
+    )
     expect(container.querySelector('.product-platform-canvas')).not.toBeNull()
 
     root.unmount()
@@ -252,6 +297,7 @@ describe('ProductManagementPlatformPage', () => {
 
     expect(getTableHeaders(container)).toEqual([
       '产品名称',
+      '所属产品线',
       '产品编号',
       '负责人',
       '产品阶段',
@@ -262,6 +308,7 @@ describe('ProductManagementPlatformPage', () => {
     ])
     expect(getCommodityRowTexts(container)).toHaveLength(5)
     expect(container.textContent).toContain('虚拟细胞')
+    expect(container.textContent).toContain('细胞')
     expect(container.textContent).toContain('PROD-VCELL')
     expect(container.textContent).toContain('BioMap Agent')
     expect(
@@ -294,11 +341,93 @@ describe('ProductManagementPlatformPage', () => {
     expect(getCommodityRowTexts(container)).toHaveLength(1)
     expect(container.textContent).toContain('农业智能')
 
+    setSearchInput(container, '搜索产品', '通用产品')
+    expect(getCommodityRowTexts(container)).toHaveLength(1)
+    expect(container.textContent).toContain('BioMap Agent')
+
     act(() => {
       getButton(container, '+ 新建产品').click()
     })
 
     expect(onNotify).toHaveBeenCalledWith('新建产品暂未接入')
+
+    root.unmount()
+  })
+
+  it('renders product line management from the product left navigation', () => {
+    const onNotify = vi.fn()
+    const { container, root } = renderProductManagementPlatformPage({ onNotify })
+
+    act(() => {
+      getSideMenuButton(container, '产品线管理').click()
+    })
+
+    expect(getSideMenuButton(container, '产品线管理').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(getTableHeaders(container)).toEqual([
+      '产品线名称',
+      '产品线编号',
+      '产品线负责人',
+      '覆盖产品数',
+      '覆盖商品数',
+      '产品线阶段',
+      '外部可见',
+      '关联业务方向',
+      '更新时间',
+      '创建时间',
+      '操作',
+    ])
+    expect(getCommodityRowTexts(container)).toHaveLength(6)
+    expect(container.textContent).toContain('抗体蛋白')
+    expect(container.textContent).toContain('智能实验室')
+    expect(container.textContent).toContain('实验室自动化与实验数据闭环')
+
+    setSelect(container, '筛选产品线阶段', '规划中')
+    expect(getCommodityRowTexts(container)).toHaveLength(1)
+    expect(container.textContent).toContain('智能实验室')
+
+    setSelect(container, '筛选产品线阶段', 'all')
+    setSearchInput(container, '搜索产品线', '细胞')
+    expect(getCommodityRowTexts(container)).toHaveLength(1)
+    expect(container.textContent).toContain('细胞')
+
+    act(() => {
+      getButton(container, '+ 新建产品线').click()
+    })
+
+    expect(onNotify).toHaveBeenCalledWith('新建产品线暂未接入')
+
+    act(() => {
+      getSideMenuButton(container, '产品管理').click()
+    })
+
+    expect(getSideMenuButton(container, '产品管理').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(getTableHeaders(container)).toContain('所属产品线')
+    expect(container.textContent).toContain('BioMap Agent')
+
+    root.unmount()
+  })
+
+  it('clears product detail route when switching from product detail to product line management', () => {
+    const onCloseProduct = vi.fn()
+    const { container, root } = renderProductManagementPlatformPage({
+      initialProductId: 'product-virtual-cell',
+      onCloseProduct,
+    })
+
+    expect(container.querySelector('.commodity-detail')).not.toBeNull()
+
+    act(() => {
+      getSideMenuButton(container, '产品线管理').click()
+    })
+
+    expect(onCloseProduct).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('.commodity-detail')).toBeNull()
+    expect(getTableHeaders(container)).toContain('产品线名称')
+    expect(container.textContent).toContain('智能实验室')
 
     root.unmount()
   })
@@ -319,6 +448,7 @@ describe('ProductManagementPlatformPage', () => {
     )
     expect(container.textContent).toContain('产品编号')
     expect(container.textContent).toContain('产品ID')
+    expect(container.textContent).toContain('所属产品线')
     expect(container.textContent).toContain('所属业务线')
     expect(container.textContent).toContain('关联商品数')
     expect(container.textContent).not.toContain('更新商品')
@@ -1558,6 +1688,24 @@ function getTabButton(container: HTMLElement, name: string) {
   }
 
   return button
+}
+
+function getSideMenuButton(container: HTMLElement, name: string) {
+  const button = Array.from(
+    container.querySelectorAll<HTMLButtonElement>('.product-platform-side-menu button'),
+  ).find((element) => element.textContent?.trim() === name)
+
+  if (!button) {
+    throw new Error(`Side menu button not found: ${name}`)
+  }
+
+  return button
+}
+
+function getSideMenuLabels(container: HTMLElement) {
+  return Array.from(
+    container.querySelectorAll<HTMLButtonElement>('.product-platform-side-menu button'),
+  ).map((element) => element.textContent?.trim())
 }
 
 function getDetailTabButton(container: HTMLElement, name: string) {

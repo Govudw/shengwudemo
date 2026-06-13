@@ -20,6 +20,8 @@ import {
   getProductDetail,
   paymentTypes,
   productDetailTabs,
+  productLineRecords,
+  productLineStages,
   productPlatformTabs,
   productRecords,
   productStages,
@@ -40,12 +42,16 @@ import {
   type PaymentType,
   type ProductDetailRecord,
   type ProductDetailTab,
+  type ProductLineRecord,
+  type ProductLineStage,
   type ProductPlatformTab,
   type ProductRecord,
   type ProductStage,
   type ProductType,
 } from './productManagementMockData'
 import { targetSections, type TargetSection } from './targetManagementMockData'
+
+type ProductSection = 'lines' | 'products'
 
 type ProductManagementPlatformPageProps = {
   initialCommodityId?: string | null
@@ -83,6 +89,8 @@ function ProductManagementPlatformPage({
   )
   const [productDetailTab, setProductDetailTab] =
     useState<ProductDetailTab>('overview')
+  const [activeProductSection, setActiveProductSection] =
+    useState<ProductSection>('products')
   const [detailTab, setDetailTab] = useState<CommodityDetailTab>('overview')
   const [productStageFilter, setProductStageFilter] = useState<
     ProductStage | CommodityFilter
@@ -94,6 +102,15 @@ function ProductManagementPlatformPage({
     string | CommodityFilter
   >('all')
   const [productSearchQuery, setProductSearchQuery] = useState('')
+  const [productLineStageFilter, setProductLineStageFilter] = useState<
+    ProductLineStage | CommodityFilter
+  >('all')
+  const [productLineExternalVisibleFilter, setProductLineExternalVisibleFilter] =
+    useState<ExternalVisible | CommodityFilter>('all')
+  const [productLineOwnerFilter, setProductLineOwnerFilter] = useState<
+    string | CommodityFilter
+  >('all')
+  const [productLineSearchQuery, setProductLineSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<CommodityStatus | CommodityFilter>(
     'all',
   )
@@ -181,6 +198,56 @@ function ProductManagementPlatformPage({
       ),
     [],
   )
+  const productLineOwnerOptions = useMemo(
+    () =>
+      Array.from(new Set(productLineRecords.map((record) => record.owner))).sort(
+        (left, right) => left.localeCompare(right),
+      ),
+    [],
+  )
+  const visibleProductLineRecords = useMemo(() => {
+    const normalizedQuery = productLineSearchQuery.trim().toLowerCase()
+
+    return productLineRecords.filter((record) => {
+      if (
+        productLineStageFilter !== 'all' &&
+        record.stage !== productLineStageFilter
+      ) {
+        return false
+      }
+
+      if (
+        productLineExternalVisibleFilter !== 'all' &&
+        record.externalVisible !== productLineExternalVisibleFilter
+      ) {
+        return false
+      }
+
+      if (productLineOwnerFilter !== 'all' && record.owner !== productLineOwnerFilter) {
+        return false
+      }
+
+      if (!normalizedQuery) {
+        return true
+      }
+
+      return [
+        record.name,
+        record.code,
+        record.owner,
+        record.stage,
+        record.businessDirection,
+      ]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedQuery)
+    })
+  }, [
+    productLineExternalVisibleFilter,
+    productLineOwnerFilter,
+    productLineSearchQuery,
+    productLineStageFilter,
+  ])
   const visibleProductRecords = useMemo(() => {
     const normalizedQuery = productSearchQuery.trim().toLowerCase()
 
@@ -204,7 +271,7 @@ function ProductManagementPlatformPage({
         return true
       }
 
-      return [record.name, record.code, record.owner, record.stage]
+      return [record.name, record.productLine, record.code, record.owner, record.stage]
         .join(' ')
         .toLowerCase()
         .includes(normalizedQuery)
@@ -419,6 +486,10 @@ function ProductManagementPlatformPage({
     onNotify(`${record.name} 编辑暂未接入`)
   }
 
+  function handleProductLineAction(record: ProductLineRecord) {
+    onNotify(`${record.name} 查看产品线暂未接入`)
+  }
+
   function handleBillingInstanceAction(record: BillingInstanceRecord) {
     onNotify(`${record.id} 查看实例暂未接入`)
   }
@@ -428,6 +499,7 @@ function ProductManagementPlatformPage({
   }
 
   function handleOpenProduct(record: ProductRecord) {
+    setActiveProductSection('products')
     setSelectedProductId(record.id)
     setSelectedCommodityId(null)
     setProductDetailTab('overview')
@@ -453,6 +525,18 @@ function ProductManagementPlatformPage({
     onCloseCommodity?.()
   }
 
+  function handleProductSectionClick(section: ProductSection) {
+    setActiveProductSection(section)
+    setSelectedProductId(null)
+    setProductDetailTab('overview')
+
+    if (section === 'products') {
+      onOpenProductList?.()
+    } else if (selectedProductId) {
+      onCloseProduct?.()
+    }
+  }
+
   function handleTopTabClick(tab: ProductPlatformTab) {
     setActiveTab(tab)
 
@@ -471,6 +555,7 @@ function ProductManagementPlatformPage({
     setProductDetailTab('overview')
 
     if (tab === 'product') {
+      setActiveProductSection('products')
       onOpenProductList?.()
     }
   }
@@ -511,6 +596,39 @@ function ProductManagementPlatformPage({
           className="product-platform-sidebar"
           aria-label="产品管理平台左侧导航"
         >
+          {activeTab === 'product' ? (
+            <nav
+              className="product-platform-side-menu"
+              aria-label="产品管理左侧导航"
+            >
+              <button
+                type="button"
+                className={`product-platform-side-menu__item${
+                  activeProductSection === 'lines'
+                    ? ' product-platform-side-menu__item--active'
+                    : ''
+                }`}
+                aria-current={activeProductSection === 'lines' ? 'page' : undefined}
+                onClick={() => handleProductSectionClick('lines')}
+              >
+                产品线管理
+              </button>
+              <button
+                type="button"
+                className={`product-platform-side-menu__item${
+                  activeProductSection === 'products'
+                    ? ' product-platform-side-menu__item--active'
+                    : ''
+                }`}
+                aria-current={
+                  activeProductSection === 'products' ? 'page' : undefined
+                }
+                onClick={() => handleProductSectionClick('products')}
+              >
+                产品管理
+              </button>
+            </nav>
+          ) : null}
           {activeTab === 'commodity' ? (
             <nav
               className="product-platform-side-menu"
@@ -627,7 +745,22 @@ function ProductManagementPlatformPage({
           aria-label="产品管理平台内容区"
         >
           {activeTab === 'product' ? (
-            selectedProduct && selectedProductDetail ? (
+            activeProductSection === 'lines' ? (
+              <ProductLineManagementView
+                records={visibleProductLineRecords}
+                stageFilter={productLineStageFilter}
+                externalVisibleFilter={productLineExternalVisibleFilter}
+                ownerFilter={productLineOwnerFilter}
+                searchQuery={productLineSearchQuery}
+                ownerOptions={productLineOwnerOptions}
+                onStageFilterChange={setProductLineStageFilter}
+                onExternalVisibleFilterChange={setProductLineExternalVisibleFilter}
+                onOwnerFilterChange={setProductLineOwnerFilter}
+                onSearchQueryChange={setProductLineSearchQuery}
+                onCreateProductLine={() => onNotify('新建产品线暂未接入')}
+                onRecordAction={handleProductLineAction}
+              />
+            ) : selectedProduct && selectedProductDetail ? (
               <ProductDetailView
                 key={selectedProduct.id}
                 record={selectedProduct}
@@ -1210,6 +1343,160 @@ type ProductManagementViewProps = {
   onRecordAction: (record: ProductRecord) => void
 }
 
+type ProductLineManagementViewProps = {
+  records: ProductLineRecord[]
+  stageFilter: ProductLineStage | CommodityFilter
+  externalVisibleFilter: ExternalVisible | CommodityFilter
+  ownerFilter: string | CommodityFilter
+  searchQuery: string
+  ownerOptions: string[]
+  onStageFilterChange: (value: ProductLineStage | CommodityFilter) => void
+  onExternalVisibleFilterChange: (value: ExternalVisible | CommodityFilter) => void
+  onOwnerFilterChange: (value: string | CommodityFilter) => void
+  onSearchQueryChange: (value: string) => void
+  onCreateProductLine: () => void
+  onRecordAction: (record: ProductLineRecord) => void
+}
+
+function ProductLineManagementView({
+  records,
+  stageFilter,
+  externalVisibleFilter,
+  ownerFilter,
+  searchQuery,
+  ownerOptions,
+  onStageFilterChange,
+  onExternalVisibleFilterChange,
+  onOwnerFilterChange,
+  onSearchQueryChange,
+  onCreateProductLine,
+  onRecordAction,
+}: ProductLineManagementViewProps) {
+  return (
+    <div className="commodity-management">
+      <header className="commodity-management__toolbar" aria-label="产品线筛选工具">
+        <label className="commodity-management__search">
+          <SearchIcon className="commodity-management__search-icon" />
+          <input
+            type="search"
+            aria-label="搜索产品线"
+            value={searchQuery}
+            placeholder="搜索产品线名称、编号、负责人或业务方向"
+            onChange={(event) => onSearchQueryChange(event.currentTarget.value)}
+          />
+        </label>
+
+        <select
+          className="commodity-management__select"
+          aria-label="筛选产品线阶段"
+          value={stageFilter}
+          onChange={(event) =>
+            onStageFilterChange(
+              event.currentTarget.value as ProductLineStage | CommodityFilter,
+            )
+          }
+        >
+          <option value="all">全部阶段</option>
+          {productLineStages.map((stage) => (
+            <option key={stage} value={stage}>
+              {stage}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="commodity-management__select"
+          aria-label="筛选产品线外部可见"
+          value={externalVisibleFilter}
+          onChange={(event) =>
+            onExternalVisibleFilterChange(
+              event.currentTarget.value as ExternalVisible | CommodityFilter,
+            )
+          }
+        >
+          <option value="all">全部可见性</option>
+          {externalVisibleOptions.map((visible) => (
+            <option key={visible} value={visible}>
+              {visible}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="commodity-management__select"
+          aria-label="筛选产品线负责人"
+          value={ownerFilter}
+          onChange={(event) => onOwnerFilterChange(event.currentTarget.value)}
+        >
+          <option value="all">全部负责人</option>
+          {ownerOptions.map((owner) => (
+            <option key={owner} value={owner}>
+              {owner}
+            </option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          className="commodity-management__create-button"
+          onClick={onCreateProductLine}
+        >
+          + 新建产品线
+        </button>
+      </header>
+
+      <div className="commodity-management__table-wrap">
+        <table className="commodity-management__table">
+          <thead>
+            <tr>
+              <th>产品线名称</th>
+              <th>产品线编号</th>
+              <th>产品线负责人</th>
+              <th>覆盖产品数</th>
+              <th>覆盖商品数</th>
+              <th>产品线阶段</th>
+              <th>外部可见</th>
+              <th>关联业务方向</th>
+              <th>更新时间</th>
+              <th>创建时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {records.map((record) => (
+              <tr key={record.id}>
+                <td>
+                  <strong>{record.name}</strong>
+                </td>
+                <td>{record.code}</td>
+                <td>{record.owner}</td>
+                <td>{record.productCount}</td>
+                <td>{record.commodityCount}</td>
+                <td>{record.stage}</td>
+                <td>{record.externalVisible}</td>
+                <td>{record.businessDirection}</td>
+                <td>{record.updatedAt}</td>
+                <td>{record.createdAt}</td>
+                <td>
+                  <div className="commodity-management__actions">
+                    <button
+                      type="button"
+                      className="commodity-management__action"
+                      onClick={() => onRecordAction(record)}
+                    >
+                      查看
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 function ProductManagementView({
   records,
   stageFilter,
@@ -1234,7 +1521,7 @@ function ProductManagementView({
             type="search"
             aria-label="搜索产品"
             value={searchQuery}
-            placeholder="搜索产品名称、产品编号或负责人"
+            placeholder="搜索产品名称、所属产品线、产品编号或负责人"
             onChange={(event) => onSearchQueryChange(event.currentTarget.value)}
           />
         </label>
@@ -1303,6 +1590,7 @@ function ProductManagementView({
           <thead>
             <tr>
               <th>产品名称</th>
+              <th>所属产品线</th>
               <th>产品编号</th>
               <th>负责人</th>
               <th>产品阶段</th>
@@ -1325,6 +1613,7 @@ function ProductManagementView({
                     <strong>{record.name}</strong>
                   </button>
                 </td>
+                <td>{record.productLine}</td>
                 <td>{record.code}</td>
                 <td>{record.owner}</td>
                 <td>{record.stage}</td>

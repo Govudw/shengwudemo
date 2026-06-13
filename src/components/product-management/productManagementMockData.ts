@@ -9,6 +9,14 @@ export type CommodityFilter = 'all'
 export type ProductStage = '待发布' | 'Alpha' | 'Beta' | 'GA'
 export type ExternalVisible = '是' | '否'
 export type ProductType = '虚拟细胞' | '蛋白药物' | '合成生物' | '农业智能' | '通用产品'
+export type ProductLineName =
+  | '抗体蛋白'
+  | '细胞'
+  | '合成生物学'
+  | '农业'
+  | '通用产品'
+  | '智能实验室'
+export type ProductLineStage = '规划中' | '建设中' | '运营中' | '暂停'
 export type ProductDetailTab = 'overview' | 'versions'
 export type CommodityDetailTab = 'overview' | 'billing' | 'cost' | 'versions'
 export type CommoditySaleType = 'SaaS' | '私有化部署'
@@ -42,10 +50,25 @@ export type CommodityRecord = {
 export type ProductRecord = {
   id: string
   name: string
+  productLine: ProductLineName
   code: string
   owner: string
   stage: ProductStage
   externalVisible: ExternalVisible
+  updatedAt: string
+  createdAt: string
+}
+
+export type ProductLineRecord = {
+  id: string
+  name: ProductLineName
+  code: string
+  owner: string
+  productCount: number
+  commodityCount: number
+  stage: ProductLineStage
+  externalVisible: ExternalVisible
+  businessDirection: string
   updatedAt: string
   createdAt: string
 }
@@ -192,6 +215,13 @@ export const productStages: ProductStage[] = ['待发布', 'Alpha', 'Beta', 'GA'
 
 export const externalVisibleOptions: ExternalVisible[] = ['是', '否']
 
+export const productLineStages: ProductLineStage[] = [
+  '规划中',
+  '建设中',
+  '运营中',
+  '暂停',
+]
+
 export const productTypes: ProductType[] = [
   '虚拟细胞',
   '蛋白药物',
@@ -227,6 +257,7 @@ export const productRecords: ProductRecord[] = [
   {
     id: 'product-virtual-cell',
     name: '虚拟细胞',
+    productLine: '细胞',
     code: 'PROD-VCELL',
     owner: '别西',
     stage: 'GA',
@@ -237,6 +268,7 @@ export const productRecords: ProductRecord[] = [
   {
     id: 'product-protein-drug',
     name: '蛋白药物',
+    productLine: '抗体蛋白',
     code: 'PROD-PDRUG',
     owner: '王宗安',
     stage: 'Beta',
@@ -247,6 +279,7 @@ export const productRecords: ProductRecord[] = [
   {
     id: 'product-synbio',
     name: '合成生物',
+    productLine: '合成生物学',
     code: 'PROD-SYNBIO',
     owner: '李一凡',
     stage: 'Beta',
@@ -257,6 +290,7 @@ export const productRecords: ProductRecord[] = [
   {
     id: 'product-agriculture',
     name: '农业智能',
+    productLine: '农业',
     code: 'PROD-AGRI',
     owner: '王曼',
     stage: 'Alpha',
@@ -267,6 +301,7 @@ export const productRecords: ProductRecord[] = [
   {
     id: 'product-biomap-agent',
     name: 'BioMap Agent',
+    productLine: '通用产品',
     code: 'PROD-BMAGENT',
     owner: '宋旭政俊',
     stage: '待发布',
@@ -292,6 +327,14 @@ export function getProductTypeByProductId(productId: string): ProductType {
   }
 
   return productType
+}
+
+const productLineByProductType: Record<ProductType, ProductLineName> = {
+  虚拟细胞: '细胞',
+  蛋白药物: '抗体蛋白',
+  合成生物: '合成生物学',
+  农业智能: '农业',
+  通用产品: '通用产品',
 }
 
 export const commodityRecords: CommodityRecord[] = [
@@ -466,6 +509,89 @@ export const commodityRecords: CommodityRecord[] = [
     status: '已发布',
   },
 ]
+
+const productLineDefinitions: Omit<
+  ProductLineRecord,
+  'productCount' | 'commodityCount'
+>[] = [
+  {
+    id: 'product-line-antibody-protein',
+    name: '抗体蛋白',
+    code: 'PL-ABPROT',
+    owner: '王宗安',
+    stage: '运营中',
+    externalVisible: '是',
+    businessDirection: '抗体发现、蛋白药物设计与候选分子优化',
+    updatedAt: '2026-06-03 18:24',
+    createdAt: '2026-03-18 11:05',
+  },
+  {
+    id: 'product-line-cell',
+    name: '细胞',
+    code: 'PL-CELL',
+    owner: '别西',
+    stage: '运营中',
+    externalVisible: '是',
+    businessDirection: '虚拟细胞建模、细胞状态推演与资源服务',
+    updatedAt: '2026-06-09 10:30',
+    createdAt: '2026-03-12 09:20',
+  },
+  {
+    id: 'product-line-synbio',
+    name: '合成生物学',
+    code: 'PL-SYNBIO',
+    owner: '李一凡',
+    stage: '运营中',
+    externalVisible: '是',
+    businessDirection: '合成生物设计、通路优化与生物制造智能化',
+    updatedAt: '2026-06-09 09:40',
+    createdAt: '2026-03-26 14:15',
+  },
+  {
+    id: 'product-line-agriculture',
+    name: '农业',
+    code: 'PL-AGRI',
+    owner: '王曼',
+    stage: '建设中',
+    externalVisible: '是',
+    businessDirection: '农业性状分析、作物智能体与场景化决策',
+    updatedAt: '2026-05-30 12:55',
+    createdAt: '2026-04-08 10:40',
+  },
+  {
+    id: 'product-line-general',
+    name: '通用产品',
+    code: 'PL-GENERAL',
+    owner: '宋旭政俊',
+    stage: '建设中',
+    externalVisible: '否',
+    businessDirection: '通用 Agent、企业服务、商品计费与平台底座',
+    updatedAt: '2026-05-28 14:22',
+    createdAt: '2026-04-20 09:50',
+  },
+  {
+    id: 'product-line-smart-lab',
+    name: '智能实验室',
+    code: 'PL-SMARTLAB',
+    owner: '谢然',
+    stage: '规划中',
+    externalVisible: '否',
+    businessDirection: '实验室自动化与实验数据闭环',
+    updatedAt: '2026-05-22 16:30',
+    createdAt: '2026-05-10 10:00',
+  },
+]
+
+export const productLineRecords: ProductLineRecord[] = productLineDefinitions.map(
+  (line) => ({
+    ...line,
+    productCount: productRecords.filter((record) => record.productLine === line.name)
+      .length,
+    commodityCount: commodityRecords.filter(
+      (record) => productLineByProductType[record.productType] === line.name,
+    ).length,
+  }),
+)
 
 export const billingInstanceRecords: BillingInstanceRecord[] = [
   {
@@ -730,6 +856,7 @@ function createProductOverviewFields(record: ProductRecord): ProductOverviewFiel
     { label: '负责人', value: record.owner },
     { label: '产品阶段', value: record.stage },
     { label: '外部可见', value: record.externalVisible },
+    { label: '所属产品线', value: record.productLine },
     { label: '所属业务线', value: getProductBusinessLine(productType) },
     { label: '默认商品类型', value: getDefaultCommodityTypes(productType) },
     { label: '关联商品数', value: `${relatedCommodities.length} 个` },
