@@ -84,6 +84,7 @@ export type ConversationBlock =
   | ElapsedWorkReplayBlock
   | ScientificFigureBlock
   | ScientificDiagramBlock
+  | ModelCallComparisonBlock
   | PipelineDagBlock
   | DesignHandoffBriefBlock
   | ExperimentOrderSummaryBlock
@@ -240,6 +241,38 @@ export type ScientificDiagramBlock = {
   diagramKind: 'targetxEvidenceNetwork' | 'targetxEpitopeHypothesis'
   title: string
   description: string
+}
+
+export type ModelCallComparisonBlock = {
+  type: 'modelCallComparison'
+  title: string
+  subtitle: string
+  primaryModel: ModelCallSummary
+  comparatorModel: ModelCallSummary
+  metrics: Array<{
+    metric: string
+    primaryValue: string
+    comparatorValue: string
+    agreement: 'agree' | 'partial' | 'disagree'
+    interpretation: string
+  }>
+  decision: 'primary' | 'backup' | 'review' | 'reject' | 'control'
+  decisionText: string
+  riskNote: string
+  artifacts?: Array<{
+    name: string
+    kind: 'json' | 'csv' | 'xlsx' | 'md' | 'png' | 'pdb' | 'fasta'
+  }>
+}
+
+export type ModelCallSummary = {
+  name: string
+  provider: string
+  version: string
+  purpose: string
+  inputSummary: string
+  outputSummary: string
+  status: 'success' | 'warning' | 'failed'
 }
 
 export type PipelineDagBlock = {

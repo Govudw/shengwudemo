@@ -18,6 +18,7 @@ export type SideWindowFileDirectory =
   | 'Results'
   | 'Reports'
   | 'Figures'
+  | 'Model Workbench'
   | 'Runs/RUN-ENZ-SYN-20260604-001/inputs'
   | 'Runs/RUN-ENZ-SYN-20260604-001/approvals'
   | 'Runs/RUN-ENZ-SYN-20260604-001/work_orders'
@@ -1999,6 +2000,277 @@ The candidate package is locked for R1 transfer and does not authorize automatic
       null,
       2,
     ),
+  },
+  {
+    fileName: 'TargetX_model_input_batch.json',
+    directory: 'Model Workbench',
+    sourceLabel: 'Model Workbench',
+    sizeLabel: '36 KB',
+    updatedAt: '2026-06-06 11:32',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        target: 'Target-X',
+        constructs: ['Ag-01 full ECD', 'Ag-02 D2/D3', 'Ag-03 homolog ECD', 'Ag-04 D2/D3 mutant'],
+        epitopeHypotheses: ['E1', 'E2', 'E3'],
+        candidateIds: ['ABX-014', 'ABX-027', 'ABX-033', 'ABX-041', 'ABX-052'],
+        constraints: ['ranking_only', 'no_auto_R2', 'FTO_no_near_neighbor', 'wet_lab_validation_required'],
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_xtrimo_fold_antigen.json',
+    directory: 'Model Workbench',
+    sourceLabel: 'xTrimoFold',
+    sizeLabel: '49 KB',
+    updatedAt: '2026-06-06 11:36',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        model: 'xTrimoFold',
+        version: 'v2.0',
+        constructs: [
+          { id: 'Ag-01', type: 'full ECD', d2d3Exposure: 'supported', confidence: 'medium-high' },
+          { id: 'Ag-02', type: 'D2/D3 fragment', d2d3Exposure: 'supported with loop caution', confidence: 'medium' },
+        ],
+        decisionUse: 'structure support for epitope hypothesis; not functional proof',
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_esmfold_antigen_crosscheck.json',
+    directory: 'Model Workbench',
+    sourceLabel: 'Open-source Comparator',
+    sizeLabel: '44 KB',
+    updatedAt: '2026-06-06 11:38',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        model: 'ESMFold',
+        provider: 'Open-source',
+        checks: [
+          { construct: 'Ag-01 full ECD', d2d3Boundary: 'consistent', localLoop: 'acceptable' },
+          { construct: 'Ag-02 D2/D3', d2d3Boundary: 'consistent', localLoop: 'uncertain' },
+        ],
+        recommendation: 'keep full-ECD validation in R1',
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_xtrimo_abfold_results.json',
+    directory: 'Model Workbench',
+    sourceLabel: 'xTrimoAbFold',
+    sizeLabel: '54 KB',
+    updatedAt: '2026-06-06 11:42',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        model: 'xTrimoAbFold',
+        version: 'v1.2',
+        decisions: [
+          { candidate: 'ABX-014', fvConfidence: 'stable', action: 'dock' },
+          { candidate: 'ABX-041', fvConfidence: 'medium', action: 'backup' },
+          { candidate: 'ABX-052', fvConfidence: 'borderline', action: 'review' },
+        ],
+        note: 'Used for prioritization only; wet-lab validation required.',
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_igfold_crosscheck.json',
+    directory: 'Model Workbench',
+    sourceLabel: 'Open-source Comparator',
+    sizeLabel: '47 KB',
+    updatedAt: '2026-06-06 11:44',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        model: 'IgFold',
+        provider: 'Open-source',
+        checks: [
+          { candidate: 'ABX-014', cdrh3: 'stable', agreement: 'agree' },
+          { candidate: 'ABX-041', cdrh3: 'unstable', agreement: 'disagree' },
+          { candidate: 'ABX-052', vhVlPacking: 'medium risk', agreement: 'partial' },
+        ],
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_xtrimo_abagdock_results.json',
+    directory: 'Model Workbench',
+    sourceLabel: 'xTrimoAbAgDock',
+    sizeLabel: '62 KB',
+    updatedAt: '2026-06-06 12:02',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        model: 'xTrimoAbAgDock',
+        version: 'v0.9',
+        contacts: [
+          { candidate: 'ABX-014', epitope: 'E1', cluster: 'strong' },
+          { candidate: 'ABX-027', epitope: 'E1-adjacent', cluster: 'medium-high' },
+          { candidate: 'E3-control-02', epitope: 'E3', cluster: 'non-blocking-like' },
+        ],
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_haddock_crosscheck.json',
+    directory: 'Model Workbench',
+    sourceLabel: 'Open-source Comparator',
+    sizeLabel: '51 KB',
+    updatedAt: '2026-06-06 12:05',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        model: 'HADDOCK',
+        provider: 'Open-source',
+        crosscheck: [
+          { candidate: 'ABX-014', contactSupport: 'supported', agreement: 'agree' },
+          { candidate: 'ABX-027', contactSupport: 'partial cluster', agreement: 'partial' },
+          { candidate: 'E3-control-02', contactSupport: 'off-interface', agreement: 'agree' },
+        ],
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_abgen_candidate_batch.json',
+    directory: 'Model Workbench',
+    sourceLabel: 'xTrimoAbGen',
+    sizeLabel: '70 KB',
+    updatedAt: '2026-06-06 12:18',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        model: 'xTrimoAbGen',
+        families: [
+          { family: 'ABX-014-like', constraints: ['E1', 'low_FTO', 'human_like'], action: 'primary' },
+          { family: 'ABX-033-like', constraints: ['diverse_CDRH3', 'E1'], action: 'primary_with_note' },
+          { family: 'public-inspired-low-neighbor', constraints: ['FTO_review'], action: 'review' },
+        ],
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_iglm_plausibility_check.csv',
+    directory: 'Model Workbench',
+    sourceLabel: 'Open-source Comparator',
+    sizeLabel: '18 KB',
+    updatedAt: '2026-06-06 12:20',
+    statusLabel: '已保存',
+    content: `candidate,naturalness,diversity,notes
+ABX-014,high,medium,primary family remains plausible
+ABX-033,medium-high,high,unusual CDRH3 but acceptable for R1
+ABX-041,medium,medium,review due to stacked CDRH3 and FTO risk`,
+  },
+  {
+    fileName: 'TargetX_xtrimo_aggregation_risk.json',
+    directory: 'Model Workbench',
+    sourceLabel: 'xTrimoAbAggregation',
+    sizeLabel: '40 KB',
+    updatedAt: '2026-06-06 12:30',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        model: 'xTrimoAbAggregation',
+        version: 'v1.0',
+        riskTiers: [
+          { candidate: 'ABX-014', aggregation: 'low', action: 'primary' },
+          { candidate: 'ABX-027', aggregation: 'low-medium', action: 'primary' },
+          { candidate: 'ABX-041', aggregation: 'medium', action: 'backup' },
+          { candidate: 'high-risk set', count: 151, aggregation: 'high', action: 'exclude' },
+        ],
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_developability_rule_flags.csv',
+    directory: 'Model Workbench',
+    sourceLabel: 'Open-source Comparator',
+    sizeLabel: '19 KB',
+    updatedAt: '2026-06-06 12:32',
+    statusLabel: '已保存',
+    content: `candidate,rule_flag,severity,action
+ABX-014,none,low,primary
+ABX-027,surface_patch_watch,low,primary_with_note
+ABX-041,liability_stack,medium,backup
+high-risk set,hydrophobic_patch_or_motif,high,exclude`,
+  },
+  {
+    fileName: 'TargetX_model_consensus_matrix.csv',
+    directory: 'Model Workbench',
+    sourceLabel: 'Model Workbench',
+    sizeLabel: '24 KB',
+    updatedAt: '2026-06-06 12:36',
+    statusLabel: '已保存',
+    content: `candidate,xTrimo agreement,open-source agreement,decision
+ABX-014,Fv+docking+developability agree,IgFold+HADDOCK+rules agree,primary
+ABX-027,docking medium-high,HADDOCK partial,primary
+ABX-041,Fv medium and aggregation medium,IgFold disagreement plus rule flags,backup
+ABX-052,VH/VL packing borderline,homolog specificity review,backup`,
+  },
+  {
+    fileName: 'TargetX_model_call_audit.json',
+    directory: 'Model Workbench',
+    sourceLabel: 'Model Workbench',
+    sizeLabel: '32 KB',
+    updatedAt: '2026-06-06 12:38',
+    statusLabel: '已保存',
+    content: JSON.stringify(
+      {
+        auditId: 'TargetX-model-call-audit-v1',
+        auditStatus: 'traceable',
+        executionMode: 'workspace-orchestrated',
+        models: [
+          { name: 'xTrimoFold', version: 'v2.0', output: 'TargetX_xtrimo_fold_antigen.json' },
+          { name: 'xTrimoAbFold', version: 'v1.2', output: 'TargetX_xtrimo_abfold_results.json' },
+          { name: 'xTrimoAbAgDock', version: 'v0.9', output: 'TargetX_xtrimo_abagdock_results.json' },
+          { name: 'xTrimoAbGen', version: 'v1.1', output: 'TargetX_abgen_candidate_batch.json' },
+          { name: 'xTrimoAbAggregation', version: 'v1.0', output: 'TargetX_xtrimo_aggregation_risk.json' },
+        ],
+        evidenceUse: 'prioritization_and_hypothesis_management_only',
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    fileName: 'TargetX_candidate_model_decision_log.md',
+    directory: 'Model Workbench',
+    sourceLabel: 'Current Thread',
+    sizeLabel: '21 KB',
+    updatedAt: '2026-06-06 12:40',
+    statusLabel: '已保存',
+    content: `# Target-X Candidate Model Decision Log
+
+Model evidence is used for priority and hypothesis management only.
+
+| Candidate | Model consensus | Decision |
+| --- | --- | --- |
+| ABX-014 | xTrimoAbFold/IgFold agree; xTrimoAbAgDock/HADDOCK support E1 contact | Primary |
+| ABX-027 | Primary evidence is acceptable but less direct than ABX-014 | Primary |
+| ABX-041 | CDRH3 disagreement, FTO concern and aggregation risk stack | Backup |
+| ABX-052 | VH/VL packing and homolog specificity are not clean | Backup/review |
+
+All final claims require R1 wet-lab validation.`,
   },
   {
     fileName: 'TargetX_candidate_pool_manifest.json',

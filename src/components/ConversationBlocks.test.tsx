@@ -144,6 +144,72 @@ describe('ConversationBlocks data charts', () => {
 })
 
 describe('ConversationBlocks scientific diagrams', () => {
+  it('renders model call comparison blocks with xTrimo and open-source model evidence', () => {
+    const { container, root } = renderConversationBlocks([
+      {
+        type: 'modelCallComparison',
+        title: 'Fv structure cross-check',
+        subtitle: 'xTrimoAbFold v1.2 × IgFold',
+        primaryModel: {
+          name: 'xTrimoAbFold',
+          provider: 'BioMap xTrimo',
+          version: 'v1.2',
+          purpose: 'Production Fv structure prediction',
+          inputSummary: 'Target-X VH/VL candidate batch',
+          outputSummary: 'CDR confidence, VH/VL packing, fold risk',
+          status: 'success',
+        },
+        comparatorModel: {
+          name: 'IgFold',
+          provider: 'Open-source',
+          version: '2026.06 baseline',
+          purpose: 'Independent Fv sanity check',
+          inputSummary: 'Same VH/VL candidate batch',
+          outputSummary: 'CDR loop confidence and disagreement flags',
+          status: 'success',
+        },
+        metrics: [
+          {
+            metric: 'ABX-014 CDRH3',
+            primaryValue: 'stable',
+            comparatorValue: 'stable',
+            agreement: 'agree',
+            interpretation: 'enter docking queue',
+          },
+          {
+            metric: 'ABX-041 CDRH3',
+            primaryValue: 'medium',
+            comparatorValue: 'unstable',
+            agreement: 'disagree',
+            interpretation: 'downgrade to backup',
+          },
+        ],
+        decision: 'backup',
+        decisionText:
+          'ABX-041 is downgraded before final ranking because the open-source sanity check disagrees on CDRH3 stability.',
+        riskNote: 'Model evidence only; R1 wet-lab validation remains required.',
+        artifacts: [
+          { name: 'TargetX_xtrimo_abfold_results.json', kind: 'json' },
+          { name: 'TargetX_igfold_crosscheck.json', kind: 'json' },
+        ],
+      },
+    ])
+
+    expect(container.querySelector('.model-call-comparison-block')).not.toBeNull()
+    expect(container.textContent).toContain('xTrimoAbFold')
+    expect(container.textContent).toContain('IgFold')
+    expect(container.textContent).toContain('BACKUP')
+    expect(container.textContent).toContain('Primary')
+    expect(container.textContent).toContain('Comparator')
+    expect(container.textContent).toContain('ABX-041 CDRH3')
+    expect(container.textContent).toContain('unstable')
+    expect(container.textContent).toContain('downgrade to backup')
+    expect(container.textContent).toContain('Model evidence only')
+    expect(container.textContent).toContain('JSON · TargetX_xtrimo_abfold_results.json')
+
+    root.unmount()
+  })
+
   it('renders Target-X scientific diagrams as frontend components instead of image assets', () => {
     const { container, root } = renderConversationBlocks([
       {
