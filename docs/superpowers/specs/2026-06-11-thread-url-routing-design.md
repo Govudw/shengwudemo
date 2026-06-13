@@ -38,6 +38,15 @@ Legacy root-level thread routes remain readable for compatibility:
 
 New navigation always writes `/c/{routeId}`.
 
+When the app is deployed under a non-root Vite base path, browser-visible URLs must preserve that base path. For the GitHub Pages deployment this means:
+
+```text
+/shengwudemo/
+/shengwudemo/c/{routeId}
+```
+
+The app still parses these as internal `/` and `/c/{routeId}` routes. All `pushState` and `replaceState` calls must write the external URL with the configured base path instead of writing site-root paths like `/c/{routeId}`.
+
 Existing product routes keep priority:
 
 ```text
@@ -76,7 +85,7 @@ If no matching non-archived thread exists:
 Clicking a thread in the sidebar:
 
 1. Selects the thread through the existing store action.
-2. Pushes `/c/{routeId}` to browser history.
+2. Pushes `/c/{routeId}` to browser history, prefixed by the configured deployment base path when one exists.
 
 The browser back button can return to the prior thread URL or to `/`.
 
@@ -85,7 +94,7 @@ The browser back button can return to the prior thread URL or to `/`.
 Clicking new conversation:
 
 1. Starts a new thread draft through the existing store action.
-2. Pushes `/` to browser history.
+2. Pushes `/` to browser history, prefixed by the configured deployment base path when one exists.
 
 ### Browser History
 
@@ -93,6 +102,8 @@ Clicking new conversation:
 
 - `/` -> new conversation.
 - `/c/{routeId}` -> selected matching thread.
+- `/shengwudemo/` -> new conversation when deployed to GitHub Pages.
+- `/shengwudemo/c/{routeId}` -> selected matching thread when deployed to GitHub Pages.
 - `/{routeId}` -> selected matching thread through legacy compatibility.
 - product-management paths -> product-management route handling.
 - unknown single-segment route ID -> new conversation and toast.
@@ -169,6 +180,8 @@ Required tests:
 - Runtime store hydrates every thread with a valid unique `routeId`.
 - New threads receive valid unique `routeId` values.
 - Direct `/c/{routeId}` visits open the matching thread.
+- Direct `/shengwudemo/c/{routeId}` visits open the matching thread in the GitHub Pages build.
+- Thread navigation on the GitHub Pages build keeps `/shengwudemo` in the browser-visible path.
 - Legacy direct `/{routeId}` visits still open the matching thread.
 - Sidebar thread clicks update the URL.
 - New conversation returns the URL to `/`.

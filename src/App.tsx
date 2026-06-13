@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import {
+  getExternalPath,
+  getInternalPathname,
+  normalizeAppBasePath,
+} from './appRouting'
 import AssetsPage from './components/assets/AssetsPage'
 import Composer from './components/Composer'
 import CapabilitiesPage from './components/CapabilitiesPage'
@@ -32,9 +37,12 @@ const productManagementCommodityListPath = `${productManagementPlatformPath}/com
 const productManagementCommodityPathPrefix = `${productManagementCommodityListPath}/`
 const threadPathPattern = /^\/c\/([a-z0-9]{16})\/?$/
 const legacyThreadPathPattern = /^\/([a-z0-9]{16})\/?$/
+const appBasePath = normalizeAppBasePath(import.meta.env.BASE_URL)
 
 function App() {
-  const [pathname, setPathname] = useState(() => window.location.pathname)
+  const [pathname, setPathname] = useState(() =>
+    getInternalPathname(window.location.pathname, appBasePath),
+  )
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [projectMenuOpen, setProjectMenuOpen] = useState(false)
@@ -102,7 +110,7 @@ function App() {
 
   useEffect(() => {
     function handlePopState() {
-      setPathname(window.location.pathname)
+      setPathname(getInternalPathname(window.location.pathname, appBasePath))
     }
 
     window.addEventListener('popstate', handlePopState)
@@ -160,8 +168,8 @@ function App() {
     selectTopNav('Workspace')
     showStatus('Thread 不存在或已被删除')
 
-    if (window.location.pathname !== '/') {
-      window.history.replaceState(null, '', '/')
+    if (pathname !== '/') {
+      window.history.replaceState(null, '', getExternalPath('/', appBasePath))
       window.dispatchEvent(new PopStateEvent('popstate'))
     }
   }, [
@@ -242,8 +250,13 @@ function App() {
   }
 
   function navigateToPath(path: string) {
-    if (window.location.pathname !== path) {
-      window.history.pushState(null, '', path)
+    const currentPath = getInternalPathname(
+      window.location.pathname,
+      appBasePath,
+    )
+
+    if (currentPath !== path) {
+      window.history.pushState(null, '', getExternalPath(path, appBasePath))
     }
 
     setPathname(path)
@@ -295,7 +308,7 @@ function App() {
     }
 
     if (item === 'Projects' || item === 'Assets' || item === 'Capabilities') {
-      if (window.location.pathname !== '/') {
+      if (getInternalPathname(window.location.pathname, appBasePath) !== '/') {
         navigateToPathWithoutRootSync('/')
       }
       selectTopNav(item)

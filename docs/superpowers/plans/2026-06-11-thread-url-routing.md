@@ -28,6 +28,7 @@
   - Select matching threads on direct visits and browser history changes.
   - Push thread URLs on sidebar/project thread open.
   - Push `/` on new conversation.
+  - Preserve the configured Vite base path when reading and writing browser-visible URLs for GitHub Pages.
 - Modify: `src/store/demoStoreLogic.test.ts`
   - Add store-level route ID tests.
 - Modify: `src/store/useDemoStore.test.ts`
@@ -252,6 +253,13 @@ function getThreadPath(routeId: string) {
 }
 ```
 
+The app should keep `pathname` as an internal route while converting browser-visible paths through base-aware helpers:
+
+```ts
+getInternalPathname('/shengwudemo/c/{routeId}', '/shengwudemo') // /c/{routeId}
+getExternalPath('/c/{routeId}', '/shengwudemo') // /shengwudemo/c/{routeId}
+```
+
 - [ ] **Step 2: Apply path to Workspace state**
 
 Add a route effect that:
@@ -270,6 +278,7 @@ Update:
 - `handleSelectThread` -> `selectThread(projectId, threadId)` and push selected thread route.
 - `handleOpenProjectThread` -> same thread URL push plus `Workspace` nav.
 - Archive/delete selected thread -> after action, route returns to `/`.
+- `navigateToPath` -> writes `getExternalPath(path)` to browser history while storing the internal `path` in React state.
 
 - [ ] **Step 4: Run App tests and verify GREEN**
 

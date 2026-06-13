@@ -4,6 +4,7 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+import { getExternalPath, getInternalPathname } from './appRouting'
 import {
   modelAssetRecords,
   xtrimoModelRecords,
@@ -178,6 +179,19 @@ describe('App Product Management Platform route', () => {
 })
 
 describe('App Thread URL route', () => {
+  it('keeps Thread routes under the configured GitHub Pages base path', () => {
+    const routeId = '00pi1l7n010b2jvo'
+
+    expect(getInternalPathname('/shengwudemo/c/00pi1l7n010b2jvo', '/shengwudemo')).toBe(
+      `/c/${routeId}`,
+    )
+    expect(getInternalPathname('/shengwudemo/', '/shengwudemo')).toBe('/')
+    expect(getExternalPath(`/c/${routeId}`, '/shengwudemo')).toBe(
+      `/shengwudemo/c/${routeId}`,
+    )
+    expect(getExternalPath('/', '/shengwudemo')).toBe('/shengwudemo/')
+  })
+
   it('opens a Workspace Thread from a direct /c route id URL', () => {
     const thread = getStoreThread(
       'pipeline-build',
