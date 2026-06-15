@@ -450,6 +450,22 @@ describe('demo store persistence', () => {
     expect(useDemoStore.getState().activeTopNav).toBe('Workspace')
   })
 
+  it('hydrates Approval Center as a valid account-menu destination', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        activeTopNav: 'ApprovalCenter',
+      },
+      version: demoStorePersistVersion,
+    })
+
+    expect(useDemoStore.getState().activeTopNav).toBe('ApprovalCenter')
+
+    useDemoStore.getState().resetDemoState()
+    expect(useDemoStore.getState().activeTopNav).toBe('Workspace')
+  })
+
   it('sanitizes invalid persisted Assets state', async () => {
     const { demoStorePersistVersion } = await import('./useDemoStore')
     const { useDemoStore } = await loadStoreWithPersistedState({

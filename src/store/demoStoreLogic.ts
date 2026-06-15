@@ -38,7 +38,12 @@ export type DemoStateSnapshot = {
   statusMessage: string
 }
 
-export type ActiveTopNav = 'Workspace' | 'Projects' | 'Assets' | 'Capabilities'
+export type ActiveTopNav =
+  | 'Workspace'
+  | 'Projects'
+  | 'Assets'
+  | 'Capabilities'
+  | 'ApprovalCenter'
 
 export type AssetsSection = 'file' | 'knowledge' | 'data' | 'experiment' | 'model'
 
@@ -103,7 +108,13 @@ const minute = 60 * 1000
 const hour = 60 * minute
 const day = 24 * hour
 export const threadRouteIdPattern = /^[a-z0-9]{16}$/
-const activeTopNavItems = ['Workspace', 'Projects', 'Assets', 'Capabilities'] as const
+const activeTopNavItems = [
+  'Workspace',
+  'Projects',
+  'Assets',
+  'Capabilities',
+  'ApprovalCenter',
+] as const
 const assetsSections = ['file', 'knowledge', 'data', 'experiment', 'model'] as const
 const assetsFileViewModes = ['list', 'grid'] as const
 const assetsExperimentViewModes = ['grid', 'table'] as const

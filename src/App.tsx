@@ -5,6 +5,7 @@ import {
   getInternalPathname,
   normalizeAppBasePath,
 } from './appRouting'
+import ApprovalCenterPage from './components/approval/ApprovalCenterPage'
 import AssetsPage from './components/assets/AssetsPage'
 import Composer from './components/Composer'
 import CapabilitiesPage from './components/CapabilitiesPage'
@@ -142,6 +143,10 @@ function App() {
     if (pathname === '/') {
       if (skipNextRootRouteSyncRef.current) {
         skipNextRootRouteSyncRef.current = false
+        return
+      }
+
+      if (useDemoStore.getState().activeTopNav === 'ApprovalCenter') {
         return
       }
 
@@ -319,18 +324,23 @@ function App() {
   }
 
   function handleAccountMenuSelect(item: AccountMenuItem) {
+    if (item === 'notification-center') {
+      showStatus('通知中心将在后续 Demo 中展开')
+      return
+    }
+
+    if (item === 'approval-center') {
+      if (getInternalPathname(window.location.pathname, appBasePath) !== '/') {
+        navigateToPathWithoutRootSync('/')
+      }
+      selectTopNav('ApprovalCenter')
+      return
+    }
+
     if (item === 'product-management-platform') {
       navigateToPath(productManagementPlatformPath)
       return
     }
-
-    const unavailableMessages: Record<Exclude<AccountMenuItem, 'product-management-platform'>, string> = {
-      'system-settings': '系统设置尚未接入当前工作区',
-      'billing-center': '费用中心尚未接入当前工作区',
-      'permissions-security': '权限与安全尚未接入当前工作区',
-    }
-
-    showStatus(unavailableMessages[item])
   }
 
   const isProductManagementCommodityListRoute =
@@ -395,7 +405,9 @@ function App() {
           {statusMessage}
         </div>
       ) : null}
-      {activeTopNav === 'Assets' ? (
+      {activeTopNav === 'ApprovalCenter' ? (
+        <ApprovalCenterPage onNotify={showStatus} />
+      ) : activeTopNav === 'Assets' ? (
         <AssetsPage
           activeSection={assetsActiveSection}
           activeItem={assetsActiveItem}

@@ -96,6 +96,24 @@ describe('Top navigation layering CSS', () => {
   })
 })
 
+describe('Approval Center CSS', () => {
+  it('fits below the fixed-height top navigation without clipping its scroll area', () => {
+    const approvalCenterRule = getRule('.approval-center')
+    const approvalMenuRule = getRule('.approval-center__menu')
+
+    expect(approvalCenterRule).toContain('height: calc(100svh - 48px);')
+    expect(approvalCenterRule).not.toContain('height: 100%;')
+    expect(approvalMenuRule).toContain('overflow-y: auto;')
+  })
+
+  it('keeps Approval Center usable on narrow viewports', () => {
+    expect(appCss).toContain('@media (max-width: 720px)')
+    expect(appCss).toContain('grid-template-columns: 1fr;')
+    expect(appCss).toContain('grid-template-rows: auto minmax(0, 1fr);')
+    expect(appCss).toContain('overflow-x: auto;')
+  })
+})
+
 describe('Commodity detail CSS', () => {
   it('allows the cost and discount table to scroll horizontally', () => {
     const wideTableWrapRule = getRule('.commodity-detail__wide-table-wrap')

@@ -14,9 +14,8 @@ const navItems = ['Workspace', 'Projects', 'Assets', 'Capabilities'] as const
 export type TopNavItem = (typeof navItems)[number]
 export type PrimaryNavItem = TopNavItem
 export type AccountMenuItem =
-  | 'system-settings'
-  | 'billing-center'
-  | 'permissions-security'
+  | 'notification-center'
+  | 'approval-center'
   | 'product-management-platform'
 
 const navItemLabels: Record<TopNavItem, string> = {
@@ -27,10 +26,9 @@ const navItemLabels: Record<TopNavItem, string> = {
 }
 
 const accountMenuOptions: { id: AccountMenuItem; label: string }[] = [
-  { id: 'system-settings', label: '系统设置' },
-  { id: 'billing-center', label: '费用中心' },
-  { id: 'permissions-security', label: '权限与安全' },
-  { id: 'product-management-platform', label: '产品管理平台' },
+  { id: 'notification-center', label: '通知中心' },
+  { id: 'approval-center', label: '审批中心' },
+  { id: 'product-management-platform', label: '管理后台' },
 ]
 
 function TopNav({

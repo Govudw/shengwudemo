@@ -25,6 +25,38 @@ afterEach(() => {
 })
 
 describe('App Product Management Platform route', () => {
+  it('opens Approval Center from the account dropdown without adding a top-level tab', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getAccountButton(container).click()
+    })
+    act(() => {
+      getButton(container, '审批中心').click()
+    })
+
+    expect(window.location.pathname).toBe('/')
+    expect(container.querySelector('.approval-center')).not.toBeNull()
+    expect(container.querySelector('.agent-shell')).toBeNull()
+    expect(container.textContent).toContain('审批中心')
+    expect(container.textContent).toContain('外部审批')
+    expect(container.textContent).toContain('Workspace')
+
+    root.unmount()
+  })
+
+  it('keeps persisted Approval Center visible on root load', () => {
+    useDemoStore.setState({ activeTopNav: 'ApprovalCenter' })
+    const { container, root } = renderApp()
+
+    expect(window.location.pathname).toBe('/')
+    expect(container.querySelector('.approval-center')).not.toBeNull()
+    expect(container.querySelector('.agent-shell')).toBeNull()
+    expect(useDemoStore.getState().activeTopNav).toBe('ApprovalCenter')
+
+    root.unmount()
+  })
+
   it('opens Product Management Platform from the account dropdown with a URL route', () => {
     const { container, root } = renderApp()
 
@@ -32,7 +64,7 @@ describe('App Product Management Platform route', () => {
       getAccountButton(container).click()
     })
     act(() => {
-      getButton(container, '产品管理平台').click()
+      getButton(container, '管理后台').click()
     })
 
     expect(window.location.pathname).toBe('/product-management-platform')
@@ -163,7 +195,7 @@ describe('App Product Management Platform route', () => {
       getAccountButton(container).click()
     })
     act(() => {
-      getButton(container, '产品管理平台').click()
+      getButton(container, '管理后台').click()
     })
     act(() => {
       window.history.back()

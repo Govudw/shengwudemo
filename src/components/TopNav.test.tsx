@@ -80,19 +80,16 @@ describe('TopNav', () => {
       accountButton?.click()
     })
 
-    expect(getButton(container, '系统设置')).not.toBeNull()
-    expect(getButton(container, '费用中心')).not.toBeNull()
-    expect(getButton(container, '权限与安全')).not.toBeNull()
-    expect(getButton(container, '产品管理平台')).not.toBeNull()
+    expect(getButton(container, '通知中心')).not.toBeNull()
+    expect(getButton(container, '审批中心')).not.toBeNull()
+    expect(getButton(container, '管理后台')).not.toBeNull()
 
     act(() => {
-      getButton(container, '产品管理平台').click()
+      getButton(container, '审批中心').click()
     })
 
-    expect(onAccountMenuSelect).toHaveBeenCalledWith(
-      'product-management-platform',
-    )
-    expect(container.textContent).not.toContain('产品管理平台')
+    expect(onAccountMenuSelect).toHaveBeenCalledWith('approval-center')
+    expect(container.textContent).not.toContain('审批中心')
 
     root.unmount()
   })
