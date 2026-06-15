@@ -11,6 +11,38 @@ function getRule(selector: string) {
   return match?.[1] ?? ''
 }
 
+function getLastRule(selector: string) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const matches = Array.from(
+    appCss.matchAll(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`, 'g')),
+  )
+
+  expect(matches.length, `CSS rule ${selector}`).toBeGreaterThan(0)
+  return matches.at(-1)?.[1] ?? ''
+}
+
+function getMediaRule(mediaQuery: string, selector: string) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const rulePattern = new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`)
+  let mediaIndex = appCss.indexOf(mediaQuery)
+
+  while (mediaIndex !== -1) {
+    const mediaEnd = appCss.indexOf('\n@media', mediaIndex + mediaQuery.length)
+    const mediaBlock =
+      mediaEnd === -1 ? appCss.slice(mediaIndex) : appCss.slice(mediaIndex, mediaEnd)
+    const match = mediaBlock.match(rulePattern)
+
+    if (match) {
+      return match[1]
+    }
+
+    mediaIndex = appCss.indexOf(mediaQuery, mediaIndex + mediaQuery.length)
+  }
+
+  expect(null, `CSS rule ${selector} in ${mediaQuery}`).not.toBeNull()
+  return ''
+}
+
 describe('ELN document layout CSS', () => {
   it('keeps the document page rail independent from the outline panel', () => {
     const expandedBrowserRule = getRule(
@@ -121,5 +153,57 @@ describe('Commodity detail CSS', () => {
 
     expect(wideTableWrapRule).toContain('overflow-x: auto;')
     expect(costTableRule).toContain('min-width: 1680px;')
+  })
+})
+
+describe('Home template section CSS', () => {
+  it('keeps the template toolbar sticky and results independently scrollable on desktop', () => {
+    const sectionRule = getRule('.template-section')
+    const toolbarRule = getRule('.template-section__toolbar')
+    const resultsRule = getRule('.template-section__results')
+    const paginationRule = getRule('.template-section__pagination')
+
+    expect(sectionRule).toContain('max-height: min(1120px, calc(100svh - 92px));')
+    expect(sectionRule).toContain('overflow: hidden;')
+    expect(toolbarRule).toContain('position: sticky;')
+    expect(toolbarRule).toContain('top: 0;')
+    expect(toolbarRule).toContain('z-index: 2;')
+    expect(resultsRule).toContain('overflow-y: auto;')
+    expect(resultsRule).toContain('min-height: 0;')
+    expect(paginationRule).toContain('position: sticky;')
+    expect(paginationRule).toContain('bottom: 0;')
+  })
+
+  it('uses compact cards and compact filter controls', () => {
+    const gridRule = getRule('.template-section__grid')
+    const cardRule = getLastRule('.template-card')
+    const filterRule = getRule('.template-section__filter')
+
+    expect(gridRule).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));')
+    expect(gridRule).toContain('gap: 10px;')
+    expect(cardRule).toContain('min-height: 154px;')
+    expect(cardRule).toContain('padding: 12px;')
+    expect(filterRule).toContain('min-height: 29px;')
+    expect(filterRule).toContain('font-size: 12px;')
+  })
+
+  it('lets mobile use normal page scrolling instead of nested template scrolling', () => {
+    const mobileSectionRule = getMediaRule(
+      '@media (max-width: 760px)',
+      '.template-section',
+    )
+    const mobileToolbarRule = getMediaRule(
+      '@media (max-width: 760px)',
+      '.template-section__toolbar',
+    )
+    const mobileResultsRule = getMediaRule(
+      '@media (max-width: 760px)',
+      '.template-section__results',
+    )
+
+    expect(mobileSectionRule).toContain('max-height: none;')
+    expect(mobileSectionRule).toContain('overflow: visible;')
+    expect(mobileToolbarRule).toContain('position: static;')
+    expect(mobileResultsRule).toContain('overflow-y: visible;')
   })
 })

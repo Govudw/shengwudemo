@@ -50,7 +50,7 @@ function TemplateSection({ templates, onTemplateSelect }: TemplateSectionProps) 
   }
 
   return (
-    <section className="template-section use-case-section" aria-label="模板区">
+    <section className="template-section" aria-label="模板区">
       <div className="template-section__toolbar">
         <label className="template-section__search">
           <input
@@ -82,60 +82,56 @@ function TemplateSection({ templates, onTemplateSelect }: TemplateSectionProps) 
             onChange={(value) => updateFilter(setType, value)}
           />
         </div>
-      </div>
 
-      <div className="template-section__meta" aria-live="polite">
-        {templatePage.totalItems} 个模板
-      </div>
-
-      {templatePage.items.length > 0 ? (
-        <div className="template-section__grid use-case-grid">
-          {templatePage.items.map((template) => (
-            <button
-              key={template.id}
-              type="button"
-              className={`template-card use-case-card template-card--${template.tone}`}
-              onClick={() => onTemplateSelect(template)}
-            >
-              <span className="template-card__header use-case-grid__card-header">
-                <span className="template-card__icon use-case-grid__card-icon">
-                  <CardIcon
-                    icon={template.icon}
-                    className="template-card__icon-svg use-case-grid__icon"
-                  />
-                </span>
-                <span className="template-card__title use-case-grid__card-title">
-                  {template.title}
-                </span>
-              </span>
-              <span className="template-card__summary use-case-grid__card-summary">
-                {template.summary}
-              </span>
-              <span className="template-card__detail use-case-grid__card-detail">
-                <span className="template-card__label use-case-grid__card-label">
-                  输入
-                </span>
-                <span>{template.input}</span>
-              </span>
-              <span className="template-card__detail use-case-grid__card-detail">
-                <span className="template-card__label use-case-grid__card-label">
-                  输出
-                </span>
-                <span>{template.output}</span>
-              </span>
-              <span className="template-card__tag-row">
-                {template.displayTags.map((tag) => (
-                  <span key={tag} className="template-card__tag">
-                    {tag}
-                  </span>
-                ))}
-              </span>
-            </button>
-          ))}
+        <div className="template-section__meta" aria-live="polite">
+          {templatePage.totalItems} 个模板
         </div>
-      ) : (
-        <p className="template-section__empty">未找到匹配模板</p>
-      )}
+      </div>
+
+      <div className="template-section__results">
+        {templatePage.items.length > 0 ? (
+          <div className="template-section__grid">
+            {templatePage.items.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                className={`template-card template-card--${template.tone}`}
+                onClick={() => onTemplateSelect(template)}
+              >
+                <span className="template-card__header">
+                  <span className="template-card__icon">
+                    <CardIcon
+                      icon={template.icon}
+                      className="template-card__icon-svg"
+                    />
+                  </span>
+                  <span className="template-card__title">{template.title}</span>
+                </span>
+                <span className="template-card__summary">
+                  {template.summary}
+                </span>
+                <span className="template-card__detail">
+                  <span className="template-card__label">输入</span>
+                  <span>{template.input}</span>
+                </span>
+                <span className="template-card__detail">
+                  <span className="template-card__label">输出</span>
+                  <span>{template.output}</span>
+                </span>
+                <span className="template-card__tag-row">
+                  {template.displayTags.map((tag) => (
+                    <span key={tag} className="template-card__tag">
+                      {tag}
+                    </span>
+                  ))}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="template-section__empty">未找到匹配模板</p>
+        )}
+      </div>
 
       {showPagination ? (
         <div className="template-section__pagination" aria-label="模板分页">
@@ -176,7 +172,7 @@ function FilterGroup<TValue extends string>({
 }: FilterGroupProps<TValue>) {
   return (
     <div
-      className="template-section__filter-group capability-row"
+      className="template-section__filter-group"
       role="group"
       aria-label={ariaLabel}
     >
@@ -187,8 +183,8 @@ function FilterGroup<TValue extends string>({
           <button
             key={option.value}
             type="button"
-            className={`template-section__filter use-case-grid__chip${
-              isSelected ? ' template-section__filter--selected selected' : ''
+            className={`template-section__filter${
+              isSelected ? ' template-section__filter--selected' : ''
             }`}
             aria-pressed={isSelected}
             onClick={() => onChange(option.value)}

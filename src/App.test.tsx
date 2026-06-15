@@ -912,12 +912,14 @@ describe('App home templates', () => {
 
   it('does not render the old home capability buttons or use case cards', () => {
     const { container, root } = renderApp()
+    const templateSection = getTemplateSection(container)
 
     expect(findButton(container, '知识调研')).toBeUndefined()
     expect(findButton(container, '实验设计')).toBeUndefined()
     expect(findButton(container, '更多')).toBeUndefined()
-    expect(container.querySelector('.use-case-grid__card')).toBeNull()
-    expect(container.querySelector('.use-case-grid__chips')).toBeNull()
+    expect(templateSection.querySelector('[class*="use-case-"]')).toBeNull()
+    expect(templateSection.querySelector('.capability-row')).toBeNull()
+    expect(templateSection.querySelector('.selected')).toBeNull()
 
     root.unmount()
   })
