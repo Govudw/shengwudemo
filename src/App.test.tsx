@@ -25,6 +25,64 @@ afterEach(() => {
 })
 
 describe('App Product Management Platform route', () => {
+  it('opens Notification Center from the bell without changing the active top navigation', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Projects').click()
+    })
+
+    expect(container.querySelector('.projects-page')).not.toBeNull()
+
+    act(() => {
+      getButton(container, '打开通知中心').click()
+    })
+
+    expect(useDemoStore.getState().activeTopNav).toBe('Projects')
+    expect(container.querySelector('.notification-center')).not.toBeNull()
+    expect(container.textContent).toContain('3 待处理 · 7 未读')
+    expect(getButton(container, 'Projects').getAttribute('aria-current')).toBe(
+      'page',
+    )
+
+    root.unmount()
+  })
+
+  it('opens the same Notification Center from the account dropdown', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getAccountButton(container).click()
+    })
+    act(() => {
+      getButton(container, '通知中心').click()
+    })
+
+    expect(useDemoStore.getState().activeTopNav).toBe('Workspace')
+    expect(useDemoStore.getState().notificationDrawerOpen).toBe(true)
+    expect(container.querySelector('.notification-center')).not.toBeNull()
+    expect(container.textContent).toContain('EGFR 实验订单等待审批')
+
+    root.unmount()
+  })
+
+  it('keeps Approval Center account behavior unchanged', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getAccountButton(container).click()
+    })
+    act(() => {
+      getButton(container, '审批中心').click()
+    })
+
+    expect(window.location.pathname).toBe('/')
+    expect(container.querySelector('.approval-center')).not.toBeNull()
+    expect(useDemoStore.getState().activeTopNav).toBe('ApprovalCenter')
+
+    root.unmount()
+  })
+
   it('opens Approval Center from the account dropdown without adding a top-level tab', () => {
     const { container, root } = renderApp()
 

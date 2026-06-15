@@ -466,6 +466,62 @@ describe('demo store persistence', () => {
     expect(useDemoStore.getState().activeTopNav).toBe('Workspace')
   })
 
+  it('persists notification drawer, filter, read, and resolved demo state', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        notificationDrawerOpen: true,
+        notificationFilter: 'agent',
+        notificationReadById: {
+          'notification-agent-egfr-confirmation': true,
+        },
+        notificationResolvedById: {
+          'notification-agent-egfr-confirmation': true,
+        },
+      },
+      version: demoStorePersistVersion,
+    })
+
+    expect(useDemoStore.getState().notificationDrawerOpen).toBe(true)
+    expect(useDemoStore.getState().notificationFilter).toBe('agent')
+    expect(useDemoStore.getState().notificationReadById).toEqual({
+      'notification-agent-egfr-confirmation': true,
+    })
+    expect(useDemoStore.getState().notificationResolvedById).toEqual({
+      'notification-agent-egfr-confirmation': true,
+    })
+
+    useDemoStore.getState().closeNotificationDrawer()
+    useDemoStore.getState().setNotificationFilter('asset')
+    useDemoStore
+      .getState()
+      .markNotificationRead('notification-approval-egfr-order')
+    useDemoStore
+      .getState()
+      .markNotificationResolved('notification-approval-egfr-order')
+
+    const { demoStorePersistKey } = await import('./useDemoStore')
+    const persistedPayload = JSON.parse(localStorage.getItem(demoStorePersistKey) ?? '{}')
+
+    expect(persistedPayload.state.notificationDrawerOpen).toBe(false)
+    expect(persistedPayload.state.notificationFilter).toBe('asset')
+    expect(persistedPayload.state.notificationReadById).toMatchObject({
+      'notification-agent-egfr-confirmation': true,
+      'notification-approval-egfr-order': true,
+    })
+    expect(persistedPayload.state.notificationResolvedById).toMatchObject({
+      'notification-agent-egfr-confirmation': true,
+      'notification-approval-egfr-order': true,
+    })
+
+    useDemoStore.getState().resetDemoState()
+    expect(useDemoStore.getState().notificationDrawerOpen).toBe(false)
+    expect(useDemoStore.getState().notificationFilter).toBe('all')
+    expect(useDemoStore.getState().notificationReadById).toEqual({})
+    expect(useDemoStore.getState().notificationResolvedById).toEqual({})
+  })
+
   it('sanitizes invalid persisted Assets state', async () => {
     const { demoStorePersistVersion } = await import('./useDemoStore')
     const { useDemoStore } = await loadStoreWithPersistedState({

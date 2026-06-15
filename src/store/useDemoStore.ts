@@ -6,6 +6,9 @@ import {
   createProjectSnapshot,
   createInitialDemoState,
   deleteThreadSnapshot,
+  markAllNotificationsReadSnapshot,
+  markNotificationReadSnapshot,
+  markNotificationResolvedSnapshot,
   renameThreadSnapshot,
   sanitizeDemoState,
   selectTopNavSnapshot,
@@ -14,6 +17,8 @@ import {
   setAssetsFileViewModeSnapshot,
   setAssetsOpenFolderSnapshot,
   setAssetsSelectionSnapshot,
+  setNotificationDrawerOpenSnapshot,
+  setNotificationFilterSnapshot,
   setSelectedProjectSnapshot,
   startNewThreadSnapshot,
   submitDraftSnapshot,
@@ -34,6 +39,8 @@ import type {
   DemoStateSnapshot,
   DemoThread,
 } from './demoStoreLogic'
+import { notificationCenterSeedItems } from '../data/notificationCenterMockData'
+import type { NotificationFilter } from '../data/notificationCenterMockData'
 
 export const demoStorePersistKey = 'biomap-agent-demo-store-v2'
 export const demoStorePersistVersion = 4
@@ -65,6 +72,12 @@ type DemoStoreState = DemoStateSnapshot & {
   setAssetsFileViewMode: (mode: AssetsFileViewMode) => void
   setAssetsExperimentViewMode: (mode: AssetsExperimentViewMode) => void
   setAssetsOpenFolder: (folderId: string | null) => void
+  openNotificationDrawer: () => void
+  closeNotificationDrawer: () => void
+  setNotificationFilter: (filter: NotificationFilter) => void
+  markNotificationRead: (notificationId: string) => void
+  markAllNotificationsRead: () => void
+  markNotificationResolved: (notificationId: string) => void
   showStatus: (message: string) => void
   clearStatus: () => void
   resetDemoState: () => void
@@ -119,6 +132,23 @@ export const useDemoStore = create<DemoStoreState>()(
         set((state) => setAssetsExperimentViewModeSnapshot(state, mode)),
       setAssetsOpenFolder: (folderId) =>
         set((state) => setAssetsOpenFolderSnapshot(state, folderId)),
+      openNotificationDrawer: () =>
+        set((state) => setNotificationDrawerOpenSnapshot(state, true)),
+      closeNotificationDrawer: () =>
+        set((state) => setNotificationDrawerOpenSnapshot(state, false)),
+      setNotificationFilter: (filter) =>
+        set((state) => setNotificationFilterSnapshot(state, filter)),
+      markNotificationRead: (notificationId) =>
+        set((state) => markNotificationReadSnapshot(state, notificationId)),
+      markAllNotificationsRead: () =>
+        set((state) =>
+          markAllNotificationsReadSnapshot(
+            state,
+            notificationCenterSeedItems.map((item) => item.id),
+          ),
+        ),
+      markNotificationResolved: (notificationId) =>
+        set((state) => markNotificationResolvedSnapshot(state, notificationId)),
       showStatus: (message) => set({ statusMessage: message }),
       clearStatus: () => set({ statusMessage: '' }),
       resetDemoState: () => set(createInitialState()),
@@ -143,6 +173,10 @@ export const useDemoStore = create<DemoStoreState>()(
         assetsFileViewMode: state.assetsFileViewMode,
         assetsExperimentViewMode: state.assetsExperimentViewMode,
         assetsOpenFolderId: state.assetsOpenFolderId,
+        notificationDrawerOpen: state.notificationDrawerOpen,
+        notificationFilter: state.notificationFilter,
+        notificationReadById: state.notificationReadById,
+        notificationResolvedById: state.notificationResolvedById,
       }),
       merge: (persistedState, currentState) => {
         const restoredState = (persistedState ?? {}) as Partial<DemoStateSnapshot>
@@ -195,6 +229,17 @@ export const useDemoStore = create<DemoStoreState>()(
             currentState.assetsExperimentViewMode,
           assetsOpenFolderId:
             restoredState.assetsOpenFolderId ?? currentState.assetsOpenFolderId,
+          notificationDrawerOpen:
+            restoredState.notificationDrawerOpen ??
+            currentState.notificationDrawerOpen,
+          notificationFilter:
+            restoredState.notificationFilter ?? currentState.notificationFilter,
+          notificationReadById:
+            restoredState.notificationReadById ??
+            currentState.notificationReadById,
+          notificationResolvedById:
+            restoredState.notificationResolvedById ??
+            currentState.notificationResolvedById,
           statusMessage: '',
         }
 

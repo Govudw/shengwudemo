@@ -1,5 +1,6 @@
 import type { ConversationTurn, RunInspectorData } from '../data/conversationTypes'
 import type { Project } from '../data/mockData'
+import type { NotificationFilter } from '../data/notificationCenterMockData'
 
 export type DemoThread = {
   id: string
@@ -35,6 +36,10 @@ export type DemoStateSnapshot = {
   assetsFileViewMode: AssetsFileViewMode
   assetsExperimentViewMode: AssetsExperimentViewMode
   assetsOpenFolderId: string | null
+  notificationDrawerOpen: boolean
+  notificationFilter: NotificationFilter
+  notificationReadById: Record<string, boolean>
+  notificationResolvedById: Record<string, boolean>
   statusMessage: string
 }
 
@@ -118,6 +123,14 @@ const activeTopNavItems = [
 const assetsSections = ['file', 'knowledge', 'data', 'experiment', 'model'] as const
 const assetsFileViewModes = ['list', 'grid'] as const
 const assetsExperimentViewModes = ['grid', 'table'] as const
+const notificationFilters = [
+  'all',
+  'actionRequired',
+  'approval',
+  'agent',
+  'asset',
+  'system',
+] as const satisfies readonly NotificationFilter[]
 const assetMenuItemsBySection = {
   file: ['public-files', 'project-files', 'recent-uploads', 'archived-files'],
   knowledge: ['all-knowledge', 'rag', 'knowledge-graph', 'graph-rag'],
@@ -148,6 +161,10 @@ export function createInitialDemoState(
     assetsFileViewMode: 'list',
     assetsExperimentViewMode: 'grid',
     assetsOpenFolderId: null,
+    notificationDrawerOpen: false,
+    notificationFilter: 'all',
+    notificationReadById: {},
+    notificationResolvedById: {},
     statusMessage: '',
   }
 }
@@ -475,6 +492,7 @@ export function sanitizeDemoState(state: DemoStateSnapshot): DemoStateSnapshot {
         projects,
       ),
       ...sanitizedAssets,
+      ...sanitizeNotificationStateFields(state),
       statusMessage: '',
     }
   }
@@ -497,6 +515,7 @@ export function sanitizeDemoState(state: DemoStateSnapshot): DemoStateSnapshot {
       projects,
     ),
     ...sanitizedAssets,
+    ...sanitizeNotificationStateFields(state),
     statusMessage: '',
   }
 }
@@ -580,6 +599,72 @@ export function setAssetsOpenFolderSnapshot(
   return {
     ...state,
     assetsOpenFolderId,
+  }
+}
+
+export function setNotificationDrawerOpenSnapshot(
+  state: DemoStateSnapshot,
+  notificationDrawerOpen: boolean,
+): DemoStateSnapshot {
+  return {
+    ...state,
+    notificationDrawerOpen,
+  }
+}
+
+export function setNotificationFilterSnapshot(
+  state: DemoStateSnapshot,
+  notificationFilter: NotificationFilter,
+): DemoStateSnapshot {
+  if (!isNotificationFilter(notificationFilter)) {
+    return state
+  }
+
+  return {
+    ...state,
+    notificationFilter,
+  }
+}
+
+export function markNotificationReadSnapshot(
+  state: DemoStateSnapshot,
+  notificationId: string,
+): DemoStateSnapshot {
+  return {
+    ...state,
+    notificationReadById: {
+      ...state.notificationReadById,
+      [notificationId]: true,
+    },
+  }
+}
+
+export function markAllNotificationsReadSnapshot(
+  state: DemoStateSnapshot,
+  notificationIds: readonly string[],
+): DemoStateSnapshot {
+  const nextReadById = { ...state.notificationReadById }
+
+  for (const notificationId of notificationIds) {
+    nextReadById[notificationId] = true
+  }
+
+  return {
+    ...state,
+    notificationReadById: nextReadById,
+  }
+}
+
+export function markNotificationResolvedSnapshot(
+  state: DemoStateSnapshot,
+  notificationId: string,
+): DemoStateSnapshot {
+  return {
+    ...state,
+    notificationResolvedById: {
+      ...state.notificationResolvedById,
+      [notificationId]: true,
+    },
   }
 }
 
@@ -1065,8 +1150,48 @@ function sanitizeAssetsStateFields(
   }
 }
 
+function sanitizeNotificationStateFields(
+  state: DemoStateSnapshot,
+): Pick<
+  DemoStateSnapshot,
+  | 'notificationDrawerOpen'
+  | 'notificationFilter'
+  | 'notificationReadById'
+  | 'notificationResolvedById'
+> {
+  return {
+    notificationDrawerOpen:
+      typeof state.notificationDrawerOpen === 'boolean'
+        ? state.notificationDrawerOpen
+        : false,
+    notificationFilter: isNotificationFilter(state.notificationFilter)
+      ? state.notificationFilter
+      : 'all',
+    notificationReadById: sanitizeBooleanRecord(state.notificationReadById),
+    notificationResolvedById: sanitizeBooleanRecord(
+      state.notificationResolvedById,
+    ),
+  }
+}
+
 function isActiveTopNav(value: unknown): value is ActiveTopNav {
   return activeTopNavItems.includes(value as ActiveTopNav)
+}
+
+function isNotificationFilter(value: unknown): value is NotificationFilter {
+  return notificationFilters.includes(value as NotificationFilter)
+}
+
+function sanitizeBooleanRecord(value: unknown): Record<string, boolean> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {}
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      ([key, recordValue]) => key && typeof recordValue === 'boolean',
+    ),
+  )
 }
 
 function isAssetsSection(value: unknown): value is AssetsSection {

@@ -93,6 +93,25 @@ describe('TopNav', () => {
 
     root.unmount()
   })
+
+  it('opens the notification center from the bell with the action-required count', () => {
+    const onNotificationCenterOpen = vi.fn()
+    const { container, root } = renderTopNav({
+      notificationActionRequiredCount: 5,
+      onNotificationCenterOpen,
+    })
+    const bellButton = getButtonByLabel(container, '打开通知中心')
+
+    expect(bellButton.textContent).toContain('5')
+
+    act(() => {
+      bellButton.click()
+    })
+
+    expect(onNotificationCenterOpen).toHaveBeenCalledTimes(1)
+
+    root.unmount()
+  })
 })
 
 function renderTopNav(
@@ -107,7 +126,8 @@ function renderTopNav(
       <TopNav
         activeItem="Workspace"
         onNavigate={() => undefined}
-        onNotify={() => undefined}
+        notificationActionRequiredCount={3}
+        onNotificationCenterOpen={() => undefined}
         onAccountMenuSelect={() => undefined}
         {...props}
       />,
@@ -115,6 +135,18 @@ function renderTopNav(
   })
 
   return { container, root }
+}
+
+function getButtonByLabel(container: HTMLElement, label: string) {
+  const button = container.querySelector<HTMLButtonElement>(
+    `button[aria-label="${label}"]`,
+  )
+
+  if (!button) {
+    throw new Error(`Button not found: ${label}`)
+  }
+
+  return button
 }
 
 function getButton(container: HTMLElement, name: string) {
