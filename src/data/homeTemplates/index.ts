@@ -12,6 +12,7 @@ export type {
   DirectionFilterValue,
   HomeTemplate,
   HomeTemplateFilters,
+  HomeTemplateTone,
   ScopeFilterValue,
   TemplateCardIcon,
   TemplateDirectionTag,

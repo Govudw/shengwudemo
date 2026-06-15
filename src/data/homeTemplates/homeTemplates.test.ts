@@ -7,7 +7,16 @@ import {
   typeFilterOptions,
   directionFilterOptions,
   type HomeTemplate,
+  type HomeTemplateTone,
 } from './index'
+
+const documentedTones: HomeTemplateTone[] = [
+  'cyan',
+  'blue',
+  'teal',
+  'violet',
+  'amber',
+]
 
 const templates: HomeTemplate[] = [
   {
@@ -18,7 +27,7 @@ const templates: HomeTemplate[] = [
     output: '实验方案与分析摘要',
     prompt: '仅供系统执行的内部提示词 alpha-secret',
     icon: 'workflow',
-    tone: '严谨',
+    tone: 'cyan',
     scopeTags: ['生物'],
     directionTags: ['抗体'],
     typeTags: ['完整工作流'],
@@ -34,7 +43,7 @@ const templates: HomeTemplate[] = [
     output: '日报总结',
     prompt: 'hidden-daily-term',
     icon: 'chart',
-    tone: '直接',
+    tone: 'blue',
     scopeTags: ['日常'],
     directionTags: ['发酵'],
     typeTags: ['结果分析'],
@@ -50,7 +59,7 @@ const templates: HomeTemplate[] = [
     output: '实验设计草案',
     prompt: 'hidden-cell-term',
     icon: 'cells',
-    tone: '分析',
+    tone: 'teal',
     scopeTags: ['生物'],
     directionTags: ['细胞'],
     typeTags: ['研究设计'],
@@ -61,6 +70,10 @@ const templates: HomeTemplate[] = [
 ]
 
 describe('home template filtering', () => {
+  it('exports the documented home template tone tokens', () => {
+    expect(documentedTones).toEqual(['cyan', 'blue', 'teal', 'violet', 'amber'])
+  })
+
   it('defines the exact filter option labels', () => {
     expect(scopeFilterOptions.map((option) => option.label)).toEqual([
       '全部类别',
@@ -137,7 +150,7 @@ describe('home template filtering', () => {
       output: '输出',
       prompt: 'hidden',
       icon: 'package',
-      tone: '标准',
+      tone: 'violet',
       scopeTags: ['日常'],
       directionTags: ['酶'],
       typeTags: ['实验'],

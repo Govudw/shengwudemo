@@ -27,6 +27,8 @@ export type TemplateCardIcon =
   | 'culture'
   | 'chart'
 
+export type HomeTemplateTone = 'cyan' | 'blue' | 'teal' | 'violet' | 'amber'
+
 export type ScopeFilterValue = '全部类别' | '推荐' | TemplateScopeTag
 export type DirectionFilterValue = '全部方向' | TemplateDirectionTag
 export type TypeFilterValue = '全部类型' | TemplateTypeTag
@@ -39,7 +41,7 @@ export interface HomeTemplate {
   output: string
   prompt: string
   icon: TemplateCardIcon
-  tone: string
+  tone: HomeTemplateTone
   scopeTags: TemplateScopeTag[]
   directionTags: TemplateDirectionTag[]
   typeTags: TemplateTypeTag[]
