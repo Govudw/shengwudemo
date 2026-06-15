@@ -12,12 +12,12 @@ import CapabilitiesPage from './components/CapabilitiesPage'
 import ProductManagementPlatformPage from './components/product-management/ProductManagementPlatformPage'
 import ProjectsPage from './components/projects/ProjectsPage'
 import Sidebar from './components/Sidebar'
+import TemplateSection from './components/TemplateSection'
 import ThreadWorkspace from './components/ThreadWorkspace'
 import TopNav from './components/TopNav'
 import type { AccountMenuItem, TopNavItem } from './components/TopNav'
-import UseCaseGrid from './components/UseCaseGrid'
-import { capabilityChips, useCases } from './data/mockData'
-import type { CapabilityChip } from './data/mockData'
+import { homeTemplates } from './data/homeTemplates'
+import type { HomeTemplate } from './data/homeTemplates'
 import {
   resetPersistedDemoStore,
   useDemoStore,
@@ -47,8 +47,6 @@ function App() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [projectMenuOpen, setProjectMenuOpen] = useState(false)
-  const [activeCapabilityTag, setActiveCapabilityTag] =
-    useState<CapabilityChip | null>(null)
   const composerTextAreaRef = useRef<HTMLTextAreaElement>(null)
   const skipNextRootRouteSyncRef = useRef(false)
   const projects = useDemoStore((state) => state.projects)
@@ -196,25 +194,19 @@ function App() {
     navigateToThreadPath(threadId)
   }
 
-  function handlePromptSelect(prompt: string) {
-    setActiveCapabilityTag(null)
-    setDraft(prompt)
+  function handleTemplateSelect(template: HomeTemplate) {
+    setDraft(template.prompt)
 
     window.requestAnimationFrame(() => {
-      composerTextAreaRef.current?.focus()
-    })
-  }
+      const textarea = composerTextAreaRef.current
 
-  function handleCapabilitySelect(chip: CapabilityChip) {
-    if (!chip.prompt) {
-      return
-    }
+      if (!textarea) {
+        return
+      }
 
-    setActiveCapabilityTag(chip)
-    setDraft(chip.prompt)
-
-    window.requestAnimationFrame(() => {
-      composerTextAreaRef.current?.focus()
+      textarea.focus()
+      textarea.setSelectionRange(template.prompt.length, template.prompt.length)
+      textarea.scrollIntoView?.({ block: 'nearest' })
     })
   }
 
@@ -493,21 +485,16 @@ function App() {
                   draft={draft}
                   textareaRef={composerTextAreaRef}
                   projectMenuOpen={projectMenuOpen}
-                  activeCapabilityLabel={activeCapabilityTag?.label ?? null}
                   onDraftChange={setDraft}
                   onProjectMenuOpenChange={setProjectMenuOpen}
                   onProjectChange={setSelectedProject}
                   onCreateProject={createProject}
-                  onRemoveCapability={() => setActiveCapabilityTag(null)}
                   onSubmit={handleSubmit}
                   onNotify={showStatus}
                 />
-                <UseCaseGrid
-                  chips={capabilityChips}
-                  useCases={useCases}
-                  onCapabilitySelect={handleCapabilitySelect}
-                  onPromptSelect={handlePromptSelect}
-                  onNotify={showStatus}
+                <TemplateSection
+                  templates={homeTemplates}
+                  onTemplateSelect={handleTemplateSelect}
                 />
               </section>
             )}

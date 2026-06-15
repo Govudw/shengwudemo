@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { UseCaseCard } from '../data/mockData'
+import type { TemplateCardIcon } from '../data/homeTemplates'
 
 type IconProps = {
   className?: string
@@ -306,14 +306,74 @@ function PackageIcon({ className }: IconProps) {
   )
 }
 
-function CardIcon({ icon, className }: IconProps & { icon: UseCaseCard['icon'] }) {
-  const icons: Record<UseCaseCard['icon'], (props: IconProps) => ReactNode> = {
+function WorkflowIcon({ className }: IconProps) {
+  return (
+    <IconSvg className={className}>
+      <path d="M5 6.5h5" />
+      <path d="M14 6.5h5" />
+      <path d="M7.5 6.5v5" />
+      <path d="M16.5 6.5v5" />
+      <path d="M7.5 16.5h9" />
+      <circle cx="5" cy="6.5" r="2" />
+      <circle cx="19" cy="6.5" r="2" />
+      <circle cx="7.5" cy="16.5" r="2" />
+      <circle cx="16.5" cy="16.5" r="2" />
+    </IconSvg>
+  )
+}
+
+function CellsIcon({ className }: IconProps) {
+  return (
+    <IconSvg className={className}>
+      <circle cx="8" cy="8" r="3.5" />
+      <circle cx="15.5" cy="9.5" r="2.7" />
+      <circle cx="12" cy="16" r="3.2" />
+      <path d="M8 8h.01" />
+      <path d="M15.5 9.5h.01" />
+      <path d="M12 16h.01" />
+    </IconSvg>
+  )
+}
+
+function CultureIcon({ className }: IconProps) {
+  return (
+    <IconSvg className={className}>
+      <path d="M5 10h14" />
+      <path d="M6.5 10v5.5A5.5 5.5 0 0 0 12 21a5.5 5.5 0 0 0 5.5-5.5V10" />
+      <path d="M8 6.5C8 4.5 9.8 3 12 3s4 1.5 4 3.5" />
+      <path d="M9 15h.01" />
+      <path d="M12 17h.01" />
+      <path d="M15 14h.01" />
+    </IconSvg>
+  )
+}
+
+function ChartIcon({ className }: IconProps) {
+  return (
+    <IconSvg className={className}>
+      <path d="M4 19.5V4.5" />
+      <path d="M4 19.5h16" />
+      <path d="m7 15 3.5-4 3 2.5L19 7" />
+      <path d="M7 15h.01" />
+      <path d="M10.5 11h.01" />
+      <path d="M13.5 13.5h.01" />
+      <path d="M19 7h.01" />
+    </IconSvg>
+  )
+}
+
+function CardIcon({ icon, className }: IconProps & { icon: TemplateCardIcon }) {
+  const icons: Record<TemplateCardIcon, (props: IconProps) => ReactNode> = {
     target: TargetIcon,
     flask: FlaskIcon,
     database: DatabaseIcon,
     brain: BrainIcon,
     report: ReportIcon,
     package: PackageIcon,
+    workflow: WorkflowIcon,
+    cells: CellsIcon,
+    culture: CultureIcon,
+    chart: ChartIcon,
   }
   const Icon = icons[icon]
 
@@ -325,8 +385,11 @@ export {
   BellIcon,
   BrainIcon,
   CardIcon,
+  CellsIcon,
+  ChartIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  CultureIcon,
   DatabaseIcon,
   FlaskIcon,
   FolderIcon,
@@ -348,6 +411,7 @@ export {
   TargetIcon,
   TrashIcon,
   WarningIcon,
+  WorkflowIcon,
   WorkspaceToolWindowIcon,
   XIcon,
 }

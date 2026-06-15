@@ -9,6 +9,11 @@ import {
   modelAssetRecords,
   xtrimoModelRecords,
 } from './data/assetsMockData'
+import {
+  getFilteredTemplates,
+  getTemplatePage,
+  homeTemplates,
+} from './data/homeTemplates'
 import { useDemoStore } from './store/useDemoStore'
 
 beforeEach(() => {
@@ -772,120 +777,149 @@ describe('App composer attachment menu', () => {
   })
 })
 
-describe('App use case cards', () => {
-  it('shows functional capability chips and adds a removable capability tag to the composer', () => {
+describe('App home templates', () => {
+  it('shows the first 30 home templates with total count and four pagination buttons', () => {
     const { container, root } = renderApp()
 
-    expect(getButton(container, '知识调研')).toBeTruthy()
-    expect(getButton(container, '蛋白设计')).toBeTruthy()
-    expect(getButton(container, '实验设计')).toBeTruthy()
-    expect(getButton(container, '数据分析')).toBeTruthy()
-    expect(getButton(container, '流程编排')).toBeTruthy()
-    expect(getButton(container, '更多')).toBeTruthy()
-    expect(findButton(container, '靶点调研')).toBeUndefined()
-    expect(findButton(container, '项目交付')).toBeUndefined()
-
-    act(() => {
-      getButton(container, '蛋白设计').click()
-    })
-
-    expect(container.querySelector('.composer__capability-tag')?.textContent).toContain(
-      '蛋白设计',
-    )
-    const removeButton = getButton(container, '移除蛋白设计能力标签')
-    expect(removeButton.querySelector('.composer__capability-remove-icon')).not.toBeNull()
-    expect(getTextarea(container, '研发目标或对话内容').value).toContain(
-      '蛋白设计',
-    )
-
-    act(() => {
-      removeButton.click()
-    })
-
-    expect(container.querySelector('.composer__capability-tag')).toBeNull()
-
-    act(() => {
-      getButton(container, '更多').click()
-    })
-
-    expect(getStatus(container).textContent).toContain(
-      '模型与资产尚未接入当前工作区',
+    expect(getTemplateCards(container)).toHaveLength(30)
+    expect(getTemplateSection(container).textContent).toContain('100 个模板')
+    expect(
+      Array.from(
+        getTemplateSection(container).querySelectorAll<HTMLButtonElement>(
+          '.template-section__page',
+        ),
+      ).map((button) => button.textContent?.trim()),
+    ).toEqual(['1', '2', '3', '4'])
+    expect(getTemplateCard(container, '靶点竞品研究').textContent).toContain(
+      '梳理靶点价值、竞品布局与关键差异。',
     )
 
     root.unmount()
   })
 
-  it('centers the capability tag remove icon inside a fixed hit target', async () => {
-    const appCss = await readAppCss()
-
-    expect(getCssRule(appCss, '.composer__capability-marker')).toContain(
-      'width: 22px;',
-    )
-    expect(getCssRule(appCss, '.composer__capability-marker')).toContain(
-      'height: 22px;',
-    )
-    expect(getCssRule(appCss, '.composer__capability-symbol')).toContain(
-      'pointer-events: none;',
-    )
-    expect(getCssRule(appCss, '.composer__capability-remove')).toContain(
-      'padding: 0;',
-    )
-    expect(getCssRule(appCss, '.composer__capability-remove')).toContain(
-      'z-index: 1;',
-    )
-    expect(getCssRule(appCss, '.composer__capability-remove')).not.toContain(
-      'font-size: 18px;',
-    )
-    expect(getCssRule(appCss, '.composer__capability-remove-icon')).toContain(
-      'width: 14px;',
-    )
-    expect(getCssRule(appCss, '.composer__capability-remove-icon')).toContain(
-      'height: 14px;',
-    )
-    expect(getCssRule(appCss, '.composer__capability-remove-icon')).toContain(
-      'pointer-events: none;',
-    )
-  })
-
-  it('shows a task summary and fills a user-authored template when clicked', () => {
+  it('refreshes results and returns to page one when filtering by direction and featured templates', () => {
     const { container, root } = renderApp()
 
-    const card = getUseCaseCard(container, '调研靶点机制与竞品')
+    act(() => {
+      getTemplatePageButton(container, '2').click()
+    })
+    const secondPage = getTemplatePage(
+      getFilteredTemplates(homeTemplates, {}, ''),
+      2,
+      30,
+    )
+    expect(getTemplateCards(container)[0].textContent).toContain(
+      secondPage.items[0].title,
+    )
+    expect(getTemplatePageButton(container, '2').getAttribute('aria-current')).toBe(
+      'page',
+    )
 
-    expect(card.querySelector('.use-case-grid__card-header')).not.toBeNull()
-    expect(card.querySelector('.use-case-grid__card-summary')).not.toBeNull()
-    expect(card.textContent).toContain('梳理靶点作用机制')
+    act(() => {
+      getButton(container, '抗体').click()
+    })
+
+    const antibodyFirstPage = getTemplatePage(
+      getFilteredTemplates(homeTemplates, { direction: '抗体' }, ''),
+      1,
+      30,
+    )
+    expect(getTemplateCards(container)).toHaveLength(
+      Math.min(30, antibodyFirstPage.totalItems),
+    )
+    expect(getTemplateCards(container)[0].textContent).toContain(
+      antibodyFirstPage.items[0].title,
+    )
+    expect(getTemplatePageButton(container, '1').getAttribute('aria-current')).toBe(
+      'page',
+    )
+
+    act(() => {
+      getButton(container, '推荐').click()
+    })
+
+    const featuredAntibodyFirstPage = getTemplatePage(
+      getFilteredTemplates(
+        homeTemplates,
+        { scope: '推荐', direction: '抗体' },
+        '',
+      ),
+      1,
+      30,
+    )
+    expect(getTemplateCards(container)).toHaveLength(
+      Math.min(30, featuredAntibodyFirstPage.totalItems),
+    )
+    expect(getTemplateCards(container)[0].textContent).toContain(
+      featuredAntibodyFirstPage.items[0].title,
+    )
+    expect(featuredAntibodyFirstPage.totalItems).toBeLessThanOrEqual(30)
+    expect(
+      getTemplateSection(container).querySelector('.template-section__pagination'),
+    ).toBeNull()
+
+    root.unmount()
+  })
+
+  it('searches visible template fields immediately, can clear, and does not match hidden prompt text', () => {
+    const { container, root } = renderApp()
+
+    setSearchInput(container, '搜索模板', 'CDR')
+    expect(getTemplateCards(container)).toHaveLength(1)
+    expect(getTemplateCard(container, 'CDR突变设计')).toBeTruthy()
+
+    setSearchInput(container, '搜索模板', 'weekly/risk')
+    expect(getTemplateCards(container)).toHaveLength(0)
+    expect(getTemplateSection(container).textContent).toContain('未找到匹配模板')
+
+    setSearchInput(container, '搜索模板', '')
+    expect(getTemplateCards(container)).toHaveLength(30)
+
+    root.unmount()
+  })
+
+  it('fills the composer with a user-authored prompt without sending or adding a capability tag', async () => {
+    const { container, root } = renderApp()
+
+    const card = getTemplateCard(container, '靶点竞品研究')
+
+    expect(card.querySelector('.template-card__header')).not.toBeNull()
+    expect(card.querySelector('.template-card__summary')).not.toBeNull()
+    expect(card.querySelector('.template-card__tag-row')).not.toBeNull()
 
     act(() => {
       card.click()
     })
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => resolve())
+      })
+    })
 
     const textarea = getTextarea(container, '研发目标或对话内容')
 
-    expect(textarea.value).toContain('请帮我调研靶点机制与竞品。')
-    expect(textarea.value).toContain('我的靶点名称如下：【】')
-    expect(textarea.value).toContain('我的疾病背景 / 适应症如下：【】')
+    expect(textarea.value).toBe(homeTemplates[0].prompt)
+    expect(textarea.value).toContain('请你作为Agent')
     expect(textarea.value).not.toContain('需要你提供')
+    expect(container.querySelector('.composer__capability-tag')).toBeNull()
+    expect(document.activeElement).toBe(textarea)
+    expect(textarea.selectionStart).toBe(textarea.value.length)
+    expect(textarea.selectionEnd).toBe(textarea.value.length)
+    expect(container.querySelector('.workspace-main--thread')).toBeNull()
 
     root.unmount()
   })
 
-  it('uses a denser card layout with title and icon in one header row', async () => {
-    const appCss = await readAppCss()
+  it('does not render the old home capability buttons or use case cards', () => {
+    const { container, root } = renderApp()
 
-    expect(getCssRule(appCss, '.use-case-card')).toContain('padding: 16px;')
-    expect(getCssRule(appCss, '.use-case-card')).toContain(
-      'min-height: 188px;',
-    )
-    expect(getCssRule(appCss, '.use-case-grid__card-header')).toContain(
-      'display: flex;',
-    )
-    expect(getCssRule(appCss, '.use-case-grid__card-icon')).toContain(
-      'width: 34px;',
-    )
-    expect(getCssRule(appCss, '.use-case-grid__card-summary')).toContain(
-      '-webkit-line-clamp: 3;',
-    )
+    expect(findButton(container, '知识调研')).toBeUndefined()
+    expect(findButton(container, '实验设计')).toBeUndefined()
+    expect(findButton(container, '更多')).toBeUndefined()
+    expect(container.querySelector('.use-case-grid__card')).toBeNull()
+    expect(container.querySelector('.use-case-grid__chips')).toBeNull()
+
+    root.unmount()
   })
 })
 
@@ -1505,16 +1539,50 @@ function getComposerProjectMenu(container: HTMLElement) {
   return menu
 }
 
-function getUseCaseCard(container: HTMLElement, title: string) {
+function getTemplateSection(container: HTMLElement) {
+  const section = container.querySelector<HTMLElement>('.template-section')
+
+  if (!section) {
+    throw new Error('Template section not found')
+  }
+
+  return section
+}
+
+function getTemplateCards(container: HTMLElement) {
+  return Array.from(
+    getTemplateSection(container).querySelectorAll<HTMLButtonElement>(
+      '.template-card',
+    ),
+  )
+}
+
+function getTemplateCard(container: HTMLElement, title: string) {
   const card = Array.from(
-    container.querySelectorAll<HTMLButtonElement>('.use-case-grid__card'),
+    getTemplateSection(container).querySelectorAll<HTMLButtonElement>(
+      '.template-card',
+    ),
   ).find((element) => element.textContent?.includes(title))
 
   if (!card) {
-    throw new Error(`Use case card not found: ${title}`)
+    throw new Error(`Template card not found: ${title}`)
   }
 
   return card
+}
+
+function getTemplatePageButton(container: HTMLElement, page: string) {
+  const button = Array.from(
+    getTemplateSection(container).querySelectorAll<HTMLButtonElement>(
+      '.template-section__page',
+    ),
+  ).find((element) => element.textContent?.trim() === page)
+
+  if (!button) {
+    throw new Error(`Template page button not found: ${page}`)
+  }
+
+  return button
 }
 
 function getTextarea(container: HTMLElement, label: string) {
