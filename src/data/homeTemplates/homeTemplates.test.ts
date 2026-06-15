@@ -3,6 +3,7 @@ import {
   filterTemplates,
   getFilteredTemplates,
   getTemplatePage,
+  homeTemplates,
   scopeFilterOptions,
   typeFilterOptions,
   directionFilterOptions,
@@ -72,6 +73,10 @@ const templates: HomeTemplate[] = [
 describe('home template filtering', () => {
   it('exports the documented home template tone tokens', () => {
     expect(documentedTones).toEqual(['cyan', 'blue', 'teal', 'violet', 'amber'])
+  })
+
+  it('exports an empty home templates array at this stage', () => {
+    expect(homeTemplates).toEqual([])
   })
 
   it('defines the exact filter option labels', () => {
@@ -167,6 +172,28 @@ describe('home template filtering', () => {
     })
     expect(getTemplatePage(pagedTemplates, 2, 30).items).toHaveLength(30)
     expect(getTemplatePage(pagedTemplates, 99, 30).page).toBe(3)
+  })
+
+  it('falls back to a safe default when perPage is NaN', () => {
+    const page = getTemplatePage(templates, 1, Number.NaN)
+
+    expect(page).toMatchObject({
+      page: 1,
+      totalPages: 1,
+      totalItems: 3,
+      perPage: 30,
+    })
+    expect(page.items).toEqual(templates)
+  })
+
+  it('returns stable pagination metadata for an empty input list', () => {
+    expect(getTemplatePage([], 99, 30)).toMatchObject({
+      items: [],
+      page: 1,
+      totalPages: 1,
+      totalItems: 0,
+      perPage: 30,
+    })
   })
 })
 

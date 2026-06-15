@@ -7,6 +7,8 @@ import type {
   TypeFilterValue,
 } from './types'
 
+const defaultTemplatesPerPage = 30
+
 export function sortTemplates(templates: HomeTemplate[]) {
   return [...templates].sort((left, right) => {
     if (left.featured !== right.featured) {
@@ -62,7 +64,7 @@ export function getTemplatePage(
   perPage: number,
 ): TemplatePage<HomeTemplate> {
   const totalItems = templates.length
-  const safePerPage = Math.max(1, perPage)
+  const safePerPage = sanitizePerPage(perPage)
   const totalPages = Math.max(1, Math.ceil(totalItems / safePerPage))
   const safePage = clampPage(page, totalPages)
   const startIndex = (safePage - 1) * safePerPage
@@ -121,4 +123,12 @@ function clampPage(page: number, totalPages: number) {
   }
 
   return Math.min(Math.max(1, Math.trunc(page)), totalPages)
+}
+
+function sanitizePerPage(perPage: number) {
+  if (!Number.isFinite(perPage) || perPage < 1) {
+    return defaultTemplatesPerPage
+  }
+
+  return Math.trunc(perPage)
 }
