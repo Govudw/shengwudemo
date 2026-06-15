@@ -100,6 +100,46 @@ _Avoid_: Chat task, checklist item
 An Agent subsystem for requesting, recording, and displaying human decisions during a Run. Approval artifacts may be referenced by ELN Documents, but the Approval workflow is not part of the ELN Document body.
 _Avoid_: Signature Block, electronic signature system
 
+**Approval Request**:
+A formal approval artifact created for a high-impact operation such as submitting an Experiment Order, publishing a public asset, creating an external CRO order, or releasing a result package. An Approval Request may be processed by BioMap's built-in Approval Flow or by an External Approval Connector.
+_Avoid_: Human Confirmation, Signature Block, notification
+
+**Approval Gate**:
+A pause point in a Run where the Agent must create or wait for an Approval Request before continuing a high-impact operation. A preview of a future gate is not itself an Approval Request.
+_Avoid_: Human Confirmation, generic checkpoint, QC gate
+
+**Approval Center**:
+An enterprise management surface for approval governance, including Approval Requests, Approval Rules, built-in Approval Flows, Approver Groups, External Approval Connectors, and audit logs. It configures and reviews Approval artifacts, but it is not the Approval workflow itself and not the Notification Center.
+_Avoid_: Notification Center, Run Inspector, admin menu
+
+**Approval Rule**:
+A governance rule that decides whether a high-impact operation needs Approval and which route it should use. An Approval Rule is evaluated before an Approval Request is created.
+_Avoid_: permission rule, pricing rule, notification rule
+
+**Approval Flow**:
+A BioMap-owned sequence of approval stages used when an Approval Request is processed inside BioMap. External enterprise approval workflows are not modeled as Approval Flows inside BioMap.
+_Avoid_: external approval workflow, Pipeline, Experiment Workflow
+
+**Approver Group**:
+A reusable set of people or roles that can be assigned to stages in a BioMap Approval Flow. It is an approval governance object, not the same as a Project team or a notification audience.
+_Avoid_: Project team, mailing list, notification group
+
+**Approval Evidence Package**:
+The auditable package of operation-specific context attached to an Approval Request. It contains the information approvers or external systems need to make a decision, but it is not a Run Input Package or an Experiment Result Package.
+_Avoid_: Project File, Run Input Package, Experiment Result Package
+
+**Approval Record**:
+The immutable history of an Approval Request, including its result, decision metadata, external status when applicable, and audit completeness. It can be viewed and referenced, but not edited as if it were configuration.
+_Avoid_: Notification, chat log, editable form
+
+**External Approval Connector**:
+A black-box integration from BioMap Approval to an enterprise approval system. BioMap submits an Approval Request and Approval Evidence Package, receives status or callback results, and does not model the external system's internal stages or assignees.
+_Avoid_: Approval Flow, internal workflow engine, connector-managed BioMap stages
+
+**Notification Center**:
+A cross-module surface for user notifications such as approvals, asset changes, project updates, and system messages. It can notify users about Approval Requests, but it is not the Approval Center and not an approval queue by itself.
+_Avoid_: Approval Center, approval-only inbox, activity log
+
 **ELN Document**:
 A structured electronic lab notebook document produced during an experimental workflow. It is a BioMap Agent-specific document type that only this Agent project knows how to render, a Project File when stored as `.bmeln`, and may appear as an Object Storage Asset when shown by object path.
 _Avoid_: Chat summary, transcript, plain Markdown file, generic `.eln` file
@@ -169,6 +209,14 @@ Domain expert: No. A Work Order is a traceable operational source for a stage of
 Developer: Is a signature inside the ELN an Approval?
 
 Domain expert: No. Approval is an Agent subsystem. A Signature Block is only a Document Block inside the ELN Document, even when it references an Approval artifact.
+
+Developer: Should the Notification Center become the place to configure approvals?
+
+Domain expert: No. Notification Center only informs users that something needs attention. Approval Center is where Approval Rules, Approval Flows, External Approval Connectors, and Approval Records are managed.
+
+Developer: If a company uses its own approval platform, do we mirror every external approver and stage inside BioMap?
+
+Domain expert: No. Treat that integration as an External Approval Connector. BioMap submits the Approval Request and Approval Evidence Package, then records the external result and audit completeness without recreating the external workflow.
 
 Developer: Should the interactive chart inside the ELN be called a plugin?
 
