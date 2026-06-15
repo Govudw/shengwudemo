@@ -32,7 +32,7 @@ export const templateBatch17: HomeTemplate[] = [
     directionTags: ['酶', '菌株', '育种'],
     typeTags: ['结果分析', '研究设计'],
     displayTags: ['文献整合', '证据对照', '决策支持'],
-    featured: true,
+    featured: false,
     sortOrder: 82,
   },
   {
@@ -83,7 +83,7 @@ export const templateBatch17: HomeTemplate[] = [
     directionTags: ['抗体', '酶', '育种'],
     typeTags: ['研究设计', '结果分析'],
     displayTags: ['组合决策', '优先级', '资源配置'],
-    featured: true,
+    featured: false,
     sortOrder: 85,
   },
 ]

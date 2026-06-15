@@ -32,7 +32,7 @@ export const templateBatch15: HomeTemplate[] = [
     directionTags: ['细胞', '菌株', '发酵'],
     typeTags: ['模型优化'],
     displayTags: ['数据切分', '泄漏控制', '分层规则'],
-    featured: true,
+    featured: false,
     sortOrder: 72,
   },
   {

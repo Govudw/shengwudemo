@@ -32,7 +32,7 @@ export const templateBatch11: HomeTemplate[] = [
     directionTags: ['细胞', '菌株', '育种'],
     typeTags: ['完整工作流', '研究设计'],
     displayTags: ['方案审批', '签核顺序', '放行条件'],
-    featured: true,
+    featured: false,
     sortOrder: 52,
   },
   {
@@ -49,7 +49,7 @@ export const templateBatch11: HomeTemplate[] = [
     directionTags: ['抗体', '细胞', '发酵'],
     typeTags: ['完整工作流'],
     displayTags: ['CRO交接', '进度回传', '验收标准'],
-    featured: true,
+    featured: false,
     sortOrder: 53,
   },
   {

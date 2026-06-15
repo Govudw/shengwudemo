@@ -32,7 +32,7 @@ export const templateBatch10: HomeTemplate[] = [
     directionTags: ['育种'],
     typeTags: ['完整工作流'],
     displayTags: ['杂交配组', '谱系复核', '推进节奏'],
-    featured: true,
+    featured: false,
     sortOrder: 47,
   },
   {

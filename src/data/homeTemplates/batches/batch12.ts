@@ -32,7 +32,7 @@ export const templateBatch12: HomeTemplate[] = [
     directionTags: ['细胞', '酶', '菌株'],
     typeTags: ['完整工作流'],
     displayTags: ['里程碑', '风险台账', '预警'],
-    featured: true,
+    featured: false,
     sortOrder: 57,
   },
   {

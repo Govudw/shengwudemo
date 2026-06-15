@@ -32,7 +32,7 @@ export const templateBatch09: HomeTemplate[] = [
     directionTags: ['发酵'],
     typeTags: ['实验'],
     displayTags: ['DOE', '试验矩阵', '随机化'],
-    featured: true,
+    featured: false,
     sortOrder: 42,
   },
   {

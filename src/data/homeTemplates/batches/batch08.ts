@@ -32,7 +32,7 @@ export const templateBatch08: HomeTemplate[] = [
     directionTags: ['菌株', '发酵'],
     typeTags: ['完整工作流'],
     displayTags: ['代谢通路', '瓶颈分析', '优化排序'],
-    featured: true,
+    featured: false,
     sortOrder: 37,
   },
   {

@@ -32,7 +32,7 @@ export const templateBatch03: HomeTemplate[] = [
     directionTags: ['抗体'],
     typeTags: ['实验'],
     displayTags: ['表达', '纯化', 'QC'],
-    featured: true,
+    featured: false,
     sortOrder: 12,
   },
   {

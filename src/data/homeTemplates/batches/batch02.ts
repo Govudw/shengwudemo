@@ -32,7 +32,7 @@ export const templateBatch02: HomeTemplate[] = [
     directionTags: ['抗体'],
     typeTags: ['模型优化'],
     displayTags: ['CDR', '突变', '优化'],
-    featured: true,
+    featured: false,
     sortOrder: 7,
   },
   {
@@ -49,7 +49,7 @@ export const templateBatch02: HomeTemplate[] = [
     directionTags: ['抗体'],
     typeTags: ['结果分析'],
     displayTags: ['成药性', '风险', '审查'],
-    featured: true,
+    featured: false,
     sortOrder: 8,
   },
   {

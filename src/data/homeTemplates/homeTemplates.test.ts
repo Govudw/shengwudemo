@@ -3,8 +3,10 @@ import {
   filterTemplates,
   getFilteredTemplates,
   getTemplatePage,
+  homeTemplateBatches,
   homeTemplates,
   scopeFilterOptions,
+  sortTemplates,
   typeFilterOptions,
   directionFilterOptions,
   type HomeTemplate,
@@ -75,8 +77,33 @@ describe('home template filtering', () => {
     expect(documentedTones).toEqual(['cyan', 'blue', 'teal', 'violet', 'amber'])
   })
 
-  it('exports an empty home templates array at this stage', () => {
-    expect(homeTemplates).toEqual([])
+  it('aggregates 20 ordered batches into 100 templates', () => {
+    expect(homeTemplateBatches).toHaveLength(20)
+    expect(homeTemplateBatches.every((batch) => batch.length === 5)).toBe(true)
+    expect(homeTemplates).toHaveLength(100)
+    expect(homeTemplates).toEqual(homeTemplateBatches.flat())
+  })
+
+  it('assigns unique ids spanning home-template-001 through home-template-100', () => {
+    const ids = homeTemplates.map((template) => template.id)
+
+    expect(new Set(ids).size).toBe(100)
+    expect(ids[0]).toBe('home-template-001')
+    expect(ids.at(-1)).toBe('home-template-100')
+    expect(ids).toEqual(
+      Array.from({ length: 100 }, (_, index) => `home-template-${String(index + 1).padStart(3, '0')}`),
+    )
+  })
+
+  it('keeps sortOrder aligned to the id suffix from 1 through 100', () => {
+    expect(homeTemplates.map((template) => template.sortOrder)).toEqual(
+      Array.from({ length: 100 }, (_, index) => index + 1),
+    )
+
+    homeTemplates.forEach((template, index) => {
+      expect(Number(template.id.slice(-3))).toBe(index + 1)
+      expect(template.sortOrder).toBe(index + 1)
+    })
   })
 
   it('defines the exact filter option labels', () => {
@@ -103,6 +130,47 @@ describe('home template filtering', () => {
       '结果分析',
       '模型优化',
     ])
+  })
+
+  it('ensures every filter option value has at least one matching template', () => {
+    expect(filterTemplates(homeTemplates, { scope: '推荐' }).length).toBeGreaterThan(0)
+    expect(filterTemplates(homeTemplates, { scope: '日常' }).length).toBeGreaterThan(0)
+    expect(filterTemplates(homeTemplates, { scope: '生物' }).length).toBeGreaterThan(0)
+
+    for (const direction of directionFilterOptions.map((option) => option.value).filter(isDirectionValue)) {
+      expect(filterTemplates(homeTemplates, { direction }).length).toBeGreaterThan(0)
+    }
+
+    for (const type of typeFilterOptions.map((option) => option.value).filter(isTypeValue)) {
+      expect(filterTemplates(homeTemplates, { type }).length).toBeGreaterThan(0)
+    }
+  })
+
+  it('stays within the expected featured and scope distribution', () => {
+    const featuredCount = homeTemplates.filter((template) => template.featured).length
+    const bioCount = homeTemplates.filter((template) => template.scopeTags.includes('生物')).length
+    const dailyCount = homeTemplates.filter((template) => template.scopeTags.includes('日常')).length
+
+    expect(featuredCount).toBeGreaterThanOrEqual(18)
+    expect(featuredCount).toBeLessThanOrEqual(24)
+    expect(bioCount).toBeGreaterThanOrEqual(65)
+    expect(dailyCount).toBeGreaterThanOrEqual(25)
+  })
+
+  it('uses user-command language in prompts without asking 需要你提供', () => {
+    homeTemplates.forEach((template) => {
+      expect(template.prompt).toContain('我的')
+      expect(template.prompt).toContain('请你作为Agent')
+      expect(template.prompt).not.toContain('需要你提供')
+    })
+  })
+
+  it('keeps display tags between two and four entries and excludes 推荐 from scope tags', () => {
+    homeTemplates.forEach((template) => {
+      expect(template.displayTags.length).toBeGreaterThanOrEqual(2)
+      expect(template.displayTags.length).toBeLessThanOrEqual(4)
+      expect(template.scopeTags).not.toContain('推荐')
+    })
   })
 
   it('sorts featured templates before non-featured and then by sort order', () => {
@@ -195,8 +263,57 @@ describe('home template filtering', () => {
       perPage: 30,
     })
   })
+
+  it('keeps the default first page mixed across scope and multiple tag families', () => {
+    const firstPage = getTemplatePage(sortTemplates(homeTemplates), 1, 30).items
+    const pageScopes = new Set(firstPage.flatMap((template) => template.scopeTags))
+    const pageDirections = new Set(firstPage.flatMap((template) => template.directionTags))
+    const pageTypes = new Set(firstPage.flatMap((template) => template.typeTags))
+    const pageDisplayTags = new Set(firstPage.flatMap((template) => template.displayTags))
+
+    expect(firstPage).toHaveLength(30)
+    expect(pageScopes).toEqual(new Set(['日常', '生物']))
+    expect(pageDirections.size).toBeGreaterThanOrEqual(3)
+    expect(pageTypes.size).toBeGreaterThanOrEqual(3)
+    expect(pageDisplayTags.size).toBeGreaterThanOrEqual(8)
+  })
+
+  it('searches, filters, sorts, and paginates correctly against the real dataset', () => {
+    const filtered = getFilteredTemplates(
+      homeTemplates,
+      {
+        scope: '生物',
+        direction: '抗体',
+        type: '研究设计',
+      },
+      '设计',
+    )
+
+    expect(filtered.length).toBeGreaterThan(0)
+    expect(filtered.every((template) => template.scopeTags.includes('生物'))).toBe(true)
+    expect(filtered.every((template) => template.directionTags.includes('抗体'))).toBe(true)
+    expect(filtered.every((template) => template.typeTags.includes('研究设计'))).toBe(true)
+    expect(filtered.every((template) => template.title.includes('设计') || template.summary.includes('设计') || template.input.includes('设计') || template.output.includes('设计') || template.displayTags.some((tag) => tag.includes('设计')))).toBe(true)
+
+    const page = getTemplatePage(filtered, 1, 30)
+    expect(page.items).toEqual(filtered)
+    expect(page.totalItems).toBe(filtered.length)
+    expect(page.totalPages).toBe(1)
+  })
 })
 
 function searchIds(query: string) {
   return getFilteredTemplates(templates, {}, query).map((template) => template.id)
+}
+
+function isDirectionValue(
+  value: string,
+): value is Exclude<(typeof directionFilterOptions)[number]['value'], '全部方向'> {
+  return value !== '全部方向'
+}
+
+function isTypeValue(
+  value: string,
+): value is Exclude<(typeof typeFilterOptions)[number]['value'], '全部类型'> {
+  return value !== '全部类型'
 }

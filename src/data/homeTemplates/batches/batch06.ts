@@ -32,7 +32,7 @@ export const templateBatch06: HomeTemplate[] = [
     directionTags: ['酶'],
     typeTags: ['研究设计'],
     displayTags: ['突变设计', '活性位点', '酶工程'],
-    featured: true,
+    featured: false,
     sortOrder: 27,
   },
   {
