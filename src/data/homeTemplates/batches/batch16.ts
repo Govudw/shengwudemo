@@ -16,7 +16,7 @@ export const templateBatch16: HomeTemplate[] = [
     typeTags: ['结果分析', '模型优化'],
     displayTags: ['数据打包', 'AI就绪', '资产交付'],
     featured: true,
-    sortOrder: 76,
+    sortOrder: 5,
   },
   {
     id: 'home-template-077',

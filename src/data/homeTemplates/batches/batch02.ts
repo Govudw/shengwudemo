@@ -16,7 +16,7 @@ export const templateBatch02: HomeTemplate[] = [
     typeTags: ['研究设计'],
     displayTags: ['靶点', '证据', '分诊'],
     featured: true,
-    sortOrder: 6,
+    sortOrder: 7.5,
   },
   {
     id: 'home-template-007',
