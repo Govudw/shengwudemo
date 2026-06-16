@@ -3409,6 +3409,7 @@
   width: 100%;
   height: 132px;
   min-height: 132px;
+  overflow-y: hidden;
   resize: none;
   padding: 20px 22px 58px;
   border: 0;
@@ -11632,6 +11633,7 @@ textarea:focus-visible {
   width: 100%;
   height: 76px;
   min-height: 76px;
+  overflow-y: hidden;
   resize: none;
   padding: 12px 94px 12px 14px;
   border: 0;

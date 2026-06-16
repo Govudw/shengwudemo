@@ -3,6 +3,7 @@ import type { KeyboardEvent } from 'react'
 import AttachmentMenu from './AttachmentMenu'
 import type { AttachmentAction } from './AttachmentMenu'
 import { PlusIcon, SendIcon } from './icons'
+import { useAutoGrowTextarea } from './useAutoGrowTextarea'
 
 type ThreadComposerProps = {
   draft: string
@@ -22,9 +23,12 @@ function ThreadComposer({
   placeholder = '继续推进这个对话...',
 }: ThreadComposerProps) {
   const attachmentMenuRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false)
   const canSubmit = !disabled && draft.trim().length > 0
   const attachmentMenuVisible = attachmentMenuOpen && !disabled
+
+  useAutoGrowTextarea(textareaRef, draft)
 
   useEffect(() => {
     if (!disabled || !attachmentMenuOpen) {
@@ -100,6 +104,7 @@ function ThreadComposer({
       <div className="thread-composer__panel">
         <textarea
           className="thread-composer__textarea"
+          ref={textareaRef}
           value={draft}
           aria-label="继续推进这个对话"
           placeholder={placeholder}

@@ -11,6 +11,7 @@ import {
   SearchIcon,
   SendIcon,
 } from './icons'
+import { useAutoGrowTextarea } from './useAutoGrowTextarea'
 
 type ComposerProps = {
   projects: DemoProject[]
@@ -57,6 +58,8 @@ function Composer({
       )
     : projects
   const canSubmit = draft.trim().length > 0
+
+  useAutoGrowTextarea(textareaRef, draft)
 
   useEffect(() => {
     if (!projectMenuOpen) {
