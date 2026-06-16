@@ -1,4 +1,4 @@
-export type TemplateScopeTag = '日常' | '生物'
+export type TemplateScopeTag = '日常' | '生物' | '飞书' | '其他'
 
 export type TemplateDirectionTag =
   | '蛋白药物'
@@ -73,6 +73,8 @@ export const scopeFilterOptions: TemplateFilterOption<ScopeFilterValue>[] = [
   { label: '推荐', value: '推荐' },
   { label: '日常', value: '日常' },
   { label: '生物', value: '生物' },
+  { label: '飞书', value: '飞书' },
+  { label: '其他', value: '其他' },
 ]
 
 export const directionFilterOptions: TemplateFilterOption<DirectionFilterValue>[] = [

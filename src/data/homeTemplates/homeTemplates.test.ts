@@ -139,12 +139,33 @@ describe('home template filtering', () => {
     ).toEqual(['飞书文档写作', '飞书会议纪要整理', '飞书多维表格项目台账'])
   })
 
+  it('classifies Feishu and other templates as first-level scope filters', () => {
+    const feishuTemplates = filterTemplates(homeTemplates, { scope: '飞书' })
+    const otherTemplates = filterTemplates(homeTemplates, { scope: '其他' })
+
+    expect(feishuTemplates.map((template) => template.title)).toEqual([
+      '飞书文档写作',
+      '飞书会议纪要整理',
+      '飞书多维表格项目台账',
+      '飞书日程待办同步',
+      '飞书审批流检查',
+    ])
+    expect(feishuTemplates.every((template) => template.scopeTags.includes('飞书'))).toBe(true)
+    expect(otherTemplates.length).toBeGreaterThanOrEqual(5)
+    expect(otherTemplates.map((template) => template.title)).toContain('项目周报风险')
+    expect(otherTemplates.some((template) => template.scopeTags.includes('飞书'))).toBe(false)
+    expect(otherTemplates.some((template) => template.scopeTags.includes('生物'))).toBe(false)
+    expect(otherTemplates.every((template) => template.scopeTags.includes('其他'))).toBe(true)
+  })
+
   it('defines the exact filter option labels', () => {
     expect(scopeFilterOptions.map((option) => option.label)).toEqual([
       '全部类别',
       '推荐',
       '日常',
       '生物',
+      '飞书',
+      '其他',
     ])
     expect(directionFilterOptions.map((option) => option.label)).toEqual([
       '全部方向',
@@ -168,6 +189,8 @@ describe('home template filtering', () => {
     expect(filterTemplates(homeTemplates, { scope: '推荐' }).length).toBeGreaterThan(0)
     expect(filterTemplates(homeTemplates, { scope: '日常' }).length).toBeGreaterThan(0)
     expect(filterTemplates(homeTemplates, { scope: '生物' }).length).toBeGreaterThan(0)
+    expect(filterTemplates(homeTemplates, { scope: '飞书' }).length).toBeGreaterThan(0)
+    expect(filterTemplates(homeTemplates, { scope: '其他' }).length).toBeGreaterThan(0)
 
     for (const direction of directionFilterOptions.map((option) => option.value).filter(isDirectionValue)) {
       expect(filterTemplates(homeTemplates, { direction }).length).toBeGreaterThan(0)
@@ -319,7 +342,7 @@ describe('home template filtering', () => {
     const pageDisplayTags = new Set(firstPage.flatMap((template) => template.displayTags))
 
     expect(firstPage).toHaveLength(30)
-    expect(pageScopes).toEqual(new Set(['日常', '生物']))
+    expect(pageScopes).toEqual(new Set(['日常', '生物', '飞书', '其他']))
     expect(pageDirections.size).toBeGreaterThanOrEqual(3)
     expect(pageTypes.size).toBeGreaterThanOrEqual(3)
     expect(pageDisplayTags.size).toBeGreaterThanOrEqual(8)

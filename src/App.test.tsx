@@ -789,6 +789,11 @@ describe('App home templates', () => {
     expect(templateSection.querySelector('.template-section__meta')).toBeNull()
     expect(templateSection.querySelector('.template-section__advanced-panel')).toBeNull()
     expect(getButton(container, '展开更多筛选').getAttribute('aria-expanded')).toBe('false')
+    expect(
+      Array.from(getTemplateScopeGroup(container).querySelectorAll('button')).map(
+        (button) => button.textContent?.trim(),
+      ),
+    ).toEqual(['全部类别', '推荐', '日常', '生物', '飞书', '其他'])
     expect(getButton(container, '蛋白药物')).not.toBeNull()
     expect(getButton(container, '虚拟细胞')).not.toBeNull()
     expect(getButton(container, '合成生物学')).not.toBeNull()
@@ -807,6 +812,41 @@ describe('App home templates', () => {
     expect(getTemplateCard(container, '靶点竞品研究').textContent).toContain(
       '梳理靶点价值、竞品布局与关键差异。',
     )
+
+    root.unmount()
+  })
+
+  it('filters templates by first-level Feishu and other categories', () => {
+    const { container, root } = renderApp()
+    const scopeGroup = getTemplateScopeGroup(container)
+
+    act(() => {
+      getGroupButton(scopeGroup, '飞书').click()
+    })
+
+    const feishuFirstPage = getTemplatePage(
+      getFilteredTemplates(homeTemplates, { scope: '飞书' }, ''),
+      1,
+      30,
+    )
+    expect(getTemplateCards(container)).toHaveLength(feishuFirstPage.totalItems)
+    expect(getTemplateCards(container)[0].textContent).toContain('飞书文档写作')
+    expect(getTemplateCards(container).every((card) => card.textContent?.includes('飞书'))).toBe(true)
+
+    act(() => {
+      getGroupButton(scopeGroup, '其他').click()
+    })
+
+    const otherFirstPage = getTemplatePage(
+      getFilteredTemplates(homeTemplates, { scope: '其他' }, ''),
+      1,
+      30,
+    )
+    expect(getTemplateCards(container)).toHaveLength(
+      Math.min(30, otherFirstPage.totalItems),
+    )
+    expect(getTemplateCards(container)[0].textContent).toContain(otherFirstPage.items[0].title)
+    expect(getTemplateCards(container).some((card) => card.textContent?.includes('飞书'))).toBe(false)
 
     root.unmount()
   })
@@ -1616,6 +1656,30 @@ function getTemplateSection(container: HTMLElement) {
   }
 
   return section
+}
+
+function getTemplateScopeGroup(container: HTMLElement) {
+  const group = getTemplateSection(container).querySelector<HTMLElement>(
+    '[aria-label="模板类别"]',
+  )
+
+  if (!group) {
+    throw new Error('Template scope group not found')
+  }
+
+  return group
+}
+
+function getGroupButton(group: HTMLElement, name: string) {
+  const button = Array.from(group.querySelectorAll<HTMLButtonElement>('button')).find(
+    (element) => element.textContent?.trim() === name,
+  )
+
+  if (!button) {
+    throw new Error(`Group button not found: ${name}`)
+  }
+
+  return button
 }
 
 function getTemplateCards(container: HTMLElement) {
