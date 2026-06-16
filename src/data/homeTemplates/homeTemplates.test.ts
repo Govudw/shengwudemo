@@ -77,21 +77,22 @@ describe('home template filtering', () => {
     expect(documentedTones).toEqual(['cyan', 'blue', 'teal', 'violet', 'amber'])
   })
 
-  it('aggregates 20 ordered batches into 104 templates', () => {
+  it('aggregates 20 ordered batches into 109 templates', () => {
     expect(homeTemplateBatches).toHaveLength(20)
-    expect(homeTemplates).toHaveLength(104)
+    expect(homeTemplates).toHaveLength(109)
     expect(homeTemplates).toEqual(homeTemplateBatches.flat())
   })
 
-  it('assigns unique ids spanning home-template-001 through home-template-104', () => {
+  it('assigns unique ids spanning home-template-001 through home-template-109', () => {
     const ids = homeTemplates.map((template) => template.id)
 
-    expect(new Set(ids).size).toBe(104)
+    expect(new Set(ids).size).toBe(109)
     expect(ids[0]).toBe('home-template-001')
-    expect(ids).toContain('home-template-101')
-    expect(ids).toContain('home-template-102')
-    expect(ids).toContain('home-template-103')
-    expect(ids).toContain('home-template-104')
+    expect(ids).toContain('home-template-105')
+    expect(ids).toContain('home-template-106')
+    expect(ids).toContain('home-template-107')
+    expect(ids).toContain('home-template-108')
+    expect(ids).toContain('home-template-109')
   })
 
   it('keeps sortOrder unique across the dataset', () => {
@@ -119,6 +120,23 @@ describe('home template filtering', () => {
     expect(
       getFilteredTemplates(homeTemplates, { scope: '推荐' }, '').slice(0, 6).map((template) => template.title),
     ).toEqual(expectedHomepageEntries)
+  })
+
+  it('adds Feishu-connected templates and promotes three of them into recommendation slots seven through nine', () => {
+    const feishuTemplateTitles = [
+      '飞书文档写作',
+      '飞书会议纪要整理',
+      '飞书多维表格项目台账',
+      '飞书日程待办同步',
+      '飞书审批流检查',
+    ]
+
+    expect(homeTemplates.filter((template) => template.displayTags.includes('飞书')).map((template) => template.title)).toEqual(
+      feishuTemplateTitles,
+    )
+    expect(
+      getFilteredTemplates(homeTemplates, { scope: '推荐' }, '').slice(6, 9).map((template) => template.title),
+    ).toEqual(['飞书文档写作', '飞书会议纪要整理', '飞书多维表格项目台账'])
   })
 
   it('defines the exact filter option labels', () => {
@@ -166,7 +184,7 @@ describe('home template filtering', () => {
     const dailyCount = homeTemplates.filter((template) => template.scopeTags.includes('日常')).length
 
     expect(featuredCount).toBeGreaterThanOrEqual(18)
-    expect(featuredCount).toBeLessThanOrEqual(28)
+    expect(featuredCount).toBeLessThanOrEqual(33)
     expect(bioCount).toBeGreaterThanOrEqual(65)
     expect(dailyCount).toBeGreaterThanOrEqual(25)
   })
