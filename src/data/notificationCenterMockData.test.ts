@@ -16,12 +16,12 @@ describe('notificationCenterMockData', () => {
     expect(countUnreadNotifications(notificationCenterSeedItems)).toBe(7)
   })
 
-  it('applies read and resolved overrides without mutating seed notifications', () => {
+  it('applies read and cleared overrides without mutating seed business status', () => {
     const resolved = applyNotificationOverrides(notificationCenterSeedItems, {
       readById: {
         'notification-approval-egfr-order': true,
       },
-      resolvedById: {
+      clearedById: {
         'notification-approval-egfr-order': true,
       },
     })
@@ -30,8 +30,9 @@ describe('notificationCenterMockData', () => {
       resolved.find((item) => item.id === 'notification-approval-egfr-order'),
     ).toMatchObject({
       read: true,
-      actionState: 'resolved',
-      statusLabel: '已完成',
+      cleared: true,
+      actionState: 'actionRequired',
+      statusLabel: '待审批',
     })
     expect(
       notificationCenterSeedItems.find(

@@ -20,10 +20,11 @@ describe('NotificationCenterDrawer', () => {
   it('renders counts, compact filters, and grouped notifications', () => {
     const { container, root } = renderDrawer()
 
-    expect(getDialog(container).textContent).toContain('通知中心')
-    expect(getDialog(container).textContent).toContain('3 待处理 · 7 未读')
+    expect(getDialog(container).getAttribute('aria-label')).toBe('通知抽屉')
+    expect(getDialog(container).textContent).toContain('通知')
+    expect(getDialog(container).textContent).toContain('3 待关注 · 7 未读')
     expect(getButton(container, '全部').getAttribute('aria-pressed')).toBe('true')
-    expect(getButton(container, '待处理')).not.toBeNull()
+    expect(getButton(container, '待关注')).not.toBeNull()
     expect(container.textContent).toContain('今天')
     expect(container.textContent).toContain('昨天')
     expect(container.textContent).toContain('EGFR 实验订单等待审批')
@@ -40,7 +41,7 @@ describe('NotificationCenterDrawer', () => {
     })
 
     expect(onMarkRead).toHaveBeenCalledWith('notification-approval-egfr-order')
-    expect(container.textContent).toContain('标记已处理')
+    expect(container.textContent).toContain('清除提醒')
 
     root.unmount()
   })
@@ -95,7 +96,7 @@ describe('NotificationCenterDrawer', () => {
     root.unmount()
   })
 
-  it('shows only actionable items in the persisted pending filter and resolves rows explicitly', () => {
+  it('shows only actionable items in the persisted attention filter and clears reminders explicitly', () => {
     const onFilterChange = vi.fn()
     const onMarkResolved = vi.fn()
     const { container, root } = renderDrawer({
@@ -104,12 +105,12 @@ describe('NotificationCenterDrawer', () => {
       onMarkResolved,
     })
 
-    expect(getButton(container, '待处理').getAttribute('aria-pressed')).toBe('true')
+    expect(getButton(container, '待关注').getAttribute('aria-pressed')).toBe('true')
     expect(container.textContent).toContain('EGFR 实验订单等待审批')
     expect(container.textContent).not.toContain('AI-Ready Dataset 已生成')
 
     act(() => {
-      getButton(container, '标记已处理').click()
+      getButton(container, '清除提醒').click()
     })
 
     expect(onMarkResolved).toHaveBeenCalled()

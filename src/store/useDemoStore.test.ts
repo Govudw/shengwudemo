@@ -466,7 +466,7 @@ describe('demo store persistence', () => {
     expect(useDemoStore.getState().activeTopNav).toBe('Workspace')
   })
 
-  it('persists notification drawer, filter, read, and resolved demo state', async () => {
+  it('persists notification drawer, full-page filters, read, and cleared demo state', async () => {
     const { demoStorePersistVersion } = await import('./useDemoStore')
     const { useDemoStore } = await loadStoreWithPersistedState({
       state: {
@@ -491,9 +491,26 @@ describe('demo store persistence', () => {
     expect(useDemoStore.getState().notificationResolvedById).toEqual({
       'notification-agent-egfr-confirmation': true,
     })
+    expect(useDemoStore.getState().notificationClearedById).toEqual({
+      'notification-agent-egfr-confirmation': true,
+    })
 
     useDemoStore.getState().closeNotificationDrawer()
     useDemoStore.getState().setNotificationFilter('asset')
+    useDemoStore.getState().setNotificationCenterPreset('approval')
+    useDemoStore.getState().setNotificationCenterSearchQuery('EGFR')
+    useDemoStore.getState().setNotificationCenterStatusFilter('actionRequired')
+    useDemoStore
+      .getState()
+      .setNotificationCenterBusinessStatusFilter('approvalPending')
+    useDemoStore.getState().setNotificationCenterSourceFilter('project')
+    useDemoStore.getState().setNotificationCenterTimeFilter('today')
+    useDemoStore
+      .getState()
+      .selectNotificationCenterItem('notification-approval-egfr-order')
+    useDemoStore
+      .getState()
+      .toggleNotificationCenterSelectedId('notification-approval-egfr-order')
     useDemoStore
       .getState()
       .markNotificationRead('notification-approval-egfr-order')
@@ -514,12 +531,39 @@ describe('demo store persistence', () => {
       'notification-agent-egfr-confirmation': true,
       'notification-approval-egfr-order': true,
     })
+    expect(persistedPayload.state.notificationClearedById).toMatchObject({
+      'notification-agent-egfr-confirmation': true,
+      'notification-approval-egfr-order': true,
+    })
+    expect(persistedPayload.state.notificationCenterPreset).toBe('approval')
+    expect(persistedPayload.state.notificationCenterSearchQuery).toBe('EGFR')
+    expect(persistedPayload.state.notificationCenterStatusFilter).toBe(
+      'actionRequired',
+    )
+    expect(persistedPayload.state.notificationCenterBusinessStatusFilter).toBe(
+      'approvalPending',
+    )
+    expect(persistedPayload.state.notificationCenterSourceFilter).toBe('project')
+    expect(persistedPayload.state.notificationCenterTimeFilter).toBe('today')
+    expect(persistedPayload.state.notificationCenterSelectedId).toBe(
+      'notification-approval-egfr-order',
+    )
+    expect(persistedPayload.state.notificationCenterSelectedIds).toEqual([
+      'notification-approval-egfr-order',
+    ])
+    expect(persistedPayload.state.notificationCenterDetailOpen).toBe(true)
 
     useDemoStore.getState().resetDemoState()
     expect(useDemoStore.getState().notificationDrawerOpen).toBe(false)
     expect(useDemoStore.getState().notificationFilter).toBe('all')
     expect(useDemoStore.getState().notificationReadById).toEqual({})
     expect(useDemoStore.getState().notificationResolvedById).toEqual({})
+    expect(useDemoStore.getState().notificationClearedById).toEqual({})
+    expect(useDemoStore.getState().notificationCenterPreset).toBe('all')
+    expect(useDemoStore.getState().notificationCenterSearchQuery).toBe('')
+    expect(useDemoStore.getState().notificationCenterSelectedId).toBeNull()
+    expect(useDemoStore.getState().notificationCenterSelectedIds).toEqual([])
+    expect(useDemoStore.getState().notificationCenterDetailOpen).toBe(false)
   })
 
   it('sanitizes invalid persisted Assets state', async () => {

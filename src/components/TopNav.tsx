@@ -106,7 +106,7 @@ function TopNav({
         <button
           type="button"
           className="top-nav__bell"
-          aria-label="打开通知中心"
+          aria-label="打开通知"
           onClick={onNotificationCenterOpen}
         >
           <BellIcon className="top-nav__icon" />

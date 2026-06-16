@@ -29,11 +29,12 @@ type NotificationCenterDrawerProps = {
   onMarkAllRead: () => void
   onMarkResolved: (notificationId: string) => void
   onPrimaryAction: (notification: NotificationItem) => void
+  onOpenFullPage?: () => void
 }
 
 const filters: { id: NotificationFilter; label: string; empty: string }[] = [
   { id: 'all', label: '全部', empty: '暂无通知' },
-  { id: 'actionRequired', label: '待处理', empty: '暂无待处理通知' },
+  { id: 'actionRequired', label: '待关注', empty: '暂无待关注通知' },
   { id: 'approval', label: '审批', empty: '暂无审批通知' },
   { id: 'agent', label: 'Agent', empty: '暂无 Agent 通知' },
   { id: 'asset', label: '资产', empty: '暂无资产通知' },
@@ -50,6 +51,7 @@ function NotificationCenterDrawer({
   onMarkAllRead,
   onMarkResolved,
   onPrimaryAction,
+  onOpenFullPage,
 }: NotificationCenterDrawerProps) {
   const [activeNotificationId, setActiveNotificationId] = useState<string | null>(
     null,
@@ -107,16 +109,25 @@ function NotificationCenterDrawer({
         className="notification-center"
         role="dialog"
         aria-modal="false"
-        aria-label="通知中心"
+        aria-label="通知抽屉"
       >
         <header className="notification-center__header">
           <div>
-            <h2>通知中心</h2>
+            <h2>通知</h2>
             <p>
-              {actionRequiredCount} 待处理 · {unreadCount} 未读
+              {actionRequiredCount} 待关注 · {unreadCount} 未读
             </p>
           </div>
           <div className="notification-center__header-actions">
+            {onOpenFullPage ? (
+              <button
+                type="button"
+                className="notification-center__open-full"
+                onClick={onOpenFullPage}
+              >
+                查看全部
+              </button>
+            ) : null}
             <button
               type="button"
               className="notification-center__mark-all"
@@ -127,7 +138,7 @@ function NotificationCenterDrawer({
             <button
               type="button"
               className="notification-center__close"
-              aria-label="关闭通知中心"
+              aria-label="关闭通知抽屉"
               onClick={onClose}
             >
               <XIcon className="notification-center__close-icon" />
@@ -259,7 +270,7 @@ function NotificationRow({
                 onResolve()
               }}
             >
-              标记已处理
+              清除提醒
             </button>
           ) : null}
         </div>

@@ -94,13 +94,13 @@ describe('TopNav', () => {
     root.unmount()
   })
 
-  it('opens the notification center from the bell with the action-required count', () => {
+  it('opens the notification drawer from the bell with the action-required count', () => {
     const onNotificationCenterOpen = vi.fn()
     const { container, root } = renderTopNav({
       notificationActionRequiredCount: 5,
       onNotificationCenterOpen,
     })
-    const bellButton = getButtonByLabel(container, '打开通知中心')
+    const bellButton = getButtonByLabel(container, '打开通知')
 
     expect(bellButton.textContent).toContain('5')
 

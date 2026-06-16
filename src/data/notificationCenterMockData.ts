@@ -13,6 +13,43 @@ export type NotificationActionState =
   | 'failed'
   | 'resolved'
 
+export type NotificationCenterPreset =
+  | 'all'
+  | 'actionRequired'
+  | 'unread'
+  | 'approval'
+  | 'agent'
+  | 'asset'
+  | 'system'
+
+export type NotificationCenterStatusFilter =
+  | 'all'
+  | 'actionRequired'
+  | 'cleared'
+  | 'read'
+  | 'unread'
+
+export type NotificationCenterBusinessStatusFilter =
+  | 'all'
+  | 'approvalPending'
+  | 'confirmationPending'
+  | 'failed'
+  | 'completed'
+
+export type NotificationCenterSourceFilter =
+  | 'all'
+  | 'project'
+  | 'thread'
+  | 'asset'
+  | 'connector'
+  | 'admin'
+
+export type NotificationCenterTimeFilter =
+  | 'all'
+  | 'today'
+  | 'last7Days'
+  | 'last30Days'
+
 export type NotificationTarget =
   | {
       surface: 'approvalCenter'
@@ -62,6 +99,7 @@ export type NotificationItem = {
   actor?: string
   createdAt: string
   read: boolean
+  cleared?: boolean
   severity: NotificationSeverity
   actionState: NotificationActionState
   statusLabel?: string
@@ -251,19 +289,20 @@ export function applyNotificationOverrides(
   notifications: NotificationItem[],
   overrides: {
     readById?: Record<string, boolean>
+    clearedById?: Record<string, boolean>
     resolvedById?: Record<string, boolean>
   },
 ): NotificationItem[] {
   return notifications.map((item) => {
     const readOverride = overrides.readById?.[item.id]
-    const isResolved = Boolean(overrides.resolvedById?.[item.id])
+    const isCleared = Boolean(
+      overrides.clearedById?.[item.id] ?? overrides.resolvedById?.[item.id],
+    )
 
     return {
       ...item,
       read: typeof readOverride === 'boolean' ? readOverride : item.read,
-      actionState: isResolved ? 'resolved' : item.actionState,
-      severity: isResolved ? 'success' : item.severity,
-      statusLabel: isResolved ? '已完成' : item.statusLabel,
+      cleared: isCleared,
     }
   })
 }
@@ -340,7 +379,10 @@ export function groupNotificationsByTime(
 }
 
 export function isActionRequiredNotification(item: NotificationItem) {
-  return item.actionState === 'actionRequired' || item.actionState === 'failed'
+  return (
+    !item.cleared &&
+    (item.actionState === 'actionRequired' || item.actionState === 'failed')
+  )
 }
 
 const shanghaiDateKeyFormatter = new Intl.DateTimeFormat('en-US', {

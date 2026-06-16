@@ -114,6 +114,17 @@ describe('Approval Center CSS', () => {
   })
 })
 
+describe('Notification Center CSS', () => {
+  it('fits below the fixed-height top navigation so its table can scroll', () => {
+    const notificationPageRule = getRule('.notification-center-page')
+    const tableShellRule = getRule('.notification-page-table-shell')
+
+    expect(notificationPageRule).toContain('height: calc(100svh - 48px);')
+    expect(notificationPageRule).not.toContain('height: 100%;')
+    expect(tableShellRule).toContain('overflow: auto;')
+  })
+})
+
 describe('Commodity detail CSS', () => {
   it('allows the cost and discount table to scroll horizontally', () => {
     const wideTableWrapRule = getRule('.commodity-detail__wide-table-wrap')

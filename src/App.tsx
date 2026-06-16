@@ -10,6 +10,7 @@ import AssetsPage from './components/assets/AssetsPage'
 import Composer from './components/Composer'
 import CapabilitiesPage from './components/CapabilitiesPage'
 import NotificationCenterDrawer from './components/notifications/NotificationCenterDrawer'
+import NotificationCenterPage from './components/notifications/NotificationCenterPage'
 import ProductManagementPlatformPage from './components/product-management/ProductManagementPlatformPage'
 import ProjectsPage from './components/projects/ProjectsPage'
 import Sidebar from './components/Sidebar'
@@ -79,8 +80,38 @@ function App() {
   )
   const notificationFilter = useDemoStore((state) => state.notificationFilter)
   const notificationReadById = useDemoStore((state) => state.notificationReadById)
+  const notificationClearedById = useDemoStore(
+    (state) => state.notificationClearedById,
+  )
   const notificationResolvedById = useDemoStore(
     (state) => state.notificationResolvedById,
+  )
+  const notificationCenterPreset = useDemoStore(
+    (state) => state.notificationCenterPreset,
+  )
+  const notificationCenterSearchQuery = useDemoStore(
+    (state) => state.notificationCenterSearchQuery,
+  )
+  const notificationCenterStatusFilter = useDemoStore(
+    (state) => state.notificationCenterStatusFilter,
+  )
+  const notificationCenterBusinessStatusFilter = useDemoStore(
+    (state) => state.notificationCenterBusinessStatusFilter,
+  )
+  const notificationCenterSourceFilter = useDemoStore(
+    (state) => state.notificationCenterSourceFilter,
+  )
+  const notificationCenterTimeFilter = useDemoStore(
+    (state) => state.notificationCenterTimeFilter,
+  )
+  const notificationCenterSelectedId = useDemoStore(
+    (state) => state.notificationCenterSelectedId,
+  )
+  const notificationCenterSelectedIds = useDemoStore(
+    (state) => state.notificationCenterSelectedIds,
+  )
+  const notificationCenterDetailOpen = useDemoStore(
+    (state) => state.notificationCenterDetailOpen,
   )
   const statusMessage = useDemoStore((state) => state.statusMessage)
   const startNewThread = useDemoStore((state) => state.startNewThread)
@@ -121,8 +152,38 @@ function App() {
   const markAllNotificationsRead = useDemoStore(
     (state) => state.markAllNotificationsRead,
   )
-  const markNotificationResolved = useDemoStore(
-    (state) => state.markNotificationResolved,
+  const markNotificationCleared = useDemoStore(
+    (state) => state.markNotificationCleared,
+  )
+  const openNotificationCenterPageFromDrawer = useDemoStore(
+    (state) => state.openNotificationCenterPageFromDrawer,
+  )
+  const setNotificationCenterPreset = useDemoStore(
+    (state) => state.setNotificationCenterPreset,
+  )
+  const setNotificationCenterSearchQuery = useDemoStore(
+    (state) => state.setNotificationCenterSearchQuery,
+  )
+  const setNotificationCenterStatusFilter = useDemoStore(
+    (state) => state.setNotificationCenterStatusFilter,
+  )
+  const setNotificationCenterBusinessStatusFilter = useDemoStore(
+    (state) => state.setNotificationCenterBusinessStatusFilter,
+  )
+  const setNotificationCenterSourceFilter = useDemoStore(
+    (state) => state.setNotificationCenterSourceFilter,
+  )
+  const setNotificationCenterTimeFilter = useDemoStore(
+    (state) => state.setNotificationCenterTimeFilter,
+  )
+  const selectNotificationCenterItem = useDemoStore(
+    (state) => state.selectNotificationCenterItem,
+  )
+  const setNotificationCenterSelectedId = useDemoStore(
+    (state) => state.setNotificationCenterSelectedId,
+  )
+  const clearNotificationCenterSelection = useDemoStore(
+    (state) => state.clearNotificationCenterSelection,
   )
   const showStatus = useDemoStore((state) => state.showStatus)
   const clearStatus = useDemoStore((state) => state.clearStatus)
@@ -136,6 +197,7 @@ function App() {
     : false
   const notifications = applyNotificationOverrides(notificationCenterSeedItems, {
     readById: notificationReadById,
+    clearedById: notificationClearedById,
     resolvedById: notificationResolvedById,
   })
   const notificationActionRequiredCount =
@@ -186,7 +248,12 @@ function App() {
         return
       }
 
-      if (useDemoStore.getState().activeTopNav === 'ApprovalCenter') {
+      const currentTopNav = useDemoStore.getState().activeTopNav
+
+      if (
+        currentTopNav === 'ApprovalCenter' ||
+        currentTopNav === 'NotificationCenter'
+      ) {
         return
       }
 
@@ -365,7 +432,11 @@ function App() {
 
   function handleAccountMenuSelect(item: AccountMenuItem) {
     if (item === 'notification-center') {
-      openNotificationDrawer()
+      if (getInternalPathname(window.location.pathname, appBasePath) !== '/') {
+        navigateToPathWithoutRootSync('/')
+      }
+      closeNotificationDrawer()
+      selectTopNav('NotificationCenter')
       return
     }
 
@@ -424,6 +495,44 @@ function App() {
     }
 
     showStatus('已打开管理后台详情')
+  }
+
+  function handleOpenFullNotificationCenter() {
+    if (getInternalPathname(window.location.pathname, appBasePath) !== '/') {
+      navigateToPathWithoutRootSync('/')
+    }
+    openNotificationCenterPageFromDrawer()
+  }
+
+  function handleBatchClearNotificationReminders(notificationIds: string[]) {
+    notificationIds.forEach((notificationId) => {
+      markNotificationCleared(notificationId)
+    })
+    clearNotificationCenterSelection()
+  }
+
+  function handleClearNotificationReminder(notificationId: string) {
+    markNotificationCleared(notificationId)
+
+    if (
+      useDemoStore
+        .getState()
+        .notificationCenterSelectedIds.includes(notificationId)
+    ) {
+      setNotificationCenterSelectedId(notificationId, false)
+    }
+  }
+
+  function handleNotificationCenterDetailOpenChange(open: boolean) {
+    selectNotificationCenterItem(
+      useDemoStore.getState().notificationCenterSelectedId,
+      open,
+    )
+  }
+
+  function handleNotificationCenterPrimaryAction(notification: NotificationItem) {
+    markNotificationRead(notification.id)
+    handleNotificationPrimaryAction(notification)
   }
 
   const isProductManagementCommodityListRoute =
@@ -489,7 +598,36 @@ function App() {
           {statusMessage}
         </div>
       ) : null}
-      {activeTopNav === 'ApprovalCenter' ? (
+      {activeTopNav === 'NotificationCenter' ? (
+        <NotificationCenterPage
+          notifications={notifications}
+          preset={notificationCenterPreset}
+          search={notificationCenterSearchQuery}
+          statusFilter={notificationCenterStatusFilter}
+          businessStatusFilter={notificationCenterBusinessStatusFilter}
+          sourceFilter={notificationCenterSourceFilter}
+          timeFilter={notificationCenterTimeFilter}
+          selectedNotificationId={notificationCenterSelectedId}
+          selectedNotificationIds={notificationCenterSelectedIds}
+          detailOpen={notificationCenterDetailOpen}
+          onPresetChange={setNotificationCenterPreset}
+          onSearchChange={setNotificationCenterSearchQuery}
+          onStatusFilterChange={setNotificationCenterStatusFilter}
+          onBusinessStatusFilterChange={setNotificationCenterBusinessStatusFilter}
+          onSourceFilterChange={setNotificationCenterSourceFilter}
+          onTimeFilterChange={setNotificationCenterTimeFilter}
+          onSelectNotification={selectNotificationCenterItem}
+          onToggleNotification={(notificationId, selected) =>
+            setNotificationCenterSelectedId(notificationId, selected)
+          }
+          onDetailOpenChange={handleNotificationCenterDetailOpenChange}
+          onMarkAllRead={markAllNotificationsRead}
+          onBatchClearReminders={handleBatchClearNotificationReminders}
+          onMarkRead={markNotificationRead}
+          onClearReminder={handleClearNotificationReminder}
+          onPrimaryAction={handleNotificationCenterPrimaryAction}
+        />
+      ) : activeTopNav === 'ApprovalCenter' ? (
         <ApprovalCenterPage onNotify={showStatus} />
       ) : activeTopNav === 'Assets' ? (
         <AssetsPage
@@ -606,8 +744,9 @@ function App() {
         onClose={closeNotificationDrawer}
         onMarkRead={markNotificationRead}
         onMarkAllRead={markAllNotificationsRead}
-        onMarkResolved={markNotificationResolved}
+        onMarkResolved={markNotificationCleared}
         onPrimaryAction={handleNotificationPrimaryAction}
+        onOpenFullPage={handleOpenFullNotificationCenter}
       />
     </div>
   )
