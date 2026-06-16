@@ -190,9 +190,14 @@ describe('Home template section CSS', () => {
     const primaryRule = getRule('.template-section__primary-controls')
     const filterGroupRule = getRule('.template-section__filter-group')
     const advancedControlRule = getRule('.template-section__advanced-control')
+    const advancedToggleRule = getRule('.template-section__advanced-toggle')
     const advancedPanelRule = getRule('.template-section__advanced-panel')
+    const advancedLabelRule = getRule('.template-section__advanced-label')
     const filterRule = getRule('.template-section__filter')
     const selectedFilterRule = getRule('.template-section__filter--selected')
+    const tagRule = getRule('.template-card__tag')
+    const cyanTagRule = getRule('.template-card__tag--cyan')
+    const amberTagRule = getRule('.template-card__tag--amber')
 
     expect(gridRule).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));')
     expect(gridRule).toContain('gap: 10px;')
@@ -205,8 +210,12 @@ describe('Home template section CSS', () => {
     expect(filterGroupRule).toContain('padding: 3px;')
     expect(filterGroupRule).toContain('background: #f6f9fb;')
     expect(advancedControlRule).toContain('position: relative;')
-    expect(advancedPanelRule).toContain('position: absolute;')
-    expect(advancedPanelRule).toContain('top: calc(100% + 6px);')
+    expect(advancedToggleRule).toContain('width: 30px;')
+    expect(advancedToggleRule).toContain('height: 30px;')
+    expect(advancedPanelRule).toContain('grid-column: 1 / -1;')
+    expect(advancedPanelRule).toContain('display: flex;')
+    expect(advancedPanelRule).not.toContain('position: absolute;')
+    expect(advancedLabelRule).toContain('font-size: 12px;')
     expect(filterRule).toContain('min-height: 26px;')
     expect(filterRule).toContain('border: 0;')
     expect(filterRule).toContain('border-radius: 6px;')
@@ -215,6 +224,9 @@ describe('Home template section CSS', () => {
     expect(selectedFilterRule).toContain(
       'box-shadow: 0 1px 2px rgba(16, 35, 63, 0.08);',
     )
+    expect(tagRule).toContain('border: 1px solid transparent;')
+    expect(cyanTagRule).toContain('background: #e8f8fb;')
+    expect(amberTagRule).toContain('background: #fff4d8;')
   })
 
   it('lets mobile use normal page scrolling instead of nested template scrolling', () => {

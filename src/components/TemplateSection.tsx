@@ -16,6 +16,15 @@ import type {
 import { CardIcon, ChevronDownIcon, SearchIcon } from './icons'
 
 const templatesPerPage = 30
+const tagToneKeywords = [
+  { tone: 'amber', keywords: ['风险', '审查', '审批', '异常', '偏差'] },
+  { tone: 'blue', keywords: ['数据', 'QC', '质控', '模型', 'Oracle'] },
+  { tone: 'violet', keywords: ['项目', '交接', '协同', '会议', '周报'] },
+  { tone: 'cyan', keywords: ['靶点', '抗体', '设计', '表位', '机制'] },
+  { tone: 'teal', keywords: ['实验', '发酵', '菌株', '育种', '酶'] },
+] as const
+
+type TagTone = (typeof tagToneKeywords)[number]['tone']
 
 type TemplateSectionProps = {
   templates: HomeTemplate[]
@@ -30,6 +39,7 @@ function TemplateSection({ templates, onTemplateSelect }: TemplateSectionProps) 
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false)
+  const advancedFiltersActive = type !== '全部类型'
   const filteredTemplates = useMemo(
     () => getFilteredTemplates(templates, { scope, direction, type }, query),
     [direction, query, scope, templates, type],
@@ -52,7 +62,11 @@ function TemplateSection({ templates, onTemplateSelect }: TemplateSectionProps) 
 
   return (
     <section className="template-section" aria-label="模板区">
-      <div className="template-section__toolbar">
+      <div
+        className={`template-section__toolbar${
+          advancedFiltersOpen ? ' template-section__toolbar--expanded' : ''
+        }`}
+      >
         <div className="template-section__primary-controls">
           <FilterGroup
             ariaLabel="模板类别"
@@ -70,31 +84,21 @@ function TemplateSection({ templates, onTemplateSelect }: TemplateSectionProps) 
           <div className="template-section__advanced-control">
             <button
               type="button"
-              className="template-section__advanced-toggle"
+              className={`template-section__advanced-toggle${
+                advancedFiltersActive && !advancedFiltersOpen
+                  ? ' template-section__advanced-toggle--active'
+                  : ''
+              }`}
+              aria-label={advancedFiltersOpen ? '收起更多筛选' : '展开更多筛选'}
               aria-expanded={advancedFiltersOpen}
-              aria-controls="template-type-filter-panel"
+              aria-controls="template-advanced-filters"
               onClick={() => setAdvancedFiltersOpen((open) => !open)}
             >
-              <span>类型筛选：{type}</span>
               <ChevronDownIcon className="template-section__advanced-icon" />
+              {advancedFiltersActive && !advancedFiltersOpen ? (
+                <span className="template-section__advanced-dot" aria-hidden="true" />
+              ) : null}
             </button>
-
-            {advancedFiltersOpen ? (
-              <div
-                id="template-type-filter-panel"
-                className="template-section__advanced-panel"
-              >
-                <FilterGroup
-                  ariaLabel="模板类型"
-                  options={typeFilterOptions}
-                  value={type}
-                  onChange={(value) => {
-                    updateFilter(setType, value)
-                    setAdvancedFiltersOpen(false)
-                  }}
-                />
-              </div>
-            ) : null}
           </div>
         </div>
 
@@ -108,6 +112,21 @@ function TemplateSection({ templates, onTemplateSelect }: TemplateSectionProps) 
             onChange={(event) => updateQuery(event.target.value)}
           />
         </label>
+
+        {advancedFiltersOpen ? (
+          <div
+            id="template-advanced-filters"
+            className="template-section__advanced-panel"
+          >
+            <span className="template-section__advanced-label">类型</span>
+            <FilterGroup
+              ariaLabel="模板类型"
+              options={typeFilterOptions}
+              value={type}
+              onChange={(value) => updateFilter(setType, value)}
+            />
+          </div>
+        ) : null}
       </div>
 
       <div className="template-section__results">
@@ -142,7 +161,10 @@ function TemplateSection({ templates, onTemplateSelect }: TemplateSectionProps) 
                 </span>
                 <span className="template-card__tag-row">
                   {template.displayTags.map((tag) => (
-                    <span key={tag} className="template-card__tag">
+                    <span
+                      key={tag}
+                      className={`template-card__tag template-card__tag--${getTagTone(tag)}`}
+                    >
                       {tag}
                     </span>
                   ))}
@@ -216,6 +238,14 @@ function FilterGroup<TValue extends string>({
         )
       })}
     </div>
+  )
+}
+
+function getTagTone(tag: string): TagTone {
+  return (
+    tagToneKeywords.find(({ keywords }) =>
+      keywords.some((keyword) => tag.includes(keyword)),
+    )?.tone ?? 'teal'
   )
 }
 

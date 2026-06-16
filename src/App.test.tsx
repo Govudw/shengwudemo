@@ -784,11 +784,11 @@ describe('App home templates', () => {
 
     expect(getTemplateCards(container)).toHaveLength(30)
     expect(templateSection.textContent).not.toContain('100 个模板')
+    expect(templateSection.textContent).not.toContain('类型筛选')
+    expect(templateSection.textContent).not.toContain('全部类型')
     expect(templateSection.querySelector('.template-section__meta')).toBeNull()
     expect(templateSection.querySelector('.template-section__advanced-panel')).toBeNull()
-    expect(getButton(container, '类型筛选：全部类型').getAttribute('aria-expanded')).toBe(
-      'false',
-    )
+    expect(getButton(container, '展开更多筛选').getAttribute('aria-expanded')).toBe('false')
     expect(getButton(container, '蛋白药物')).not.toBeNull()
     expect(getButton(container, '虚拟细胞')).not.toBeNull()
     expect(getButton(container, '合成生物学')).not.toBeNull()
@@ -811,19 +811,20 @@ describe('App home templates', () => {
     root.unmount()
   })
 
-  it('opens the advanced template type filters from a compact dropdown', () => {
+  it('expands the toolbar to show advanced template type filters without auto-collapsing', () => {
     const { container, root } = renderApp()
 
     expect(findButton(container, '完整工作流')).toBeUndefined()
 
     act(() => {
-      getButton(container, '类型筛选：全部类型').click()
+      getButton(container, '展开更多筛选').click()
     })
 
-    expect(getButton(container, '类型筛选：全部类型').getAttribute('aria-expanded')).toBe(
-      'true',
-    )
-    expect(container.querySelector('.template-section__advanced-panel')).not.toBeNull()
+    expect(getButton(container, '收起更多筛选').getAttribute('aria-expanded')).toBe('true')
+    expect(container.querySelector('.template-section__toolbar--expanded')).not.toBeNull()
+    const advancedPanel = container.querySelector('.template-section__advanced-panel')
+    expect(advancedPanel).not.toBeNull()
+    expect(advancedPanel?.textContent).toContain('类型')
 
     act(() => {
       getButton(container, '研究设计').click()
@@ -834,15 +835,23 @@ describe('App home templates', () => {
       1,
       30,
     )
-    expect(getButton(container, '类型筛选：研究设计').getAttribute('aria-expanded')).toBe(
-      'false',
-    )
-    expect(container.querySelector('.template-section__advanced-panel')).toBeNull()
+    expect(getButton(container, '收起更多筛选').getAttribute('aria-expanded')).toBe('true')
+    expect(container.querySelector('.template-section__advanced-panel')).not.toBeNull()
+    expect(getButton(container, '研究设计').getAttribute('aria-pressed')).toBe('true')
     expect(getTemplateCards(container)).toHaveLength(
       Math.min(30, researchDesignFirstPage.totalItems),
     )
     expect(getTemplateCards(container)[0].textContent).toContain(
       researchDesignFirstPage.items[0].title,
+    )
+
+    act(() => {
+      getButton(container, '收起更多筛选').click()
+    })
+
+    expect(container.querySelector('.template-section__advanced-panel')).toBeNull()
+    expect(getButton(container, '展开更多筛选').className).toContain(
+      'template-section__advanced-toggle--active',
     )
 
     root.unmount()
@@ -937,6 +946,13 @@ describe('App home templates', () => {
     expect(card.querySelector('.template-card__header')).not.toBeNull()
     expect(card.querySelector('.template-card__summary')).not.toBeNull()
     expect(card.querySelector('.template-card__tag-row')).not.toBeNull()
+    expect(
+      Array.from(card.querySelectorAll('.template-card__tag')).some((tag) =>
+        Array.from(tag.classList).some((className) =>
+          className.startsWith('template-card__tag--'),
+        ),
+      ),
+    ).toBe(true)
 
     act(() => {
       card.click()
