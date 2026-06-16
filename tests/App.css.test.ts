@@ -163,15 +163,24 @@ describe('Home template section CSS', () => {
     const resultsRule = getRule('.template-section__results')
     const paginationRule = getRule('.template-section__pagination')
 
-    expect(sectionRule).toContain('max-height: min(1120px, calc(100svh - 92px));')
-    expect(sectionRule).toContain('overflow: hidden;')
+    expect(sectionRule).toContain('height: min(980px, calc(100svh - 96px));')
+    expect(sectionRule).toContain('overflow: visible;')
     expect(toolbarRule).toContain('position: sticky;')
-    expect(toolbarRule).toContain('top: 0;')
+    expect(toolbarRule).toContain('top: 8px;')
     expect(toolbarRule).toContain('z-index: 2;')
+    expect(resultsRule).toContain('flex: 1 1 auto;')
     expect(resultsRule).toContain('overflow-y: auto;')
     expect(resultsRule).toContain('min-height: 0;')
     expect(paginationRule).toContain('position: sticky;')
     expect(paginationRule).toContain('bottom: 0;')
+  })
+
+  it('keeps the homepage bottom gap compact below template pagination', () => {
+    const workspaceInnerRule = getRule('.workspace-inner')
+
+    expect(workspaceInnerRule).toContain(
+      'padding: clamp(88px, 10svh, 112px) 40px 32px;',
+    )
   })
 
   it('uses compact cards and compact filter controls', () => {
@@ -223,6 +232,7 @@ describe('Home template section CSS', () => {
     )
 
     expect(mobileSectionRule).toContain('max-height: none;')
+    expect(mobileSectionRule).toContain('height: auto;')
     expect(mobileSectionRule).toContain('overflow: visible;')
     expect(mobileToolbarRule).toContain('position: static;')
     expect(mobileResultsRule).toContain('overflow-y: visible;')

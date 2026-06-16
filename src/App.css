@@ -2470,7 +2470,7 @@
   width: min(100%, 1080px);
   min-height: 100%;
   margin: 0 auto;
-  padding: clamp(88px, 10svh, 112px) 40px 72px;
+  padding: clamp(88px, 10svh, 112px) 40px 32px;
 }
 
 .status-toast {
@@ -2829,15 +2829,15 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: min(1120px, calc(100svh - 92px));
+  height: min(980px, calc(100svh - 96px));
   min-height: 0;
   margin-top: 20px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .template-section__toolbar {
   position: sticky;
-  top: 0;
+  top: 8px;
   z-index: 2;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(180px, 220px);
@@ -2994,6 +2994,7 @@
 }
 
 .template-section__results {
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
@@ -11158,6 +11159,7 @@ textarea:focus-visible {
   }
 
   .template-section {
+    height: auto;
     max-height: none;
     overflow: visible;
   }
