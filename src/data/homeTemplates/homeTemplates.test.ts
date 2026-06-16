@@ -77,33 +77,38 @@ describe('home template filtering', () => {
     expect(documentedTones).toEqual(['cyan', 'blue', 'teal', 'violet', 'amber'])
   })
 
-  it('aggregates 20 ordered batches into 100 templates', () => {
+  it('aggregates 20 ordered batches into 101 templates', () => {
     expect(homeTemplateBatches).toHaveLength(20)
-    expect(homeTemplateBatches.every((batch) => batch.length === 5)).toBe(true)
-    expect(homeTemplates).toHaveLength(100)
+    expect(homeTemplates).toHaveLength(101)
     expect(homeTemplates).toEqual(homeTemplateBatches.flat())
   })
 
-  it('assigns unique ids spanning home-template-001 through home-template-100', () => {
+  it('assigns unique ids spanning home-template-001 through home-template-101', () => {
     const ids = homeTemplates.map((template) => template.id)
 
-    expect(new Set(ids).size).toBe(100)
+    expect(new Set(ids).size).toBe(101)
     expect(ids[0]).toBe('home-template-001')
-    expect(ids.at(-1)).toBe('home-template-100')
-    expect(ids).toEqual(
-      Array.from({ length: 100 }, (_, index) => `home-template-${String(index + 1).padStart(3, '0')}`),
-    )
+    expect(ids).toContain('home-template-101')
   })
 
-  it('keeps sortOrder aligned to the id suffix from 1 through 100', () => {
-    expect(homeTemplates.map((template) => template.sortOrder)).toEqual(
-      Array.from({ length: 100 }, (_, index) => index + 1),
-    )
+  it('keeps sortOrder unique across the dataset', () => {
+    const sortOrders = homeTemplates.map((template) => template.sortOrder)
 
-    homeTemplates.forEach((template, index) => {
-      expect(Number(template.id.slice(-3))).toBe(index + 1)
-      expect(template.sortOrder).toBe(index + 1)
+    expect(new Set(sortOrders).size).toBe(homeTemplates.length)
+    homeTemplates.forEach((template) => {
+      expect(Number.isFinite(template.sortOrder)).toBe(true)
     })
+  })
+
+  it('places the flow orchestration template third in all templates and recommendations', () => {
+    expect(getFilteredTemplates(homeTemplates, {}, '').slice(0, 3).map((template) => template.title)).toEqual([
+      '靶点竞品研究',
+      '项目周报风险',
+      '流程编排',
+    ])
+    expect(
+      getFilteredTemplates(homeTemplates, { scope: '推荐' }, '').slice(0, 3).map((template) => template.title),
+    ).toEqual(['靶点竞品研究', '项目周报风险', '流程编排'])
   })
 
   it('defines the exact filter option labels', () => {
@@ -151,7 +156,7 @@ describe('home template filtering', () => {
     const dailyCount = homeTemplates.filter((template) => template.scopeTags.includes('日常')).length
 
     expect(featuredCount).toBeGreaterThanOrEqual(18)
-    expect(featuredCount).toBeLessThanOrEqual(24)
+    expect(featuredCount).toBeLessThanOrEqual(25)
     expect(bioCount).toBeGreaterThanOrEqual(65)
     expect(dailyCount).toBeGreaterThanOrEqual(25)
   })

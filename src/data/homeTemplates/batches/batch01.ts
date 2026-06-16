@@ -36,6 +36,23 @@ export const templateBatch01: HomeTemplate[] = [
     sortOrder: 2,
   },
   {
+    id: 'home-template-101',
+    title: '流程编排',
+    summary: '把研发目标拆成可执行流程、关口与责任链。',
+    input: '研发目标、阶段任务、角色分工、审批关口与交付要求',
+    output: '流程图、责任分工、阶段门、风险点与下一步动作',
+    prompt:
+      '我的研发流程编排需求如下：【研发目标、当前阶段、关键任务、参与角色、审批关口、交付要求、风险与约束】。请你作为Agent完成 workflow orchestration starter，把目标拆解成可执行流程，串联设计、实验、审批、人审、CRO handoff 和结果回传，输出阶段门、责任分工、依赖关系、风险节点与下一步推进动作。',
+    icon: 'workflow',
+    tone: 'teal',
+    scopeTags: ['日常', '生物'],
+    directionTags: ['其他', '蛋白药物', '虚拟细胞', '合成生物学', '农业育种'],
+    typeTags: ['完整工作流'],
+    displayTags: ['流程编排', '责任分工', '阶段门'],
+    featured: true,
+    sortOrder: 2.5,
+  },
+  {
     id: 'home-template-003',
     title: '抗体设计草案',
     summary: '从靶点机制到抗体构型给出初版设计。',
