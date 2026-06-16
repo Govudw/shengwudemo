@@ -177,14 +177,26 @@ describe('Home template section CSS', () => {
   it('uses compact cards and compact filter controls', () => {
     const gridRule = getRule('.template-section__grid')
     const cardRule = getLastRule('.template-card')
+    const toolbarRule = getRule('.template-section__toolbar')
+    const filterGroupRule = getRule('.template-section__filter-group')
     const filterRule = getRule('.template-section__filter')
+    const selectedFilterRule = getRule('.template-section__filter--selected')
 
     expect(gridRule).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));')
     expect(gridRule).toContain('gap: 10px;')
     expect(cardRule).toContain('min-height: 154px;')
     expect(cardRule).toContain('padding: 12px;')
-    expect(filterRule).toContain('min-height: 29px;')
+    expect(toolbarRule).toContain('box-shadow: 0 8px 22px rgba(16, 35, 63, 0.045);')
+    expect(filterGroupRule).toContain('padding: 3px;')
+    expect(filterGroupRule).toContain('background: #f6f9fb;')
+    expect(filterRule).toContain('min-height: 26px;')
+    expect(filterRule).toContain('border: 0;')
+    expect(filterRule).toContain('border-radius: 6px;')
     expect(filterRule).toContain('font-size: 12px;')
+    expect(selectedFilterRule).toContain('background: var(--surface);')
+    expect(selectedFilterRule).toContain(
+      'box-shadow: 0 1px 2px rgba(16, 35, 63, 0.08);',
+    )
   })
 
   it('lets mobile use normal page scrolling instead of nested template scrolling', () => {

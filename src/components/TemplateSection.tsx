@@ -13,7 +13,7 @@ import type {
   TemplateFilterOption,
   TypeFilterValue,
 } from '../data/homeTemplates'
-import { CardIcon } from './icons'
+import { CardIcon, SearchIcon } from './icons'
 
 const templatesPerPage = 30
 
@@ -53,6 +53,7 @@ function TemplateSection({ templates, onTemplateSelect }: TemplateSectionProps) 
     <section className="template-section" aria-label="模板区">
       <div className="template-section__toolbar">
         <label className="template-section__search">
+          <SearchIcon className="template-section__search-icon" />
           <input
             type="search"
             aria-label="搜索模板"
