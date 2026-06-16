@@ -1,5 +1,13 @@
 import type { ConversationTurn, RunInspectorData } from '../data/conversationTypes'
 import type { Project } from '../data/mockData'
+import type {
+  NotificationCenterBusinessStatusFilter,
+  NotificationCenterPreset,
+  NotificationCenterSourceFilter,
+  NotificationCenterStatusFilter,
+  NotificationCenterTimeFilter,
+  NotificationFilter,
+} from '../data/notificationCenterMockData'
 
 export type DemoThread = {
   id: string
@@ -35,6 +43,20 @@ export type DemoStateSnapshot = {
   assetsFileViewMode: AssetsFileViewMode
   assetsExperimentViewMode: AssetsExperimentViewMode
   assetsOpenFolderId: string | null
+  notificationDrawerOpen: boolean
+  notificationFilter: NotificationFilter
+  notificationReadById: Record<string, boolean>
+  notificationClearedById: Record<string, boolean>
+  notificationResolvedById: Record<string, boolean>
+  notificationCenterPreset: NotificationCenterPreset
+  notificationCenterSearchQuery: string
+  notificationCenterStatusFilter: NotificationCenterStatusFilter
+  notificationCenterBusinessStatusFilter: NotificationCenterBusinessStatusFilter
+  notificationCenterSourceFilter: NotificationCenterSourceFilter
+  notificationCenterTimeFilter: NotificationCenterTimeFilter
+  notificationCenterSelectedId: string | null
+  notificationCenterSelectedIds: string[]
+  notificationCenterDetailOpen: boolean
   statusMessage: string
 }
 
@@ -44,6 +66,7 @@ export type ActiveTopNav =
   | 'Assets'
   | 'Capabilities'
   | 'ApprovalCenter'
+  | 'NotificationCenter'
 
 export type AssetsSection = 'file' | 'knowledge' | 'data' | 'experiment' | 'model'
 
@@ -114,10 +137,56 @@ const activeTopNavItems = [
   'Assets',
   'Capabilities',
   'ApprovalCenter',
+  'NotificationCenter',
 ] as const
 const assetsSections = ['file', 'knowledge', 'data', 'experiment', 'model'] as const
 const assetsFileViewModes = ['list', 'grid'] as const
 const assetsExperimentViewModes = ['grid', 'table'] as const
+const notificationFilters = [
+  'all',
+  'actionRequired',
+  'approval',
+  'agent',
+  'asset',
+  'system',
+] as const satisfies readonly NotificationFilter[]
+const notificationCenterPresets = [
+  'all',
+  'actionRequired',
+  'unread',
+  'approval',
+  'agent',
+  'asset',
+  'system',
+] as const satisfies readonly NotificationCenterPreset[]
+const notificationCenterStatusFilters = [
+  'all',
+  'actionRequired',
+  'cleared',
+  'read',
+  'unread',
+] as const satisfies readonly NotificationCenterStatusFilter[]
+const notificationCenterBusinessStatusFilters = [
+  'all',
+  'approvalPending',
+  'confirmationPending',
+  'failed',
+  'completed',
+] as const satisfies readonly NotificationCenterBusinessStatusFilter[]
+const notificationCenterSourceFilters = [
+  'all',
+  'project',
+  'thread',
+  'asset',
+  'connector',
+  'admin',
+] as const satisfies readonly NotificationCenterSourceFilter[]
+const notificationCenterTimeFilters = [
+  'all',
+  'today',
+  'last7Days',
+  'last30Days',
+] as const satisfies readonly NotificationCenterTimeFilter[]
 const assetMenuItemsBySection = {
   file: ['public-files', 'project-files', 'recent-uploads', 'archived-files'],
   knowledge: ['all-knowledge', 'rag', 'knowledge-graph', 'graph-rag'],
@@ -148,6 +217,20 @@ export function createInitialDemoState(
     assetsFileViewMode: 'list',
     assetsExperimentViewMode: 'grid',
     assetsOpenFolderId: null,
+    notificationDrawerOpen: false,
+    notificationFilter: 'all',
+    notificationReadById: {},
+    notificationClearedById: {},
+    notificationResolvedById: {},
+    notificationCenterPreset: 'all',
+    notificationCenterSearchQuery: '',
+    notificationCenterStatusFilter: 'all',
+    notificationCenterBusinessStatusFilter: 'all',
+    notificationCenterSourceFilter: 'all',
+    notificationCenterTimeFilter: 'all',
+    notificationCenterSelectedId: null,
+    notificationCenterSelectedIds: [],
+    notificationCenterDetailOpen: false,
     statusMessage: '',
   }
 }
@@ -475,6 +558,7 @@ export function sanitizeDemoState(state: DemoStateSnapshot): DemoStateSnapshot {
         projects,
       ),
       ...sanitizedAssets,
+      ...sanitizeNotificationStateFields(state),
       statusMessage: '',
     }
   }
@@ -497,6 +581,7 @@ export function sanitizeDemoState(state: DemoStateSnapshot): DemoStateSnapshot {
       projects,
     ),
     ...sanitizedAssets,
+    ...sanitizeNotificationStateFields(state),
     statusMessage: '',
   }
 }
@@ -580,6 +665,241 @@ export function setAssetsOpenFolderSnapshot(
   return {
     ...state,
     assetsOpenFolderId,
+  }
+}
+
+export function setNotificationDrawerOpenSnapshot(
+  state: DemoStateSnapshot,
+  notificationDrawerOpen: boolean,
+): DemoStateSnapshot {
+  return {
+    ...state,
+    notificationDrawerOpen,
+  }
+}
+
+export function setNotificationFilterSnapshot(
+  state: DemoStateSnapshot,
+  notificationFilter: NotificationFilter,
+): DemoStateSnapshot {
+  if (!isNotificationFilter(notificationFilter)) {
+    return state
+  }
+
+  return {
+    ...state,
+    notificationFilter,
+  }
+}
+
+export function markNotificationReadSnapshot(
+  state: DemoStateSnapshot,
+  notificationId: string,
+): DemoStateSnapshot {
+  return {
+    ...state,
+    notificationReadById: {
+      ...state.notificationReadById,
+      [notificationId]: true,
+    },
+  }
+}
+
+export function markAllNotificationsReadSnapshot(
+  state: DemoStateSnapshot,
+  notificationIds: readonly string[],
+): DemoStateSnapshot {
+  const nextReadById = { ...state.notificationReadById }
+
+  for (const notificationId of notificationIds) {
+    nextReadById[notificationId] = true
+  }
+
+  return {
+    ...state,
+    notificationReadById: nextReadById,
+  }
+}
+
+export function markNotificationResolvedSnapshot(
+  state: DemoStateSnapshot,
+  notificationId: string,
+): DemoStateSnapshot {
+  return markNotificationClearedSnapshot(state, notificationId)
+}
+
+export function markNotificationClearedSnapshot(
+  state: DemoStateSnapshot,
+  notificationId: string,
+): DemoStateSnapshot {
+  return {
+    ...state,
+    notificationReadById: {
+      ...state.notificationReadById,
+      [notificationId]: true,
+    },
+    notificationClearedById: {
+      ...state.notificationClearedById,
+      [notificationId]: true,
+    },
+    notificationResolvedById: {
+      ...state.notificationResolvedById,
+      [notificationId]: true,
+    },
+  }
+}
+
+export function setNotificationCenterPresetSnapshot(
+  state: DemoStateSnapshot,
+  notificationCenterPreset: NotificationCenterPreset,
+): DemoStateSnapshot {
+  if (!isNotificationCenterPreset(notificationCenterPreset)) {
+    return state
+  }
+
+  return {
+    ...state,
+    notificationCenterPreset,
+    notificationCenterSelectedIds: [],
+  }
+}
+
+export function setNotificationCenterSearchQuerySnapshot(
+  state: DemoStateSnapshot,
+  notificationCenterSearchQuery: string,
+): DemoStateSnapshot {
+  return {
+    ...state,
+    notificationCenterSearchQuery,
+    notificationCenterSelectedIds: [],
+  }
+}
+
+export function setNotificationCenterStatusFilterSnapshot(
+  state: DemoStateSnapshot,
+  notificationCenterStatusFilter: NotificationCenterStatusFilter,
+): DemoStateSnapshot {
+  if (!isNotificationCenterStatusFilter(notificationCenterStatusFilter)) {
+    return state
+  }
+
+  return {
+    ...state,
+    notificationCenterStatusFilter,
+    notificationCenterSelectedIds: [],
+  }
+}
+
+export function setNotificationCenterBusinessStatusFilterSnapshot(
+  state: DemoStateSnapshot,
+  notificationCenterBusinessStatusFilter: NotificationCenterBusinessStatusFilter,
+): DemoStateSnapshot {
+  if (!isNotificationCenterBusinessStatusFilter(notificationCenterBusinessStatusFilter)) {
+    return state
+  }
+
+  return {
+    ...state,
+    notificationCenterBusinessStatusFilter,
+    notificationCenterSelectedIds: [],
+  }
+}
+
+export function setNotificationCenterSourceFilterSnapshot(
+  state: DemoStateSnapshot,
+  notificationCenterSourceFilter: NotificationCenterSourceFilter,
+): DemoStateSnapshot {
+  if (!isNotificationCenterSourceFilter(notificationCenterSourceFilter)) {
+    return state
+  }
+
+  return {
+    ...state,
+    notificationCenterSourceFilter,
+    notificationCenterSelectedIds: [],
+  }
+}
+
+export function setNotificationCenterTimeFilterSnapshot(
+  state: DemoStateSnapshot,
+  notificationCenterTimeFilter: NotificationCenterTimeFilter,
+): DemoStateSnapshot {
+  if (!isNotificationCenterTimeFilter(notificationCenterTimeFilter)) {
+    return state
+  }
+
+  return {
+    ...state,
+    notificationCenterTimeFilter,
+    notificationCenterSelectedIds: [],
+  }
+}
+
+export function selectNotificationCenterItemSnapshot(
+  state: DemoStateSnapshot,
+  notificationCenterSelectedId: string | null,
+  notificationCenterDetailOpen = notificationCenterSelectedId !== null,
+): DemoStateSnapshot {
+  return {
+    ...state,
+    notificationCenterSelectedId,
+    notificationCenterDetailOpen,
+  }
+}
+
+export function toggleNotificationCenterSelectedIdSnapshot(
+  state: DemoStateSnapshot,
+  notificationId: string,
+): DemoStateSnapshot {
+  const selected = state.notificationCenterSelectedIds.includes(notificationId)
+
+  return setNotificationCenterSelectedIdSnapshot(state, notificationId, !selected)
+}
+
+export function setNotificationCenterSelectedIdSnapshot(
+  state: DemoStateSnapshot,
+  notificationId: string,
+  selected: boolean,
+): DemoStateSnapshot {
+  const alreadySelected =
+    state.notificationCenterSelectedIds.includes(notificationId)
+
+  if (alreadySelected === selected) {
+    return state
+  }
+
+  return {
+    ...state,
+    notificationCenterSelectedIds: selected
+      ? [...state.notificationCenterSelectedIds, notificationId]
+      : state.notificationCenterSelectedIds.filter(
+          (currentId) => currentId !== notificationId,
+        ),
+  }
+}
+
+export function clearNotificationCenterSelectionSnapshot(
+  state: DemoStateSnapshot,
+): DemoStateSnapshot {
+  return {
+    ...state,
+    notificationCenterSelectedIds: [],
+  }
+}
+
+export function openNotificationCenterFromDrawerSnapshot(
+  state: DemoStateSnapshot,
+): DemoStateSnapshot {
+  return {
+    ...state,
+    activeTopNav: 'NotificationCenter',
+    notificationDrawerOpen: false,
+    notificationCenterPreset: mapNotificationFilterToCenterPreset(
+      state.notificationFilter,
+    ),
+    notificationCenterSelectedId: null,
+    notificationCenterSelectedIds: [],
+    notificationCenterDetailOpen: false,
   }
 }
 
@@ -1065,8 +1385,156 @@ function sanitizeAssetsStateFields(
   }
 }
 
+function sanitizeNotificationStateFields(
+  state: DemoStateSnapshot,
+): Pick<
+  DemoStateSnapshot,
+  | 'notificationDrawerOpen'
+  | 'notificationFilter'
+  | 'notificationReadById'
+  | 'notificationClearedById'
+  | 'notificationResolvedById'
+  | 'notificationCenterPreset'
+  | 'notificationCenterSearchQuery'
+  | 'notificationCenterStatusFilter'
+  | 'notificationCenterBusinessStatusFilter'
+  | 'notificationCenterSourceFilter'
+  | 'notificationCenterTimeFilter'
+  | 'notificationCenterSelectedId'
+  | 'notificationCenterSelectedIds'
+  | 'notificationCenterDetailOpen'
+> {
+  const legacyResolvedById = sanitizeBooleanRecord(state.notificationResolvedById)
+  const notificationClearedById = {
+    ...legacyResolvedById,
+    ...sanitizeBooleanRecord(state.notificationClearedById),
+  }
+
+  return {
+    notificationDrawerOpen:
+      typeof state.notificationDrawerOpen === 'boolean'
+        ? state.notificationDrawerOpen
+        : false,
+    notificationFilter: isNotificationFilter(state.notificationFilter)
+      ? state.notificationFilter
+      : 'all',
+    notificationReadById: sanitizeBooleanRecord(state.notificationReadById),
+    notificationClearedById,
+    notificationResolvedById: notificationClearedById,
+    notificationCenterPreset: isNotificationCenterPreset(
+      state.notificationCenterPreset,
+    )
+      ? state.notificationCenterPreset
+      : 'all',
+    notificationCenterSearchQuery:
+      typeof state.notificationCenterSearchQuery === 'string'
+        ? state.notificationCenterSearchQuery
+        : '',
+    notificationCenterStatusFilter: isNotificationCenterStatusFilter(
+      state.notificationCenterStatusFilter,
+    )
+      ? state.notificationCenterStatusFilter
+      : 'all',
+    notificationCenterBusinessStatusFilter:
+      isNotificationCenterBusinessStatusFilter(
+        state.notificationCenterBusinessStatusFilter,
+      )
+        ? state.notificationCenterBusinessStatusFilter
+        : 'all',
+    notificationCenterSourceFilter: isNotificationCenterSourceFilter(
+      state.notificationCenterSourceFilter,
+    )
+      ? state.notificationCenterSourceFilter
+      : 'all',
+    notificationCenterTimeFilter: isNotificationCenterTimeFilter(
+      state.notificationCenterTimeFilter,
+    )
+      ? state.notificationCenterTimeFilter
+      : 'all',
+    notificationCenterSelectedId:
+      typeof state.notificationCenterSelectedId === 'string'
+        ? state.notificationCenterSelectedId
+        : null,
+    notificationCenterSelectedIds: sanitizeStringArray(
+      state.notificationCenterSelectedIds,
+    ),
+    notificationCenterDetailOpen:
+      typeof state.notificationCenterDetailOpen === 'boolean'
+        ? state.notificationCenterDetailOpen
+        : false,
+  }
+}
+
 function isActiveTopNav(value: unknown): value is ActiveTopNav {
   return activeTopNavItems.includes(value as ActiveTopNav)
+}
+
+function isNotificationFilter(value: unknown): value is NotificationFilter {
+  return notificationFilters.includes(value as NotificationFilter)
+}
+
+function isNotificationCenterPreset(
+  value: unknown,
+): value is NotificationCenterPreset {
+  return notificationCenterPresets.includes(value as NotificationCenterPreset)
+}
+
+function isNotificationCenterStatusFilter(
+  value: unknown,
+): value is NotificationCenterStatusFilter {
+  return notificationCenterStatusFilters.includes(
+    value as NotificationCenterStatusFilter,
+  )
+}
+
+function isNotificationCenterBusinessStatusFilter(
+  value: unknown,
+): value is NotificationCenterBusinessStatusFilter {
+  return notificationCenterBusinessStatusFilters.includes(
+    value as NotificationCenterBusinessStatusFilter,
+  )
+}
+
+function isNotificationCenterSourceFilter(
+  value: unknown,
+): value is NotificationCenterSourceFilter {
+  return notificationCenterSourceFilters.includes(
+    value as NotificationCenterSourceFilter,
+  )
+}
+
+function isNotificationCenterTimeFilter(
+  value: unknown,
+): value is NotificationCenterTimeFilter {
+  return notificationCenterTimeFilters.includes(
+    value as NotificationCenterTimeFilter,
+  )
+}
+
+function sanitizeBooleanRecord(value: unknown): Record<string, boolean> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {}
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      ([key, recordValue]) => key && typeof recordValue === 'boolean',
+    ),
+  )
+}
+
+function sanitizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.filter((item): item is string => typeof item === 'string')
+}
+
+function mapNotificationFilterToCenterPreset(
+  notificationFilter: NotificationFilter,
+): NotificationCenterPreset {
+  return notificationFilter
 }
 
 function isAssetsSection(value: unknown): value is AssetsSection {

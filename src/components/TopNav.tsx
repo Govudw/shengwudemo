@@ -6,7 +6,8 @@ import { BellIcon, ChevronDownIcon } from './icons'
 type TopNavProps = {
   activeItem: ActiveTopNav
   onNavigate: (item: TopNavItem) => void
-  onNotify: (message: string) => void
+  notificationActionRequiredCount: number
+  onNotificationCenterOpen: () => void
   onAccountMenuSelect: (item: AccountMenuItem) => void
 }
 
@@ -34,7 +35,8 @@ const accountMenuOptions: { id: AccountMenuItem; label: string }[] = [
 function TopNav({
   activeItem,
   onNavigate,
-  onNotify,
+  notificationActionRequiredCount,
+  onNotificationCenterOpen,
   onAccountMenuSelect,
 }: TopNavProps) {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
@@ -104,11 +106,15 @@ function TopNav({
         <button
           type="button"
           className="top-nav__bell"
-          aria-label="通知"
-          onClick={() => onNotify('通知中心尚未接入当前工作区')}
+          aria-label="打开通知"
+          onClick={onNotificationCenterOpen}
         >
           <BellIcon className="top-nav__icon" />
-          <span className="top-nav__badge">3</span>
+          {notificationActionRequiredCount > 0 ? (
+            <span className="top-nav__badge">
+              {notificationActionRequiredCount}
+            </span>
+          ) : null}
         </button>
 
         <div className="top-nav__account" ref={accountMenuRef}>

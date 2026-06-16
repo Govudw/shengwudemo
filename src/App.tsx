@@ -9,6 +9,8 @@ import ApprovalCenterPage from './components/approval/ApprovalCenterPage'
 import AssetsPage from './components/assets/AssetsPage'
 import Composer from './components/Composer'
 import CapabilitiesPage from './components/CapabilitiesPage'
+import NotificationCenterDrawer from './components/notifications/NotificationCenterDrawer'
+import NotificationCenterPage from './components/notifications/NotificationCenterPage'
 import ProductManagementPlatformPage from './components/product-management/ProductManagementPlatformPage'
 import ProjectsPage from './components/projects/ProjectsPage'
 import Sidebar from './components/Sidebar'
@@ -19,6 +21,12 @@ import type { AccountMenuItem, TopNavItem } from './components/TopNav'
 import { homeTemplates } from './data/homeTemplates'
 import type { HomeTemplate } from './data/homeTemplates'
 import {
+  applyNotificationOverrides,
+  countActionRequiredNotifications,
+  notificationCenterSeedItems,
+} from './data/notificationCenterMockData'
+import type { NotificationItem } from './data/notificationCenterMockData'
+import {
   resetPersistedDemoStore,
   useDemoStore,
 } from './store/useDemoStore'
@@ -28,6 +36,7 @@ import type {
   DemoProject,
 } from './store/demoStoreLogic'
 import {
+  findThreadById,
   findThreadByRouteId,
   isThreadRouteId,
 } from './store/demoStoreLogic'
@@ -64,6 +73,44 @@ function App() {
     (state) => state.assetsExperimentViewMode,
   )
   const assetsOpenFolderId = useDemoStore((state) => state.assetsOpenFolderId)
+  const notificationDrawerOpen = useDemoStore(
+    (state) => state.notificationDrawerOpen,
+  )
+  const notificationFilter = useDemoStore((state) => state.notificationFilter)
+  const notificationReadById = useDemoStore((state) => state.notificationReadById)
+  const notificationClearedById = useDemoStore(
+    (state) => state.notificationClearedById,
+  )
+  const notificationResolvedById = useDemoStore(
+    (state) => state.notificationResolvedById,
+  )
+  const notificationCenterPreset = useDemoStore(
+    (state) => state.notificationCenterPreset,
+  )
+  const notificationCenterSearchQuery = useDemoStore(
+    (state) => state.notificationCenterSearchQuery,
+  )
+  const notificationCenterStatusFilter = useDemoStore(
+    (state) => state.notificationCenterStatusFilter,
+  )
+  const notificationCenterBusinessStatusFilter = useDemoStore(
+    (state) => state.notificationCenterBusinessStatusFilter,
+  )
+  const notificationCenterSourceFilter = useDemoStore(
+    (state) => state.notificationCenterSourceFilter,
+  )
+  const notificationCenterTimeFilter = useDemoStore(
+    (state) => state.notificationCenterTimeFilter,
+  )
+  const notificationCenterSelectedId = useDemoStore(
+    (state) => state.notificationCenterSelectedId,
+  )
+  const notificationCenterSelectedIds = useDemoStore(
+    (state) => state.notificationCenterSelectedIds,
+  )
+  const notificationCenterDetailOpen = useDemoStore(
+    (state) => state.notificationCenterDetailOpen,
+  )
   const statusMessage = useDemoStore((state) => state.statusMessage)
   const startNewThread = useDemoStore((state) => state.startNewThread)
   const selectThread = useDemoStore((state) => state.selectThread)
@@ -88,6 +135,54 @@ function App() {
     (state) => state.setAssetsExperimentViewMode,
   )
   const setAssetsOpenFolder = useDemoStore((state) => state.setAssetsOpenFolder)
+  const openNotificationDrawer = useDemoStore(
+    (state) => state.openNotificationDrawer,
+  )
+  const closeNotificationDrawer = useDemoStore(
+    (state) => state.closeNotificationDrawer,
+  )
+  const setNotificationFilter = useDemoStore(
+    (state) => state.setNotificationFilter,
+  )
+  const markNotificationRead = useDemoStore(
+    (state) => state.markNotificationRead,
+  )
+  const markAllNotificationsRead = useDemoStore(
+    (state) => state.markAllNotificationsRead,
+  )
+  const markNotificationCleared = useDemoStore(
+    (state) => state.markNotificationCleared,
+  )
+  const openNotificationCenterPageFromDrawer = useDemoStore(
+    (state) => state.openNotificationCenterPageFromDrawer,
+  )
+  const setNotificationCenterPreset = useDemoStore(
+    (state) => state.setNotificationCenterPreset,
+  )
+  const setNotificationCenterSearchQuery = useDemoStore(
+    (state) => state.setNotificationCenterSearchQuery,
+  )
+  const setNotificationCenterStatusFilter = useDemoStore(
+    (state) => state.setNotificationCenterStatusFilter,
+  )
+  const setNotificationCenterBusinessStatusFilter = useDemoStore(
+    (state) => state.setNotificationCenterBusinessStatusFilter,
+  )
+  const setNotificationCenterSourceFilter = useDemoStore(
+    (state) => state.setNotificationCenterSourceFilter,
+  )
+  const setNotificationCenterTimeFilter = useDemoStore(
+    (state) => state.setNotificationCenterTimeFilter,
+  )
+  const selectNotificationCenterItem = useDemoStore(
+    (state) => state.selectNotificationCenterItem,
+  )
+  const setNotificationCenterSelectedId = useDemoStore(
+    (state) => state.setNotificationCenterSelectedId,
+  )
+  const clearNotificationCenterSelection = useDemoStore(
+    (state) => state.clearNotificationCenterSelection,
+  )
   const showStatus = useDemoStore((state) => state.showStatus)
   const clearStatus = useDemoStore((state) => state.clearStatus)
 
@@ -98,6 +193,13 @@ function App() {
   const runInspectorOpen = selectedThreadId
     ? Boolean(runInspectorByThreadId[selectedThreadId]?.open)
     : false
+  const notifications = applyNotificationOverrides(notificationCenterSeedItems, {
+    readById: notificationReadById,
+    clearedById: notificationClearedById,
+    resolvedById: notificationResolvedById,
+  })
+  const notificationActionRequiredCount =
+    countActionRequiredNotifications(notifications)
 
   useEffect(() => {
     window.reset = resetPersistedDemoStore
@@ -144,7 +246,12 @@ function App() {
         return
       }
 
-      if (useDemoStore.getState().activeTopNav === 'ApprovalCenter') {
+      const currentTopNav = useDemoStore.getState().activeTopNav
+
+      if (
+        currentTopNav === 'ApprovalCenter' ||
+        currentTopNav === 'NotificationCenter'
+      ) {
         return
       }
 
@@ -317,7 +424,11 @@ function App() {
 
   function handleAccountMenuSelect(item: AccountMenuItem) {
     if (item === 'notification-center') {
-      showStatus('通知中心将在后续 Demo 中展开')
+      if (getInternalPathname(window.location.pathname, appBasePath) !== '/') {
+        navigateToPathWithoutRootSync('/')
+      }
+      closeNotificationDrawer()
+      selectTopNav('NotificationCenter')
       return
     }
 
@@ -333,6 +444,87 @@ function App() {
       navigateToPath(productManagementPlatformPath)
       return
     }
+  }
+
+  function handleNotificationPrimaryAction(notification: NotificationItem) {
+    const { target } = notification
+
+    if (target.surface === 'approvalCenter') {
+      if (getInternalPathname(window.location.pathname, appBasePath) !== '/') {
+        navigateToPathWithoutRootSync('/')
+      }
+      selectTopNav('ApprovalCenter')
+      showStatus('已打开审批中心')
+      return
+    }
+
+    if (target.surface === 'thread' || target.surface === 'runInspector') {
+      const entry = findThreadById(projects, target.threadId)
+
+      if (!entry || entry.project.id !== target.projectId) {
+        showStatus('相关 Thread 不存在或已被删除')
+        return
+      }
+
+      selectThread(entry.project.id, entry.thread.id)
+      selectTopNav('Workspace')
+      navigateToPath(getThreadPath(entry.thread.routeId))
+
+      if (target.surface === 'runInspector') {
+        toggleRunInspector(entry.thread.id, true)
+      }
+
+      return
+    }
+
+    if (target.surface === 'asset') {
+      const assetSelection = getAssetSelectionForNotification(target.assetSection)
+      setAssetsSelection(assetSelection.section, assetSelection.item)
+      setAssetsOpenFolder(null)
+      selectTopNav('Assets')
+      showStatus('已打开相关资产视图')
+      return
+    }
+
+    showStatus('已打开管理后台详情')
+  }
+
+  function handleOpenFullNotificationCenter() {
+    if (getInternalPathname(window.location.pathname, appBasePath) !== '/') {
+      navigateToPathWithoutRootSync('/')
+    }
+    openNotificationCenterPageFromDrawer()
+  }
+
+  function handleBatchClearNotificationReminders(notificationIds: string[]) {
+    notificationIds.forEach((notificationId) => {
+      markNotificationCleared(notificationId)
+    })
+    clearNotificationCenterSelection()
+  }
+
+  function handleClearNotificationReminder(notificationId: string) {
+    markNotificationCleared(notificationId)
+
+    if (
+      useDemoStore
+        .getState()
+        .notificationCenterSelectedIds.includes(notificationId)
+    ) {
+      setNotificationCenterSelectedId(notificationId, false)
+    }
+  }
+
+  function handleNotificationCenterDetailOpenChange(open: boolean) {
+    selectNotificationCenterItem(
+      useDemoStore.getState().notificationCenterSelectedId,
+      open,
+    )
+  }
+
+  function handleNotificationCenterPrimaryAction(notification: NotificationItem) {
+    markNotificationRead(notification.id)
+    handleNotificationPrimaryAction(notification)
   }
 
   const isProductManagementCommodityListRoute =
@@ -389,7 +581,8 @@ function App() {
       <TopNav
         activeItem={activeTopNav}
         onNavigate={handlePrimaryNav}
-        onNotify={showStatus}
+        notificationActionRequiredCount={notificationActionRequiredCount}
+        onNotificationCenterOpen={openNotificationDrawer}
         onAccountMenuSelect={handleAccountMenuSelect}
       />
       {statusMessage ? (
@@ -397,7 +590,36 @@ function App() {
           {statusMessage}
         </div>
       ) : null}
-      {activeTopNav === 'ApprovalCenter' ? (
+      {activeTopNav === 'NotificationCenter' ? (
+        <NotificationCenterPage
+          notifications={notifications}
+          preset={notificationCenterPreset}
+          search={notificationCenterSearchQuery}
+          statusFilter={notificationCenterStatusFilter}
+          businessStatusFilter={notificationCenterBusinessStatusFilter}
+          sourceFilter={notificationCenterSourceFilter}
+          timeFilter={notificationCenterTimeFilter}
+          selectedNotificationId={notificationCenterSelectedId}
+          selectedNotificationIds={notificationCenterSelectedIds}
+          detailOpen={notificationCenterDetailOpen}
+          onPresetChange={setNotificationCenterPreset}
+          onSearchChange={setNotificationCenterSearchQuery}
+          onStatusFilterChange={setNotificationCenterStatusFilter}
+          onBusinessStatusFilterChange={setNotificationCenterBusinessStatusFilter}
+          onSourceFilterChange={setNotificationCenterSourceFilter}
+          onTimeFilterChange={setNotificationCenterTimeFilter}
+          onSelectNotification={selectNotificationCenterItem}
+          onToggleNotification={(notificationId, selected) =>
+            setNotificationCenterSelectedId(notificationId, selected)
+          }
+          onDetailOpenChange={handleNotificationCenterDetailOpenChange}
+          onMarkAllRead={markAllNotificationsRead}
+          onBatchClearReminders={handleBatchClearNotificationReminders}
+          onMarkRead={markNotificationRead}
+          onClearReminder={handleClearNotificationReminder}
+          onPrimaryAction={handleNotificationCenterPrimaryAction}
+        />
+      ) : activeTopNav === 'ApprovalCenter' ? (
         <ApprovalCenterPage onNotify={showStatus} />
       ) : activeTopNav === 'Assets' ? (
         <AssetsPage
@@ -501,8 +723,45 @@ function App() {
           </main>
         </div>
       )}
+      <NotificationCenterDrawer
+        open={notificationDrawerOpen}
+        notifications={notifications}
+        filter={notificationFilter}
+        onFilterChange={setNotificationFilter}
+        onClose={closeNotificationDrawer}
+        onMarkRead={markNotificationRead}
+        onMarkAllRead={markAllNotificationsRead}
+        onMarkResolved={markNotificationCleared}
+        onPrimaryAction={handleNotificationPrimaryAction}
+        onOpenFullPage={handleOpenFullNotificationCenter}
+      />
     </div>
   )
+}
+
+function getAssetSelectionForNotification(
+  assetSection: Extract<
+    NotificationItem['target'],
+    { surface: 'asset' }
+  >['assetSection'],
+): { section: AssetsSection; item: AssetMenuItemId } {
+  if (assetSection === 'knowledgeBase') {
+    return { section: 'knowledge', item: 'all-knowledge' }
+  }
+
+  if (assetSection === 'data') {
+    return { section: 'data', item: 'datasets' }
+  }
+
+  if (assetSection === 'model') {
+    return { section: 'model', item: 'xtrimo' }
+  }
+
+  if (assetSection === 'experiment') {
+    return { section: 'experiment', item: 'execution' }
+  }
+
+  return { section: 'file', item: 'project-files' }
 }
 
 function getProductManagementProductId(pathname: string) {

@@ -30,6 +30,122 @@ afterEach(() => {
 })
 
 describe('App Product Management Platform route', () => {
+  it('opens notification drawer from the bell without changing the active top navigation', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Projects').click()
+    })
+
+    expect(container.querySelector('.projects-page')).not.toBeNull()
+
+    act(() => {
+      getButton(container, '打开通知').click()
+    })
+
+    expect(useDemoStore.getState().activeTopNav).toBe('Projects')
+    expect(container.querySelector('.notification-center')).not.toBeNull()
+    expect(container.textContent).toContain('通知')
+    expect(container.textContent).toContain('3 待关注 · 7 未读')
+    expect(getButton(container, 'Projects').getAttribute('aria-current')).toBe(
+      'page',
+    )
+
+    root.unmount()
+  })
+
+  it('opens full Notification Center page from the account dropdown', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getAccountButton(container).click()
+    })
+    act(() => {
+      getButton(container, '通知中心').click()
+    })
+
+    expect(useDemoStore.getState().activeTopNav).toBe('NotificationCenter')
+    expect(useDemoStore.getState().notificationDrawerOpen).toBe(false)
+    expect(container.querySelector('.notification-center')).toBeNull()
+    expect(container.querySelector('.notification-center-page')).not.toBeNull()
+    expect(container.textContent).toContain('EGFR 实验订单等待审批')
+
+    root.unmount()
+  })
+
+  it('opens full Notification Center page from drawer view-all without mutating drawer filter later', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, '打开通知').click()
+    })
+    act(() => {
+      getButton(container, '审批').click()
+    })
+    act(() => {
+      getButton(container, '查看全部').click()
+    })
+
+    expect(useDemoStore.getState().notificationDrawerOpen).toBe(false)
+    expect(useDemoStore.getState().activeTopNav).toBe('NotificationCenter')
+    expect(useDemoStore.getState().notificationFilter).toBe('approval')
+    expect(useDemoStore.getState().notificationCenterPreset).toBe('approval')
+
+    act(() => {
+      getButton(container, '未读').click()
+    })
+
+    expect(useDemoStore.getState().notificationCenterPreset).toBe('unread')
+    expect(useDemoStore.getState().notificationFilter).toBe('approval')
+
+    root.unmount()
+  })
+
+  it('clears notification reminder without changing the source business status', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getAccountButton(container).click()
+    })
+    act(() => {
+      getButton(container, '通知中心').click()
+    })
+
+    expect(container.textContent).toContain('待审批')
+
+    act(() => {
+      getLabeledControl(container, '选择 EGFR 实验订单等待审批').click()
+    })
+    act(() => {
+      getButton(container, '批量清除提醒').click()
+    })
+
+    expect(useDemoStore.getState().notificationClearedById).toMatchObject({
+      'notification-approval-egfr-order': true,
+    })
+    expect(container.textContent).toContain('待审批')
+    expect(container.textContent).toContain('已清除')
+
+    root.unmount()
+  })
+
+  it('keeps Approval Center account behavior unchanged', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getAccountButton(container).click()
+    })
+    act(() => {
+      getButton(container, '审批中心').click()
+    })
+
+    expect(window.location.pathname).toBe('/')
+    expect(container.querySelector('.approval-center')).not.toBeNull()
+    expect(useDemoStore.getState().activeTopNav).toBe('ApprovalCenter')
+
+    root.unmount()
+  })
+
   it('opens Approval Center from the account dropdown without adding a top-level tab', () => {
     const { container, root } = renderApp()
 
@@ -1604,6 +1720,16 @@ function getButton(container: HTMLElement, name: string) {
   }
 
   return button
+}
+
+function getLabeledControl(container: HTMLElement, name: string) {
+  const control = container.querySelector<HTMLElement>(`[aria-label="${name}"]`)
+
+  if (!control) {
+    throw new Error(`Labeled control not found: ${name}`)
+  }
+
+  return control
 }
 
 function getAssetsMain(container: HTMLElement) {
