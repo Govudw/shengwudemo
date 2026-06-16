@@ -137,8 +137,12 @@ A black-box integration from BioMap Approval to an enterprise approval system. B
 _Avoid_: Approval Flow, internal workflow engine, connector-managed BioMap stages
 
 **Notification Center**:
-A cross-module surface for user notifications such as approvals, asset changes, project updates, and system messages. It can notify users about Approval Requests, but it is not the Approval Center and not an approval queue by itself.
+A cross-module surface for user notifications such as approvals, asset changes, project updates, and system messages. It manages notification attention state and links to source surfaces, but it is not the Approval Center and not an approval queue by itself.
 _Avoid_: Approval Center, approval-only inbox, activity log
+
+**Notification Attention State**:
+The user-facing lifecycle of whether a notification still needs attention, such as unread, read, awaiting attention, or cleared. Clearing a notification does not change source artifacts such as Approval Requests, Agent Runs, Assets, or External Approval Connector records.
+_Avoid_: Approval status, Run status, business object state
 
 **ELN Document**:
 A structured electronic lab notebook document produced during an experimental workflow. It is a BioMap Agent-specific document type that only this Agent project knows how to render, a Project File when stored as `.bmeln`, and may appear as an Object Storage Asset when shown by object path.
@@ -213,6 +217,10 @@ Domain expert: No. Approval is an Agent subsystem. A Signature Block is only a D
 Developer: Should the Notification Center become the place to configure approvals?
 
 Domain expert: No. Notification Center only informs users that something needs attention. Approval Center is where Approval Rules, Approval Flows, External Approval Connectors, and Approval Records are managed.
+
+Developer: If I clear an Approval Request notification, did I approve or reject the request?
+
+Domain expert: No. Clearing only changes the Notification Attention State. The Approval Request must still be decided in Approval Center or by the External Approval Connector.
 
 Developer: If a company uses its own approval platform, do we mirror every external approver and stage inside BioMap?
 
