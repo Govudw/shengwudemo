@@ -13,7 +13,7 @@ import type {
   TemplateFilterOption,
   TypeFilterValue,
 } from '../data/homeTemplates'
-import { CardIcon, SearchIcon } from './icons'
+import { CardIcon, ChevronDownIcon, SearchIcon } from './icons'
 
 const templatesPerPage = 30
 
@@ -29,6 +29,7 @@ function TemplateSection({ templates, onTemplateSelect }: TemplateSectionProps) 
   const [type, setType] = useState<TypeFilterValue>('全部类型')
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false)
   const filteredTemplates = useMemo(
     () => getFilteredTemplates(templates, { scope, direction, type }, query),
     [direction, query, scope, templates, type],
@@ -52,18 +53,7 @@ function TemplateSection({ templates, onTemplateSelect }: TemplateSectionProps) 
   return (
     <section className="template-section" aria-label="模板区">
       <div className="template-section__toolbar">
-        <label className="template-section__search">
-          <SearchIcon className="template-section__search-icon" />
-          <input
-            type="search"
-            aria-label="搜索模板"
-            value={query}
-            placeholder="搜索模板"
-            onChange={(event) => updateQuery(event.target.value)}
-          />
-        </label>
-
-        <div className="template-section__filters">
+        <div className="template-section__primary-controls">
           <FilterGroup
             ariaLabel="模板类别"
             options={scopeFilterOptions}
@@ -76,17 +66,48 @@ function TemplateSection({ templates, onTemplateSelect }: TemplateSectionProps) 
             value={direction}
             onChange={(value) => updateFilter(setDirection, value)}
           />
-          <FilterGroup
-            ariaLabel="模板类型"
-            options={typeFilterOptions}
-            value={type}
-            onChange={(value) => updateFilter(setType, value)}
-          />
+
+          <div className="template-section__advanced-control">
+            <button
+              type="button"
+              className="template-section__advanced-toggle"
+              aria-expanded={advancedFiltersOpen}
+              aria-controls="template-type-filter-panel"
+              onClick={() => setAdvancedFiltersOpen((open) => !open)}
+            >
+              <span>类型筛选：{type}</span>
+              <ChevronDownIcon className="template-section__advanced-icon" />
+            </button>
+
+            {advancedFiltersOpen ? (
+              <div
+                id="template-type-filter-panel"
+                className="template-section__advanced-panel"
+              >
+                <FilterGroup
+                  ariaLabel="模板类型"
+                  options={typeFilterOptions}
+                  value={type}
+                  onChange={(value) => {
+                    updateFilter(setType, value)
+                    setAdvancedFiltersOpen(false)
+                  }}
+                />
+              </div>
+            ) : null}
+          </div>
         </div>
 
-        <div className="template-section__meta" aria-live="polite">
-          {templatePage.totalItems} 个模板
-        </div>
+        <label className="template-section__search">
+          <SearchIcon className="template-section__search-icon" />
+          <input
+            type="search"
+            aria-label="搜索模板"
+            value={query}
+            placeholder="搜索模板"
+            onChange={(event) => updateQuery(event.target.value)}
+          />
+        </label>
       </div>
 
       <div className="template-section__results">

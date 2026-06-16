@@ -778,20 +778,63 @@ describe('App composer attachment menu', () => {
 })
 
 describe('App home templates', () => {
-  it('shows the first 30 home templates with total count and four pagination buttons', () => {
+  it('shows the first 30 home templates with a one-line toolbar and four pagination buttons', () => {
     const { container, root } = renderApp()
+    const templateSection = getTemplateSection(container)
 
     expect(getTemplateCards(container)).toHaveLength(30)
-    expect(getTemplateSection(container).textContent).toContain('100 个模板')
+    expect(templateSection.textContent).not.toContain('100 个模板')
+    expect(templateSection.querySelector('.template-section__meta')).toBeNull()
+    expect(templateSection.querySelector('.template-section__advanced-panel')).toBeNull()
+    expect(getButton(container, '类型筛选：全部类型').getAttribute('aria-expanded')).toBe(
+      'false',
+    )
     expect(
       Array.from(
-        getTemplateSection(container).querySelectorAll<HTMLButtonElement>(
+        templateSection.querySelectorAll<HTMLButtonElement>(
           '.template-section__page',
         ),
       ).map((button) => button.textContent?.trim()),
     ).toEqual(['1', '2', '3', '4'])
     expect(getTemplateCard(container, '靶点竞品研究').textContent).toContain(
       '梳理靶点价值、竞品布局与关键差异。',
+    )
+
+    root.unmount()
+  })
+
+  it('opens the advanced template type filters from a compact dropdown', () => {
+    const { container, root } = renderApp()
+
+    expect(findButton(container, '完整工作流')).toBeUndefined()
+
+    act(() => {
+      getButton(container, '类型筛选：全部类型').click()
+    })
+
+    expect(getButton(container, '类型筛选：全部类型').getAttribute('aria-expanded')).toBe(
+      'true',
+    )
+    expect(container.querySelector('.template-section__advanced-panel')).not.toBeNull()
+
+    act(() => {
+      getButton(container, '研究设计').click()
+    })
+
+    const researchDesignFirstPage = getTemplatePage(
+      getFilteredTemplates(homeTemplates, { type: '研究设计' }, ''),
+      1,
+      30,
+    )
+    expect(getButton(container, '类型筛选：研究设计').getAttribute('aria-expanded')).toBe(
+      'false',
+    )
+    expect(container.querySelector('.template-section__advanced-panel')).toBeNull()
+    expect(getTemplateCards(container)).toHaveLength(
+      Math.min(30, researchDesignFirstPage.totalItems),
+    )
+    expect(getTemplateCards(container)[0].textContent).toContain(
+      researchDesignFirstPage.items[0].title,
     )
 
     root.unmount()
