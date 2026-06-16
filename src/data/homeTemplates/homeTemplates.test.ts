@@ -32,9 +32,9 @@ const templates: HomeTemplate[] = [
     icon: 'workflow',
     tone: 'cyan',
     scopeTags: ['生物'],
-    directionTags: ['抗体'],
+    directionTags: ['蛋白药物'],
     typeTags: ['完整工作流'],
-    displayTags: ['推荐', '抗体'],
+    displayTags: ['推荐', '蛋白药物'],
     featured: true,
     sortOrder: 20,
   },
@@ -48,7 +48,7 @@ const templates: HomeTemplate[] = [
     icon: 'chart',
     tone: 'blue',
     scopeTags: ['日常'],
-    directionTags: ['发酵'],
+    directionTags: ['其他'],
     typeTags: ['结果分析'],
     displayTags: ['日报', '推荐候选'],
     featured: false,
@@ -64,7 +64,7 @@ const templates: HomeTemplate[] = [
     icon: 'cells',
     tone: 'teal',
     scopeTags: ['生物'],
-    directionTags: ['细胞'],
+    directionTags: ['虚拟细胞'],
     typeTags: ['研究设计'],
     displayTags: ['细胞', '设计'],
     featured: true,
@@ -115,12 +115,11 @@ describe('home template filtering', () => {
     ])
     expect(directionFilterOptions.map((option) => option.label)).toEqual([
       '全部方向',
-      '抗体',
-      '细胞',
-      '酶',
-      '菌株',
-      '发酵',
-      '育种',
+      '蛋白药物',
+      '虚拟细胞',
+      '合成生物学',
+      '农业育种',
+      '其他',
     ])
     expect(typeFilterOptions.map((option) => option.label)).toEqual([
       '全部类型',
@@ -155,6 +154,21 @@ describe('home template filtering', () => {
     expect(featuredCount).toBeLessThanOrEqual(24)
     expect(bioCount).toBeGreaterThanOrEqual(65)
     expect(dailyCount).toBeGreaterThanOrEqual(25)
+  })
+
+  it('classifies every template into the new high-level direction taxonomy', () => {
+    const deprecatedDirections = new Set(['抗体', '细胞', '酶', '菌株', '发酵', '育种'])
+    const allowedDirections = new Set(
+      directionFilterOptions
+        .map((option) => option.value)
+        .filter((value) => value !== '全部方向'),
+    )
+
+    homeTemplates.forEach((template) => {
+      expect(template.directionTags.length).toBeGreaterThan(0)
+      expect(template.directionTags.every((direction) => allowedDirections.has(direction))).toBe(true)
+      expect(template.directionTags.some((direction) => deprecatedDirections.has(direction))).toBe(false)
+    })
   })
 
   it('uses user-command language in prompts without asking 需要你提供', () => {
@@ -193,7 +207,7 @@ describe('home template filtering', () => {
     expect(
       filterTemplates(templates, {
         scope: '生物',
-        direction: '细胞',
+        direction: '虚拟细胞',
         type: '研究设计',
       }).map((template) => template.id),
     ).toEqual(['cell-design'])
@@ -225,7 +239,7 @@ describe('home template filtering', () => {
       icon: 'package',
       tone: 'violet',
       scopeTags: ['日常'],
-      directionTags: ['酶'],
+      directionTags: ['合成生物学'],
       typeTags: ['实验'],
       displayTags: [`标签 ${index + 1}`],
       featured: false,
@@ -283,7 +297,7 @@ describe('home template filtering', () => {
       homeTemplates,
       {
         scope: '生物',
-        direction: '抗体',
+        direction: '蛋白药物',
         type: '研究设计',
       },
       '设计',
@@ -291,7 +305,7 @@ describe('home template filtering', () => {
 
     expect(filtered.length).toBeGreaterThan(0)
     expect(filtered.every((template) => template.scopeTags.includes('生物'))).toBe(true)
-    expect(filtered.every((template) => template.directionTags.includes('抗体'))).toBe(true)
+    expect(filtered.every((template) => template.directionTags.includes('蛋白药物'))).toBe(true)
     expect(filtered.every((template) => template.typeTags.includes('研究设计'))).toBe(true)
     expect(filtered.every((template) => template.title.includes('设计') || template.summary.includes('设计') || template.input.includes('设计') || template.output.includes('设计') || template.displayTags.some((tag) => tag.includes('设计')))).toBe(true)
 

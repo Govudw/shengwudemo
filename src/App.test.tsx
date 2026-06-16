@@ -789,6 +789,14 @@ describe('App home templates', () => {
     expect(getButton(container, '类型筛选：全部类型').getAttribute('aria-expanded')).toBe(
       'false',
     )
+    expect(getButton(container, '蛋白药物')).not.toBeNull()
+    expect(getButton(container, '虚拟细胞')).not.toBeNull()
+    expect(getButton(container, '合成生物学')).not.toBeNull()
+    expect(getButton(container, '农业育种')).not.toBeNull()
+    expect(getButton(container, '其他')).not.toBeNull()
+    expect(findButton(container, '抗体')).toBeUndefined()
+    expect(findButton(container, '细胞')).toBeUndefined()
+    expect(findButton(container, '酶')).toBeUndefined()
     expect(
       Array.from(
         templateSection.querySelectorAll<HTMLButtonElement>(
@@ -859,19 +867,19 @@ describe('App home templates', () => {
     )
 
     act(() => {
-      getButton(container, '抗体').click()
+      getButton(container, '蛋白药物').click()
     })
 
-    const antibodyFirstPage = getTemplatePage(
-      getFilteredTemplates(homeTemplates, { direction: '抗体' }, ''),
+    const proteinDrugFirstPage = getTemplatePage(
+      getFilteredTemplates(homeTemplates, { direction: '蛋白药物' }, ''),
       1,
       30,
     )
     expect(getTemplateCards(container)).toHaveLength(
-      Math.min(30, antibodyFirstPage.totalItems),
+      Math.min(30, proteinDrugFirstPage.totalItems),
     )
     expect(getTemplateCards(container)[0].textContent).toContain(
-      antibodyFirstPage.items[0].title,
+      proteinDrugFirstPage.items[0].title,
     )
     expect(getTemplatePageButton(container, '1').getAttribute('aria-current')).toBe(
       'page',
@@ -881,22 +889,22 @@ describe('App home templates', () => {
       getButton(container, '推荐').click()
     })
 
-    const featuredAntibodyFirstPage = getTemplatePage(
+    const featuredProteinDrugFirstPage = getTemplatePage(
       getFilteredTemplates(
         homeTemplates,
-        { scope: '推荐', direction: '抗体' },
+        { scope: '推荐', direction: '蛋白药物' },
         '',
       ),
       1,
       30,
     )
     expect(getTemplateCards(container)).toHaveLength(
-      Math.min(30, featuredAntibodyFirstPage.totalItems),
+      Math.min(30, featuredProteinDrugFirstPage.totalItems),
     )
     expect(getTemplateCards(container)[0].textContent).toContain(
-      featuredAntibodyFirstPage.items[0].title,
+      featuredProteinDrugFirstPage.items[0].title,
     )
-    expect(featuredAntibodyFirstPage.totalItems).toBeLessThanOrEqual(30)
+    expect(featuredProteinDrugFirstPage.totalItems).toBeLessThanOrEqual(30)
     expect(
       getTemplateSection(container).querySelector('.template-section__pagination'),
     ).toBeNull()

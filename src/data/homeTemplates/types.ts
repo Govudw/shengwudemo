@@ -1,12 +1,11 @@
 export type TemplateScopeTag = '日常' | '生物'
 
 export type TemplateDirectionTag =
-  | '抗体'
-  | '细胞'
-  | '酶'
-  | '菌株'
-  | '发酵'
-  | '育种'
+  | '蛋白药物'
+  | '虚拟细胞'
+  | '合成生物学'
+  | '农业育种'
+  | '其他'
 
 export type TemplateTypeTag =
   | '完整工作流'
@@ -78,12 +77,11 @@ export const scopeFilterOptions: TemplateFilterOption<ScopeFilterValue>[] = [
 
 export const directionFilterOptions: TemplateFilterOption<DirectionFilterValue>[] = [
   { label: '全部方向', value: '全部方向' },
-  { label: '抗体', value: '抗体' },
-  { label: '细胞', value: '细胞' },
-  { label: '酶', value: '酶' },
-  { label: '菌株', value: '菌株' },
-  { label: '发酵', value: '发酵' },
-  { label: '育种', value: '育种' },
+  { label: '蛋白药物', value: '蛋白药物' },
+  { label: '虚拟细胞', value: '虚拟细胞' },
+  { label: '合成生物学', value: '合成生物学' },
+  { label: '农业育种', value: '农业育种' },
+  { label: '其他', value: '其他' },
 ]
 
 export const typeFilterOptions: TemplateFilterOption<TypeFilterValue>[] = [
