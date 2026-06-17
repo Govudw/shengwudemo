@@ -611,9 +611,56 @@ describe('App Projects management', () => {
     expect(container.textContent).toContain('回收站')
     expect(container.textContent).not.toContain('草稿')
     expect(container.textContent).toContain('负责人')
-    expect(container.textContent).toContain('读取权限')
-    expect(container.textContent).toContain('编辑权限')
+    expect(container.textContent).not.toContain('读取权限')
+    expect(container.textContent).not.toContain('编辑权限')
     expect(container.textContent).toContain('最近活动')
+
+    root.unmount()
+  })
+
+  it('renders the default Projects table with only compact columns', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Projects').click()
+    })
+
+    expect(getProjectTableHeaders(container)).toEqual([
+      '项目',
+      '状态',
+      '负责人',
+      '最近活动',
+      '更多',
+    ])
+    expect(container.textContent).not.toContain('读取权限')
+    expect(container.textContent).not.toContain('编辑权限')
+
+    root.unmount()
+  })
+
+  it('keeps Projects tag and activity filters behind more filters with active count', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Projects').click()
+    })
+
+    const initialRowCount = getProjectRows(container).length
+
+    expect(container.querySelector('[aria-label="筛选标签"]')).toBeNull()
+    expect(container.querySelector('[aria-label="筛选最近活动"]')).toBeNull()
+
+    act(() => {
+      getButton(container, '更多筛选').click()
+    })
+
+    expect(container.querySelector('[aria-label="筛选标签"]')).not.toBeNull()
+    expect(container.querySelector('[aria-label="筛选最近活动"]')).not.toBeNull()
+
+    setSelectValue(container, '筛选标签', '抗体')
+
+    expect(getButton(container, '更多筛选 1')).toBeTruthy()
+    expect(getProjectRows(container).length).toBeLessThan(initialRowCount)
 
     root.unmount()
   })
@@ -1230,15 +1277,50 @@ describe('App Assets navigation', () => {
     root.unmount()
   })
 
-  it('shows Project File and File Asset distinctions in the default file list', () => {
+  it('renders the default file list without file-space badge columns', () => {
     const { container, root } = renderApp()
 
     act(() => {
       getButton(container, 'Assets').click()
     })
 
-    expect(container.textContent).toContain('Project File')
-    expect(container.textContent).toContain('File Asset')
+    expect(getAssetsTableHeaders(container)).toEqual([
+      '名称',
+      '范围',
+      '类型',
+      '更新时间',
+      '更多',
+    ])
+    expect(container.textContent).not.toContain('Project File')
+    expect(container.textContent).not.toContain('File Asset')
+
+    root.unmount()
+  })
+
+  it('uses file type and update time as core file filters', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+
+    const toolbar = getAssetsToolbar(container)
+    expect(toolbar.querySelector('select[aria-label="筛选文件类型"]')).not.toBeNull()
+    expect(toolbar.querySelector('select[aria-label="筛选文件更新时间"]')).not.toBeNull()
+    expect(toolbar.querySelector('[aria-label="文件显示方式"]')).toBeNull()
+
+    setSelectValue(toolbar, '筛选文件更新时间', 'last30Minutes')
+
+    expect(container.textContent).toContain('EGFR_parent_antibody_baseline.xlsx')
+    expect(container.textContent).toContain('BLI_run_0528.csv')
+    expect(container.textContent).not.toContain('EGFR_MOO_candidate_summary.parquet')
+    expect(container.textContent).not.toContain('SEC_HPLC_overlay.png')
+
+    act(() => {
+      getButton(toolbar, '更多筛选').click()
+    })
+
+    expect(toolbar.querySelector('[aria-label="文件显示方式"]')).not.toBeNull()
 
     root.unmount()
   })
@@ -1279,6 +1361,52 @@ describe('App Assets navigation', () => {
 
     expect(container.textContent).toContain('上传到文件空间')
     expect(container.textContent).toContain('CSV / XLSX / PARQUET')
+
+    root.unmount()
+  })
+
+  it('labels compact row action buttons for assistive technology', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    expect(
+      getButton(container, '查看 EGFR_parent_antibody_baseline.xlsx 的更多操作'),
+    ).toBeTruthy()
+
+    act(() => {
+      getButton(container, '数据').click()
+    })
+    expect(
+      getButton(container, '查看 EGFR_MOO_candidates_v3 的更多操作'),
+    ).toBeTruthy()
+
+    act(() => {
+      getButton(container, '实验').click()
+    })
+    act(() => {
+      getButton(container, '更多筛选').click()
+    })
+    act(() => {
+      getButton(container, '表格').click()
+    })
+    expect(
+      getButton(
+        container,
+        '查看 EGFR Affinity Validation Design Package 的更多操作',
+      ),
+    ).toBeTruthy()
+
+    act(() => {
+      getButton(container, '模型').click()
+    })
+    act(() => {
+      getButton(container, '公开模型').click()
+    })
+    expect(
+      getButton(container, '查看 ESM-2 Protein Encoder 的更多操作'),
+    ).toBeTruthy()
 
     root.unmount()
   })
@@ -1331,6 +1459,32 @@ describe('App Assets navigation', () => {
     root.unmount()
   })
 
+  it('keeps experiment view mode behind more filters by default', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '实验').click()
+    })
+
+    const toolbar = getAssetsToolbar(container)
+    expect(toolbar.querySelector('input[aria-label="搜索实验资产"]')).not.toBeNull()
+    expect(toolbar.querySelector('select[aria-label="筛选实验类型"]')).not.toBeNull()
+    expect(toolbar.querySelector('select[aria-label="筛选实验状态"]')).not.toBeNull()
+    expect(toolbar.querySelector('[aria-label="实验资产显示方式"]')).toBeNull()
+    expect(getButton(toolbar, '更多筛选')).toBeTruthy()
+
+    act(() => {
+      getButton(toolbar, '更多筛选').click()
+    })
+
+    expect(toolbar.querySelector('[aria-label="实验资产显示方式"]')).not.toBeNull()
+
+    root.unmount()
+  })
+
   it('switches experiment assets between card and table views and filters records', () => {
     const { container, root } = renderApp()
 
@@ -1341,10 +1495,14 @@ describe('App Assets navigation', () => {
       getButton(container, '实验').click()
     })
 
-    expect(getButton(container, '卡片').getAttribute('aria-pressed')).toBe('true')
+    expect(findButton(container, '卡片')).toBeUndefined()
     expect(container.querySelector('.assets-experiment-table')).toBeNull()
     expect(container.textContent).toContain('EGFR Affinity Validation Design Package')
 
+    act(() => {
+      getButton(container, '更多筛选').click()
+    })
+    expect(getButton(container, '卡片').getAttribute('aria-pressed')).toBe('true')
     act(() => {
       getButton(container, '表格').click()
     })
@@ -1458,6 +1616,146 @@ describe('App Assets navigation', () => {
   })
 })
 
+describe('App data asset pages', () => {
+  it('renders data assets as a compact table without card descriptions', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '数据').click()
+    })
+
+    const assetsMain = getAssetsMain(container)
+    const toolbar = getAssetsToolbar(container)
+    expect(getAssetsTableHeaders(assetsMain)).toEqual([
+      '名称',
+      '类型',
+      '范围',
+      '数量',
+      '更新时间',
+      '更多',
+    ])
+    expect(assetsMain.querySelector('.assets-record-grid')).toBeNull()
+    expect(assetsMain.textContent).toContain('EGFR_MOO_candidates_v3')
+    expect(assetsMain.textContent).toContain('数据集')
+    expect(assetsMain.textContent).toContain('1,284 rows')
+    expect(assetsMain.textContent).toContain('32 分钟前')
+    expect(assetsMain.textContent).not.toContain(
+      '亲和力、稳定性、表达量与 developability 评分汇总',
+    )
+    expect(findButton(toolbar, '更多筛选')).toBeUndefined()
+
+    root.unmount()
+  })
+})
+
+describe('App model asset pages', () => {
+  it('hides upload on public models and renders model sections as compact tables', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '模型').click()
+    })
+    act(() => {
+      getButton(container, '公开模型').click()
+    })
+
+    let assetsMain = getAssetsMain(container)
+    expect(findButton(assetsMain, '上传')).toBeUndefined()
+    expect(getAssetsTableHeaders(assetsMain)).toEqual([
+      '名称',
+      '状态',
+      '范围',
+      '更新时间',
+      '更多',
+    ])
+    expect(assetsMain.querySelector('.assets-record-grid')).toBeNull()
+    expect(assetsMain.textContent).toContain('ESM-2 Protein Encoder')
+
+    act(() => {
+      getButton(container, '项目模型').click()
+    })
+
+    assetsMain = getAssetsMain(container)
+    expect(getAssetsTableHeaders(assetsMain)).toEqual([
+      '名称',
+      '状态',
+      '范围',
+      '更新时间',
+      '更多',
+    ])
+    expect(assetsMain.querySelector('.assets-record-grid')).toBeNull()
+    expect(assetsMain.textContent).toContain('EGFR_Affinity_Head_v2')
+
+    act(() => {
+      getButton(container, 'Oracle').click()
+    })
+
+    assetsMain = getAssetsMain(container)
+    expect(getAssetsTableHeaders(assetsMain)).toEqual([
+      '名称',
+      '状态',
+      '范围',
+      '更新时间',
+      '更多',
+    ])
+    expect(assetsMain.querySelector('.assets-record-grid')).toBeNull()
+
+    root.unmount()
+  })
+
+  it('treats Oracle v1 as callable read-only without create or upload actions', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '模型').click()
+    })
+    act(() => {
+      getButton(container, 'Oracle').click()
+    })
+
+    const assetsMain = getAssetsMain(container)
+    const toolbar = getAssetsToolbar(container)
+    expect(findButton(assetsMain, '新建')).toBeUndefined()
+    expect(findButton(assetsMain, '上传')).toBeUndefined()
+    expect(findButton(toolbar, '更多筛选')).toBeUndefined()
+    expect(assetsMain.textContent).not.toContain('注册模型')
+    expect(assetsMain.textContent).not.toContain('新建 Oracle')
+
+    root.unmount()
+  })
+
+  it('shows only published callable Oracle assets in the default Oracle view', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '模型').click()
+    })
+    act(() => {
+      getButton(container, 'Oracle').click()
+    })
+
+    const assetsMain = getAssetsMain(container)
+    expect(assetsMain.textContent).toContain('EGFR Developability Oracle')
+    expect(assetsMain.textContent).toContain('Enzyme Activity Oracle')
+    expect(assetsMain.textContent).not.toContain('Bispecific Pairing Oracle')
+    expect(assetsMain.textContent).not.toContain('AAV Manufacturability Oracle')
+
+    root.unmount()
+  })
+})
+
 describe('xTrimo model assets', () => {
   it('uses compact xTrimo-specific layout classes', () => {
     const { container, root } = renderApp()
@@ -1482,10 +1780,10 @@ describe('xTrimo model assets', () => {
       container.querySelectorAll(
         '.xtrimo-recommendations .xtrimo-model-card--compact',
       ),
-    ).toHaveLength(6)
+    ).toHaveLength(0)
     expect(
       container.querySelectorAll('.xtrimo-model-card__thumbnail-image'),
-    ).toHaveLength(39)
+    ).toHaveLength(33)
     expect(
       getModelCard(container, 'xTrimoGene')
         .querySelector('img')
@@ -1524,12 +1822,54 @@ describe('xTrimo model assets', () => {
     expect(container.textContent).not.toContain('24 已上线')
     expect(container.textContent).not.toContain('9 即将上线')
     expect(container.textContent).not.toContain('24 可调用')
-    expect(container.textContent).toContain('Agent 推荐')
+    expect(container.textContent).toContain('推荐用于当前项目')
     expect(container.textContent).toContain('xTrimoAbAffinity_DDG')
     expect(container.textContent).not.toContain('xTrimoPFP')
     expect(findButton(container, '新建')).toBeUndefined()
     expect(findButton(container, '上传')).toBeUndefined()
     expect(getButton(container, '更多资产操作')).toBeTruthy()
+
+    root.unmount()
+  })
+
+  it('keeps xTrimo recommendations collapsed by default and expands cards on demand', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '模型').click()
+    })
+
+    expect(container.textContent).toContain('推荐用于当前项目的 6 个模型')
+    expect(
+      (
+        useDemoStore.getState() as ReturnType<typeof useDemoStore.getState> & {
+          xtrimoRecommendationsExpanded?: boolean
+        }
+      ).xtrimoRecommendationsExpanded,
+    ).toBe(false)
+    expect(getButton(container, '展开推荐')).toBeTruthy()
+    expect(
+      container.querySelectorAll('.xtrimo-recommendations .xtrimo-model-card'),
+    ).toHaveLength(0)
+
+    act(() => {
+      getButton(container, '展开推荐').click()
+    })
+
+    expect(getButton(container, '收起推荐')).toBeTruthy()
+    expect(
+      (
+        useDemoStore.getState() as ReturnType<typeof useDemoStore.getState> & {
+          xtrimoRecommendationsExpanded?: boolean
+        }
+      ).xtrimoRecommendationsExpanded,
+    ).toBe(true)
+    expect(
+      container.querySelectorAll('.xtrimo-recommendations .xtrimo-model-card'),
+    ).toHaveLength(6)
 
     root.unmount()
   })
@@ -1552,8 +1892,9 @@ describe('xTrimo model assets', () => {
     )
 
     act(() => {
-      getButton(container, '即将上线').click()
+      getButton(container, '更多筛选').click()
     })
+    setSelectValue(container, '筛选xTrimo状态', 'comingSoon')
     act(() => {
       getModelCardButton(container, 'xTrimoAAVViability', '预览模型').click()
     })
@@ -1565,7 +1906,49 @@ describe('xTrimo model assets', () => {
     root.unmount()
   })
 
-  it('filters xTrimo models by capability, entity, and lifecycle status', () => {
+  it('filters xTrimo models by capability, entity, and advanced lifecycle status', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, 'Assets').click()
+    })
+    act(() => {
+      getButton(container, '模型').click()
+    })
+
+    setSelectValue(container, '筛选xTrimo能力', '亲和力')
+
+    expect(container.textContent).toContain('xTrimoAbAffinity_DDG')
+    expect(container.textContent).toContain('xTrimoTCR-PeptideBinding')
+    expect(container.textContent).not.toContain('xTrimoGene')
+
+    setSelectValue(container, '筛选xTrimo实体', '抗体')
+
+    expect(container.textContent).toContain('xTrimoAbAffinity_DDG')
+    expect(container.textContent).not.toContain('xTrimoTCR-PeptideBinding')
+
+    act(() => {
+      getButton(container, '更多筛选').click()
+    })
+
+    setSelectValue(container, '筛选xTrimo状态', 'comingSoon')
+
+    expect(getButton(container, '更多筛选 1')).toBeTruthy()
+    expect(container.textContent).not.toContain('xTrimoAAVViability')
+
+    setSelectValue(container, '筛选xTrimo状态', 'all')
+    setSelectValue(container, '筛选xTrimo能力', 'all')
+    setSelectValue(container, '筛选xTrimo实体', 'all')
+    setSelectValue(container, '筛选xTrimo状态', 'comingSoon')
+
+    expect(container.textContent).toContain('xTrimoAAVViability')
+    expect(container.textContent).toContain('仅预览')
+    expect(container.textContent).not.toContain('可调用 · xTrimoAAVViability')
+
+    root.unmount()
+  })
+
+  it('filters xTrimo models by version from advanced filters', () => {
     const { container, root } = renderApp()
 
     act(() => {
@@ -1575,53 +1958,16 @@ describe('xTrimo model assets', () => {
       getButton(container, '模型').click()
     })
     act(() => {
-      getButton(container, '亲和力').click()
+      getButton(container, '更多筛选').click()
     })
 
-    expect(getButton(container, '亲和力').getAttribute('aria-pressed')).toBe(
-      'true',
-    )
+    expect(container.querySelector('select[aria-label="筛选xTrimo版本"]')).not.toBeNull()
+
+    setSelectValue(container, '筛选xTrimo版本', 'v2.1')
+
+    expect(getButton(container, '更多筛选 1')).toBeTruthy()
     expect(container.textContent).toContain('xTrimoAbAffinity_DDG')
-    expect(container.textContent).toContain('xTrimoTCR-PeptideBinding')
     expect(container.textContent).not.toContain('xTrimoGene')
-
-    act(() => {
-      getButton(container, '抗体').click()
-    })
-
-    expect(getButton(container, '抗体').getAttribute('aria-pressed')).toBe('true')
-    expect(container.textContent).toContain('xTrimoAbAffinity_DDG')
-    expect(container.textContent).not.toContain('xTrimoTCR-PeptideBinding')
-
-    act(() => {
-      getButton(container, '即将上线').click()
-    })
-
-    expect(getButton(container, '即将上线').getAttribute('aria-pressed')).toBe(
-      'true',
-    )
-    expect(getButton(container, '亲和力').getAttribute('aria-pressed')).toBe(
-      'true',
-    )
-    expect(getButton(container, '抗体').getAttribute('aria-pressed')).toBe('true')
-    expect(container.textContent).not.toContain('xTrimoAAVViability')
-
-    act(() => {
-      getButton(container, '全部状态').click()
-    })
-    act(() => {
-      getButton(container, '全部能力').click()
-    })
-    act(() => {
-      getButton(container, '全部实体').click()
-    })
-    act(() => {
-      getButton(container, '即将上线').click()
-    })
-
-    expect(container.textContent).toContain('xTrimoAAVViability')
-    expect(container.textContent).toContain('仅预览')
-    expect(container.textContent).not.toContain('可调用 · xTrimoAAVViability')
 
     root.unmount()
   })
@@ -1788,6 +2134,18 @@ function getLabeledControl(container: HTMLElement, name: string) {
   return control
 }
 
+function getProjectRows(container: HTMLElement) {
+  return Array.from(container.querySelectorAll<HTMLTableRowElement>(
+    '.projects-table tbody tr',
+  ))
+}
+
+function getProjectTableHeaders(container: HTMLElement) {
+  return Array.from(container.querySelectorAll('.projects-table thead th')).map(
+    (header) => header.textContent?.trim(),
+  )
+}
+
 function getAssetsMain(container: HTMLElement) {
   const assetsMain = container.querySelector<HTMLElement>('.assets-main')
 
@@ -1796,6 +2154,22 @@ function getAssetsMain(container: HTMLElement) {
   }
 
   return assetsMain
+}
+
+function getAssetsToolbar(container: HTMLElement) {
+  const toolbar = container.querySelector<HTMLElement>('.assets-toolbar')
+
+  if (!toolbar) {
+    throw new Error('Assets toolbar not found')
+  }
+
+  return toolbar
+}
+
+function getAssetsTableHeaders(container: HTMLElement) {
+  return Array.from(container.querySelectorAll('.assets-table [role="columnheader"]')).map(
+    (header) => header.textContent?.trim(),
+  )
 }
 
 function getComposerProjectButton(container: HTMLElement) {
@@ -1974,6 +2348,23 @@ function setTextInput(container: HTMLElement, label: string, value: string) {
         inputType: 'insertText',
       }),
     )
+  })
+}
+
+function setSelectValue(container: HTMLElement, label: string, value: string) {
+  act(() => {
+    const select = container.querySelector<HTMLSelectElement>(
+      `select[aria-label="${label}"]`,
+    )
+    if (!select) {
+      throw new Error(`Select not found: ${label}`)
+    }
+    const valueSetter = Object.getOwnPropertyDescriptor(
+      HTMLSelectElement.prototype,
+      'value',
+    )?.set
+    valueSetter?.call(select, value)
+    select.dispatchEvent(new Event('change', { bubbles: true }))
   })
 }
 

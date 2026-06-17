@@ -21,6 +21,7 @@ import {
   setAssetsFileViewModeSnapshot,
   setAssetsOpenFolderSnapshot,
   setAssetsSelectionSnapshot,
+  setXtrimoRecommendationsExpandedSnapshot,
   setNotificationDrawerOpenSnapshot,
   setNotificationFilterSnapshot,
   setNotificationCenterBusinessStatusFilterSnapshot,
@@ -96,6 +97,7 @@ type DemoStoreState = DemoStateSnapshot & {
   setAssetsFileViewMode: (mode: AssetsFileViewMode) => void
   setAssetsExperimentViewMode: (mode: AssetsExperimentViewMode) => void
   setAssetsOpenFolder: (folderId: string | null) => void
+  setXtrimoRecommendationsExpanded: (expanded: boolean) => void
   openNotificationDrawer: () => void
   closeNotificationDrawer: () => void
   setNotificationFilter: (filter: NotificationFilter) => void
@@ -189,6 +191,10 @@ export const useDemoStore = create<DemoStoreState>()(
         set((state) => setAssetsExperimentViewModeSnapshot(state, mode)),
       setAssetsOpenFolder: (folderId) =>
         set((state) => setAssetsOpenFolderSnapshot(state, folderId)),
+      setXtrimoRecommendationsExpanded: (expanded) =>
+        set((state) =>
+          setXtrimoRecommendationsExpandedSnapshot(state, expanded),
+        ),
       openNotificationDrawer: () =>
         set((state) => setNotificationDrawerOpenSnapshot(state, true)),
       closeNotificationDrawer: () =>
@@ -280,6 +286,7 @@ export const useDemoStore = create<DemoStoreState>()(
         assetsFileViewMode: state.assetsFileViewMode,
         assetsExperimentViewMode: state.assetsExperimentViewMode,
         assetsOpenFolderId: state.assetsOpenFolderId,
+        xtrimoRecommendationsExpanded: state.xtrimoRecommendationsExpanded,
         notificationDrawerOpen: state.notificationDrawerOpen,
         notificationFilter: state.notificationFilter,
         notificationReadById: state.notificationReadById,
@@ -369,6 +376,10 @@ export const useDemoStore = create<DemoStoreState>()(
             currentState.assetsExperimentViewMode,
           assetsOpenFolderId:
             restoredState.assetsOpenFolderId ?? currentState.assetsOpenFolderId,
+          xtrimoRecommendationsExpanded:
+            typeof restoredState.xtrimoRecommendationsExpanded === 'boolean'
+              ? restoredState.xtrimoRecommendationsExpanded
+              : currentState.xtrimoRecommendationsExpanded,
           notificationDrawerOpen:
             restoredState.notificationDrawerOpen ??
             currentState.notificationDrawerOpen,

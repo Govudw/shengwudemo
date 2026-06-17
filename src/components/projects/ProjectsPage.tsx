@@ -106,6 +106,7 @@ function ProjectsPage({
     useState('all')
   const [selectedActivityRange, setSelectedActivityRange] =
     useState<ProjectActivityRange>('all')
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false)
   const [detailProjectId, setDetailProjectId] = useState<string | null>(null)
   const [activeDetailTab, setActiveDetailTab] =
     useState<ProjectDetailTab>('overview')
@@ -169,6 +170,10 @@ function ProjectsPage({
     selectedResponsibleMemberId,
     selectedActivityRange,
   )
+  const advancedFilterCount =
+    Number(selectedTag !== 'all') + Number(selectedActivityRange !== 'all')
+  const advancedFilterLabel =
+    advancedFilterCount > 0 ? `更多筛选 ${advancedFilterCount}` : '更多筛选'
 
   function openProject(projectId: string) {
     setDetailProjectId(projectId)
@@ -226,23 +231,10 @@ function ProjectsPage({
             <input
               aria-label="搜索项目"
               value={query}
-              placeholder="搜索项目、负责人或权限成员"
+              placeholder="搜索项目、负责人或成员"
               onChange={(event) => setQuery(event.currentTarget.value)}
             />
           </label>
-          <select
-            className="projects-filter-select"
-            aria-label="筛选标签"
-            value={selectedTag}
-            onChange={(event) => setSelectedTag(event.currentTarget.value)}
-          >
-            <option value="all">全部标签</option>
-            {tagOptions.map((tag) => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
-            ))}
-          </select>
           <select
             className="projects-filter-select"
             aria-label="筛选项目状态"
@@ -269,26 +261,59 @@ function ProjectsPage({
             <option value="all">全部负责人</option>
             {responsibleMemberOptions.map((member) => (
               <option key={member.id} value={member.id}>
-                {member.name}
+              {member.name}
               </option>
             ))}
           </select>
-          <select
-            className="projects-filter-select"
-            aria-label="筛选最近活动"
-            value={selectedActivityRange}
-            onChange={(event) =>
-              setSelectedActivityRange(
-                event.currentTarget.value as ProjectActivityRange,
-              )
-            }
-          >
-            {activityRangeOptions.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="projects-filter-menu">
+            <button
+              type="button"
+              className="projects-filter-select projects-more-filter-button"
+              aria-expanded={advancedFiltersOpen}
+              onClick={() => setAdvancedFiltersOpen((isOpen) => !isOpen)}
+            >
+              {advancedFilterLabel}
+            </button>
+            {advancedFiltersOpen ? (
+              <div className="projects-advanced-filters" aria-label="更多筛选">
+                <label>
+                  <span>标签</span>
+                  <select
+                    className="projects-filter-select"
+                    aria-label="筛选标签"
+                    value={selectedTag}
+                    onChange={(event) => setSelectedTag(event.currentTarget.value)}
+                  >
+                    <option value="all">全部标签</option>
+                    {tagOptions.map((tag) => (
+                      <option key={tag} value={tag}>
+                        {tag}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>最近活动</span>
+                  <select
+                    className="projects-filter-select"
+                    aria-label="筛选最近活动"
+                    value={selectedActivityRange}
+                    onChange={(event) =>
+                      setSelectedActivityRange(
+                        event.currentTarget.value as ProjectActivityRange,
+                      )
+                    }
+                  >
+                    {activityRangeOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            ) : null}
+          </div>
         </section>
 
         <ProjectRecordsTable
@@ -322,10 +347,6 @@ function ProjectRecordsTable({
             <th scope="col">项目</th>
             <th scope="col">状态</th>
             <th scope="col">负责人</th>
-            <th scope="col">读取权限</th>
-            <th scope="col">编辑权限</th>
-            <th scope="col">对话</th>
-            <th scope="col">资产</th>
             <th scope="col">最近活动</th>
             <th scope="col">更多</th>
           </tr>
@@ -352,7 +373,6 @@ function ProjectRecordsTable({
                     <span className="projects-row-description">
                       {record.description}
                     </span>
-                    <ProjectTags tags={record.tags} />
                   </span>
                 </button>
               </td>
@@ -363,25 +383,7 @@ function ProjectRecordsTable({
                 <MemberIdentity member={record.responsibleMember} />
               </td>
               <td>
-                <MemberList members={record.readOnlyPermissionMembers} />
-              </td>
-              <td>
-                <MemberList members={record.editPermissionMembers} />
-              </td>
-              <td>
-                <strong>{record.threadCount}</strong>
-                <span className="projects-table-muted">条相关对话</span>
-              </td>
-              <td>
-                <span>{formatAssetSummary(record)}</span>
-              </td>
-              <td>
                 <span>{record.recentActivity}</span>
-                {record.recentActivityThreadTitle ? (
-                  <span className="projects-table-muted">
-                    {record.recentActivityThreadTitle}
-                  </span>
-                ) : null}
               </td>
               <td>
                 <button
@@ -865,22 +867,6 @@ function MemberList({ members }: { members: ProjectMember[] }) {
   )
 }
 
-function ProjectTags({ tags }: { tags: string[] }) {
-  if (tags.length === 0) {
-    return null
-  }
-
-  return (
-    <span className="projects-row-tags">
-      {tags.map((tag) => (
-        <span className="projects-chip" key={tag}>
-          {tag}
-        </span>
-      ))}
-    </span>
-  )
-}
-
 function ProjectStatusBadge({ status }: { status: ProjectManagementStatus }) {
   return (
     <span className={`projects-status ${getStatusClassName(status)}`}>
@@ -982,15 +968,6 @@ function projectRecordMatches(
     ...record.editPermissionMembers.map((member) => member.name),
     ...record.tags,
   ].some((value) => value.toLowerCase().includes(normalizedQuery))
-}
-
-function formatAssetSummary(record: ProjectManagementRecord) {
-  return [
-    `${record.assetSummary.files} 文件`,
-    `${record.assetSummary.data} 数据`,
-    `${record.assetSummary.experiments} 实验`,
-    `${record.assetSummary.models} 模型`,
-  ].join(' · ')
 }
 
 function getStatusClassName(status: ProjectManagementStatus) {

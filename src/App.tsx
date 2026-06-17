@@ -73,6 +73,9 @@ function App() {
     (state) => state.assetsExperimentViewMode,
   )
   const assetsOpenFolderId = useDemoStore((state) => state.assetsOpenFolderId)
+  const xtrimoRecommendationsExpanded = useDemoStore(
+    (state) => state.xtrimoRecommendationsExpanded,
+  )
   const notificationDrawerOpen = useDemoStore(
     (state) => state.notificationDrawerOpen,
   )
@@ -144,6 +147,9 @@ function App() {
     (state) => state.setAssetsExperimentViewMode,
   )
   const setAssetsOpenFolder = useDemoStore((state) => state.setAssetsOpenFolder)
+  const setXtrimoRecommendationsExpanded = useDemoStore(
+    (state) => state.setXtrimoRecommendationsExpanded,
+  )
   const openNotificationDrawer = useDemoStore(
     (state) => state.openNotificationDrawer,
   )
@@ -657,10 +663,12 @@ function App() {
           fileViewMode={assetsFileViewMode}
           experimentViewMode={assetsExperimentViewMode}
           openFolderId={assetsOpenFolderId}
+          xtrimoRecommendationsExpanded={xtrimoRecommendationsExpanded}
           onSelectionChange={setAssetsSelection}
           onFileViewModeChange={setAssetsFileViewMode}
           onExperimentViewModeChange={setAssetsExperimentViewMode}
           onOpenFolderChange={setAssetsOpenFolder}
+          onXtrimoRecommendationsExpandedChange={setXtrimoRecommendationsExpanded}
           onNotify={showStatus}
         />
       ) : activeTopNav === 'Projects' ? (

@@ -4717,7 +4717,8 @@
 
 .projects-toolbar {
   display: grid;
-  grid-template-columns: minmax(280px, 1.3fr) repeat(4, minmax(132px, 0.7fr));
+  grid-template-columns: minmax(280px, 1.3fr) minmax(132px, 0.45fr) minmax(150px, 0.55fr) minmax(132px, 0.45fr);
+  align-items: start;
   gap: 10px;
   margin-top: 24px;
 }
@@ -4763,6 +4764,40 @@
   padding: 0 12px;
 }
 
+.projects-filter-menu {
+  position: relative;
+}
+
+.projects-more-filter-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.projects-advanced-filters {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  width: min(320px, calc(100vw - 48px));
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--shadow-card);
+}
+
+.projects-advanced-filters label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .projects-table-card {
   margin-top: 22px;
   overflow-x: auto;
@@ -4774,7 +4809,7 @@
 
 .projects-table {
   width: 100%;
-  min-width: 1080px;
+  min-width: 760px;
   border-collapse: collapse;
 }
 
@@ -5132,12 +5167,21 @@
 }
 
 .assets-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(260px, 420px) minmax(0, 1fr);
+  align-items: start;
   gap: 16px;
   width: min(100%, 1280px);
   margin: 24px auto 18px;
+}
+
+.assets-toolbar__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
 }
 
 .assets-search {
@@ -5189,6 +5233,68 @@
 .assets-view-toggle button.active {
   color: var(--text);
   background: var(--surface-soft);
+}
+
+.assets-filter-select {
+  min-width: 132px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+button.assets-filter-select {
+  cursor: pointer;
+}
+
+.assets-filter-select:focus {
+  border-color: rgba(8, 151, 191, 0.42);
+  box-shadow: 0 0 0 3px rgba(8, 151, 191, 0.14);
+  outline: 0;
+}
+
+.assets-filter-menu {
+  position: relative;
+}
+
+.assets-more-filter-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.assets-advanced-filters {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  width: min(340px, calc(100vw - 48px));
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--shadow-card);
+}
+
+.assets-advanced-filters label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.assets-advanced-filters p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .assets-content {
@@ -5299,10 +5405,10 @@
 
 .assets-table__row {
   display: grid;
-  grid-template-columns: minmax(280px, 1.8fr) 116px 116px 96px 120px 60px;
+  grid-template-columns: minmax(280px, 1.8fr) 116px 116px 120px 60px;
   align-items: center;
   gap: 14px;
-  min-width: 820px;
+  min-width: 740px;
   min-height: 64px;
   padding: 0 16px;
   border-bottom: 1px solid var(--line);
@@ -5589,35 +5695,25 @@
 }
 
 .assets-table__row--experiment {
-  min-width: 1180px;
-}
-
-.assets-table__row--experiment-7 {
   grid-template-columns:
     minmax(270px, 1.75fr)
-    86px
-    92px
-    98px
-    minmax(140px, 0.9fr)
-    minmax(180px, 1.1fr)
-    96px
-    106px
+    minmax(108px, 0.65fr)
+    minmax(108px, 0.65fr)
+    minmax(180px, 1fr)
+    116px
     56px;
+  min-width: 840px;
 }
 
-.assets-table__row--experiment-8 {
+.assets-table__row--data {
   grid-template-columns:
-    minmax(270px, 1.75fr)
-    84px
-    84px
-    90px
-    minmax(138px, 0.9fr)
-    minmax(120px, 0.75fr)
-    minmax(150px, 1fr)
-    88px
-    100px
+    minmax(270px, 1.7fr)
+    minmax(100px, 0.62fr)
+    minmax(104px, 0.58fr)
+    minmax(118px, 0.7fr)
+    minmax(116px, 0.62fr)
     56px;
-  min-width: 1280px;
+  min-width: 850px;
 }
 
 .knowledge-filter-bar {
@@ -5673,12 +5769,12 @@
 .knowledge-assets-table__row {
   grid-template-columns:
     minmax(260px, 1.55fr)
-    minmax(112px, 0.65fr)
-    minmax(150px, 0.82fr)
-    minmax(180px, 1fr)
-    minmax(132px, 0.72fr)
+    minmax(116px, 0.65fr)
+    minmax(104px, 0.56fr)
+    minmax(112px, 0.62fr)
+    minmax(120px, 0.62fr)
     72px;
-  min-width: 980px;
+  min-width: 860px;
 }
 
 .knowledge-assets-table__row--body {
@@ -5885,11 +5981,35 @@
   margin-bottom: 8px;
 }
 
-.xtrimo-recommendations .assets-list-header {
-  margin: 6px 0 6px;
+.xtrimo-recommendations__toggle {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.xtrimo-recommendations__toggle:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-soft);
+}
+
+.xtrimo-recommendations__toggle strong {
+  color: var(--accent-strong);
+  font-size: 12px;
 }
 
 .xtrimo-recommendations .xtrimo-card-grid {
+  margin-top: 8px;
   align-items: stretch;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
@@ -5974,6 +6094,13 @@
 .assets-xtrimo-filter-search:focus-within .assets-xtrimo-search-scope,
 .assets-xtrimo-filter-search:focus-within .assets-xtrimo-search-field {
   border-color: rgba(8, 151, 191, 0.42);
+}
+
+.assets-xtrimo-core-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
 }
 
 .assets-xtrimo-filter-row {
@@ -12670,8 +12797,11 @@ textarea:focus-visible {
   }
 
   .assets-toolbar {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .assets-toolbar__controls {
+    justify-content: flex-start;
   }
 
   .projects-main__header.projects-main__header--compact,
@@ -12708,6 +12838,15 @@ textarea:focus-visible {
   }
 
   .assets-xtrimo-filter-search {
+    width: 100%;
+  }
+
+  .assets-xtrimo-core-controls {
+    align-items: stretch;
+  }
+
+  .assets-xtrimo-core-controls .assets-filter-select,
+  .assets-xtrimo-core-controls .assets-filter-menu {
     width: 100%;
   }
 

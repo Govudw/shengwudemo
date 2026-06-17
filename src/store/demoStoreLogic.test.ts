@@ -18,6 +18,7 @@ import {
   setAssetsFileViewModeSnapshot,
   setAssetsSelectionSnapshot,
   setSelectedProjectSnapshot,
+  setXtrimoRecommendationsExpandedSnapshot,
   submitDraftSnapshot,
   toggleSidebarCollapsedSnapshot,
   toggleRunInspectorSnapshot,
@@ -253,6 +254,16 @@ describe('demo store logic', () => {
     expect(selectedExperiment.assetsActiveItem).toBe('execution')
     expect(gridMode.assetsFileViewMode).toBe('grid')
     expect(experimentTableMode.assetsExperimentViewMode).toBe('table')
+  })
+
+  it('persists xTrimo recommendation expansion as plain asset UI state', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const expanded = setXtrimoRecommendationsExpandedSnapshot(state, true)
+    const collapsed = setXtrimoRecommendationsExpandedSnapshot(expanded, false)
+
+    expect(state.xtrimoRecommendationsExpanded).toBe(false)
+    expect(expanded.xtrimoRecommendationsExpanded).toBe(true)
+    expect(collapsed.xtrimoRecommendationsExpanded).toBe(false)
   })
 
   it('selects Knowledge Base asset menu items as plain state', () => {

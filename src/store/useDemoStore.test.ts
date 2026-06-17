@@ -434,6 +434,53 @@ describe('demo store persistence', () => {
     expect(persistedPayload.state.assetsActiveItem).toBe('rag')
   })
 
+  it('persists xTrimo recommendation expansion without affecting notification batch state', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        activeTopNav: 'Assets',
+        assetsActiveSection: 'model',
+        assetsActiveItem: 'xtrimo',
+        xtrimoRecommendationsExpanded: true,
+        notificationCenterSelectedIds: ['notification-approval-egfr-order'],
+      },
+      version: demoStorePersistVersion,
+    })
+    type XtrimoRecommendationState = ReturnType<typeof useDemoStore.getState> & {
+      xtrimoRecommendationsExpanded?: boolean
+      setXtrimoRecommendationsExpanded?: (expanded: boolean) => void
+    }
+
+    expect(
+      (useDemoStore.getState() as XtrimoRecommendationState)
+        .xtrimoRecommendationsExpanded,
+    ).toBe(true)
+    expect(useDemoStore.getState().notificationCenterSelectedIds).toEqual([])
+
+    const setXtrimoRecommendationsExpanded = (
+      useDemoStore.getState() as XtrimoRecommendationState
+    ).setXtrimoRecommendationsExpanded
+
+    expect(typeof setXtrimoRecommendationsExpanded).toBe('function')
+
+    setXtrimoRecommendationsExpanded?.(false)
+
+    const { demoStorePersistKey } = await import('./useDemoStore')
+    const persistedPayload = JSON.parse(localStorage.getItem(demoStorePersistKey) ?? '{}')
+
+    expect(persistedPayload.state.xtrimoRecommendationsExpanded).toBe(false)
+    expect(persistedPayload.state).not.toHaveProperty(
+      'notificationCenterSelectedIds',
+    )
+
+    useDemoStore.getState().resetDemoState()
+    expect(
+      (useDemoStore.getState() as XtrimoRecommendationState)
+        .xtrimoRecommendationsExpanded,
+    ).toBe(false)
+  })
+
   it('hydrates Projects as a valid top navigation destination', async () => {
     const { demoStorePersistVersion } = await import('./useDemoStore')
     const { useDemoStore } = await loadStoreWithPersistedState({

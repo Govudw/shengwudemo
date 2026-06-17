@@ -12,6 +12,7 @@ import {
   xtrimoModelRecords,
 } from '../../data/assetsMockData'
 import type {
+  AssetScope,
   DataAssetRecord,
   ExperimentAssetRecord,
   ExperimentAssetKind,
@@ -51,10 +52,12 @@ type AssetsPageProps = {
   fileViewMode: AssetsFileViewMode
   experimentViewMode: AssetsExperimentViewMode
   openFolderId: string | null
+  xtrimoRecommendationsExpanded: boolean
   onSelectionChange: (section: AssetsSection, item: AssetMenuItemId) => void
   onFileViewModeChange: (mode: AssetsFileViewMode) => void
   onExperimentViewModeChange: (mode: AssetsExperimentViewMode) => void
   onOpenFolderChange: (folderId: string | null) => void
+  onXtrimoRecommendationsExpandedChange: (expanded: boolean) => void
   onNotify: (message: string) => void
 }
 
@@ -64,6 +67,7 @@ const assetScopeLabel = {
 } as const
 
 type KnowledgeDetailTab = 'overview' | 'files' | 'versions'
+type FileUpdatedTimeFilter = 'all' | 'last30Minutes' | 'lastHour' | 'today'
 
 function AssetsPage({
   activeSection,
@@ -71,16 +75,49 @@ function AssetsPage({
   fileViewMode,
   experimentViewMode,
   openFolderId,
+  xtrimoRecommendationsExpanded,
   onSelectionChange,
   onFileViewModeChange,
   onExperimentViewModeChange,
   onOpenFolderChange,
+  onXtrimoRecommendationsExpandedChange,
   onNotify,
 }: AssetsPageProps) {
   const [query, setQuery] = useState('')
   const [newMenuOpen, setNewMenuOpen] = useState(false)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false)
+  const [selectedFileKind, setSelectedFileKind] = useState('all')
+  const [selectedFileScope, setSelectedFileScope] = useState<AssetScope | 'all'>(
+    'all',
+  )
+  const [selectedFileStatus, setSelectedFileStatus] = useState('all')
+  const [selectedFileUpdatedTime, setSelectedFileUpdatedTime] =
+    useState<FileUpdatedTimeFilter>('all')
+  const [selectedKnowledgeKind, setSelectedKnowledgeKind] = useState<
+    KnowledgeBaseKind | 'all'
+  >('all')
+  const [selectedKnowledgeStatus, setSelectedKnowledgeStatus] =
+    useState<KnowledgeBaseStatus | 'all'>('all')
+  const [selectedKnowledgeScope, setSelectedKnowledgeScope] = useState<
+    AssetScope | 'all'
+  >('all')
+  const [selectedDataScope, setSelectedDataScope] = useState<AssetScope | 'all'>(
+    'all',
+  )
+  const [selectedDataOwner, setSelectedDataOwner] = useState('all')
+  const [selectedExperimentKind, setSelectedExperimentKind] = useState<
+    ExperimentAssetKind | 'all'
+  >('all')
+  const [selectedExperimentStatus, setSelectedExperimentStatus] = useState('all')
+  const [selectedExperimentScope, setSelectedExperimentScope] = useState<
+    AssetScope | 'all'
+  >('all')
+  const [selectedModelStatus, setSelectedModelStatus] = useState('all')
+  const [selectedModelScope, setSelectedModelScope] = useState<AssetScope | 'all'>(
+    'all',
+  )
   const [selectedKnowledgeBaseId, setSelectedKnowledgeBaseId] = useState<string | null>(
     null,
   )
@@ -88,14 +125,34 @@ function AssetsPage({
     useState<KnowledgeDetailTab>('overview')
   const activeItemMeta = getAssetMenuItem(activeSection, activeItem)
   const isXtrimoView = activeSection === 'model' && activeItem === 'xtrimo'
-  const isExperimentView = activeSection === 'experiment'
-  const isKnowledgeView = activeSection === 'knowledge'
+  const isOracleView = activeSection === 'model' && activeItem === 'oracles'
+  const hideUploadAction =
+    isXtrimoView || (activeSection === 'model' && activeItem === 'public-models')
   const newAssetActions = getNewAssetMenuActions(activeSection, activeItem)
+
+  function resetAssetFilters() {
+    setAdvancedFiltersOpen(false)
+    setSelectedFileKind('all')
+    setSelectedFileScope('all')
+    setSelectedFileStatus('all')
+    setSelectedFileUpdatedTime('all')
+    setSelectedKnowledgeKind('all')
+    setSelectedKnowledgeStatus('all')
+    setSelectedKnowledgeScope('all')
+    setSelectedDataScope('all')
+    setSelectedDataOwner('all')
+    setSelectedExperimentKind('all')
+    setSelectedExperimentStatus('all')
+    setSelectedExperimentScope('all')
+    setSelectedModelStatus('all')
+    setSelectedModelScope('all')
+  }
 
   function handleSelection(section: AssetsSection, item: AssetMenuItemId) {
     setQuery('')
     setNewMenuOpen(false)
     setMoreMenuOpen(false)
+    resetAssetFilters()
     setSelectedKnowledgeBaseId(null)
     setSelectedKnowledgeTab('overview')
     onSelectionChange(section, item)
@@ -162,7 +219,7 @@ function AssetsPage({
             <h1>{activeItemMeta?.label}</h1>
           </div>
           <div className="assets-main__actions">
-            {!isXtrimoView ? (
+            {!isXtrimoView && !isOracleView ? (
               <>
                 <div className="assets-action-menu">
                   <button
@@ -192,13 +249,15 @@ function AssetsPage({
                     </div>
                   ) : null}
                 </div>
-                <button
-                  type="button"
-                  className="assets-action-button"
-                  onClick={() => setUploadDialogOpen(true)}
-                >
-                  上传
-                </button>
+                {!hideUploadAction ? (
+                  <button
+                    type="button"
+                    className="assets-action-button"
+                    onClick={() => setUploadDialogOpen(true)}
+                  >
+                    上传
+                  </button>
+                ) : null}
               </>
             ) : null}
             <div className="assets-action-menu">
@@ -242,66 +301,46 @@ function AssetsPage({
         </header>
 
         {!isXtrimoView ? (
-          <section className="assets-toolbar" aria-label="Assets tools">
-            <label className="assets-search">
-              <SearchIcon className="assets-search__icon" />
-              <input
-                aria-label={
-                  isKnowledgeView
-                    ? '搜索知识库'
-                    : isExperimentView
-                      ? '搜索实验资产'
-                      : '搜索当前资产'
-                }
-                value={query}
-                placeholder={
-                  isKnowledgeView
-                    ? '搜索知识库'
-                    : isExperimentView
-                      ? '搜索实验资产'
-                      : '搜索当前资产'
-                }
-                onChange={(event) => setQuery(event.target.value)}
-              />
-            </label>
-            {isExperimentView ? (
-              <div className="assets-view-toggle" aria-label="实验资产显示方式">
-                <button
-                  type="button"
-                  className={experimentViewMode === 'grid' ? 'active' : ''}
-                  aria-pressed={experimentViewMode === 'grid'}
-                  onClick={() => onExperimentViewModeChange('grid')}
-                >
-                  卡片
-                </button>
-                <button
-                  type="button"
-                  className={experimentViewMode === 'table' ? 'active' : ''}
-                  aria-pressed={experimentViewMode === 'table'}
-                  onClick={() => onExperimentViewModeChange('table')}
-                >
-                  表格
-                </button>
-              </div>
-            ) : isFileAssetItem(activeItem) ? (
-              <div className="assets-view-toggle" aria-label="文件显示方式">
-                <button
-                  type="button"
-                  className={fileViewMode === 'list' ? 'active' : ''}
-                  onClick={() => onFileViewModeChange('list')}
-                >
-                  列表
-                </button>
-                <button
-                  type="button"
-                  className={fileViewMode === 'grid' ? 'active' : ''}
-                  onClick={() => onFileViewModeChange('grid')}
-                >
-                  网格
-                </button>
-              </div>
-            ) : null}
-          </section>
+          <AssetsToolbar
+            activeSection={activeSection}
+            activeItem={activeItem}
+            query={query}
+            advancedFiltersOpen={advancedFiltersOpen}
+            fileViewMode={fileViewMode}
+            experimentViewMode={experimentViewMode}
+            selectedFileKind={selectedFileKind}
+            selectedFileScope={selectedFileScope}
+            selectedFileStatus={selectedFileStatus}
+            selectedFileUpdatedTime={selectedFileUpdatedTime}
+            selectedKnowledgeKind={selectedKnowledgeKind}
+            selectedKnowledgeStatus={selectedKnowledgeStatus}
+            selectedKnowledgeScope={selectedKnowledgeScope}
+            selectedDataScope={selectedDataScope}
+            selectedDataOwner={selectedDataOwner}
+            selectedExperimentKind={selectedExperimentKind}
+            selectedExperimentStatus={selectedExperimentStatus}
+            selectedExperimentScope={selectedExperimentScope}
+            selectedModelStatus={selectedModelStatus}
+            selectedModelScope={selectedModelScope}
+            onQueryChange={setQuery}
+            onAdvancedFiltersOpenChange={setAdvancedFiltersOpen}
+            onFileViewModeChange={onFileViewModeChange}
+            onExperimentViewModeChange={onExperimentViewModeChange}
+            onFileKindChange={setSelectedFileKind}
+            onFileScopeChange={setSelectedFileScope}
+            onFileStatusChange={setSelectedFileStatus}
+            onFileUpdatedTimeChange={setSelectedFileUpdatedTime}
+            onKnowledgeKindChange={setSelectedKnowledgeKind}
+            onKnowledgeStatusChange={setSelectedKnowledgeStatus}
+            onKnowledgeScopeChange={setSelectedKnowledgeScope}
+            onDataScopeChange={setSelectedDataScope}
+            onDataOwnerChange={setSelectedDataOwner}
+            onExperimentKindChange={setSelectedExperimentKind}
+            onExperimentStatusChange={setSelectedExperimentStatus}
+            onExperimentScopeChange={setSelectedExperimentScope}
+            onModelStatusChange={setSelectedModelStatus}
+            onModelScopeChange={setSelectedModelScope}
+          />
         ) : null}
 
         <AssetContent
@@ -310,6 +349,21 @@ function AssetsPage({
           experimentViewMode={experimentViewMode}
           openFolderId={openFolderId}
           query={query}
+          selectedFileKind={selectedFileKind}
+          selectedFileScope={selectedFileScope}
+          selectedFileStatus={selectedFileStatus}
+          selectedFileUpdatedTime={selectedFileUpdatedTime}
+          selectedKnowledgeKind={selectedKnowledgeKind}
+          selectedKnowledgeStatus={selectedKnowledgeStatus}
+          selectedKnowledgeScope={selectedKnowledgeScope}
+          selectedDataScope={selectedDataScope}
+          selectedDataOwner={selectedDataOwner}
+          selectedExperimentKind={selectedExperimentKind}
+          selectedExperimentStatus={selectedExperimentStatus}
+          selectedExperimentScope={selectedExperimentScope}
+          selectedModelStatus={selectedModelStatus}
+          selectedModelScope={selectedModelScope}
+          xtrimoRecommendationsExpanded={xtrimoRecommendationsExpanded}
           selectedKnowledgeBaseId={selectedKnowledgeBaseId}
           selectedKnowledgeTab={selectedKnowledgeTab}
           onKnowledgeBaseSelect={(recordId) => {
@@ -322,6 +376,9 @@ function AssetsPage({
           }}
           onKnowledgeTabChange={setSelectedKnowledgeTab}
           onQueryChange={setQuery}
+          onXtrimoRecommendationsExpandedChange={
+            onXtrimoRecommendationsExpandedChange
+          }
           onOpenFolderChange={onOpenFolderChange}
           onNotify={onNotify}
         />
@@ -378,18 +435,476 @@ function AssetsPage({
   )
 }
 
+function AssetsToolbar({
+  activeSection,
+  activeItem,
+  query,
+  advancedFiltersOpen,
+  fileViewMode,
+  experimentViewMode,
+  selectedFileKind,
+  selectedFileScope,
+  selectedFileStatus,
+  selectedFileUpdatedTime,
+  selectedKnowledgeKind,
+  selectedKnowledgeStatus,
+  selectedKnowledgeScope,
+  selectedDataScope,
+  selectedDataOwner,
+  selectedExperimentKind,
+  selectedExperimentStatus,
+  selectedExperimentScope,
+  selectedModelStatus,
+  selectedModelScope,
+  onQueryChange,
+  onAdvancedFiltersOpenChange,
+  onFileViewModeChange,
+  onExperimentViewModeChange,
+  onFileKindChange,
+  onFileScopeChange,
+  onFileStatusChange,
+  onFileUpdatedTimeChange,
+  onKnowledgeKindChange,
+  onKnowledgeStatusChange,
+  onKnowledgeScopeChange,
+  onDataScopeChange,
+  onDataOwnerChange,
+  onExperimentKindChange,
+  onExperimentStatusChange,
+  onExperimentScopeChange,
+  onModelStatusChange,
+  onModelScopeChange,
+}: {
+  activeSection: AssetsSection
+  activeItem: AssetMenuItemId
+  query: string
+  advancedFiltersOpen: boolean
+  fileViewMode: AssetsFileViewMode
+  experimentViewMode: AssetsExperimentViewMode
+  selectedFileKind: string
+  selectedFileScope: AssetScope | 'all'
+  selectedFileStatus: string
+  selectedFileUpdatedTime: FileUpdatedTimeFilter
+  selectedKnowledgeKind: KnowledgeBaseKind | 'all'
+  selectedKnowledgeStatus: KnowledgeBaseStatus | 'all'
+  selectedKnowledgeScope: AssetScope | 'all'
+  selectedDataScope: AssetScope | 'all'
+  selectedDataOwner: string
+  selectedExperimentKind: ExperimentAssetKind | 'all'
+  selectedExperimentStatus: string
+  selectedExperimentScope: AssetScope | 'all'
+  selectedModelStatus: string
+  selectedModelScope: AssetScope | 'all'
+  onQueryChange: (query: string) => void
+  onAdvancedFiltersOpenChange: (isOpen: boolean) => void
+  onFileViewModeChange: (mode: AssetsFileViewMode) => void
+  onExperimentViewModeChange: (mode: AssetsExperimentViewMode) => void
+  onFileKindChange: (kind: string) => void
+  onFileScopeChange: (scope: AssetScope | 'all') => void
+  onFileStatusChange: (status: string) => void
+  onFileUpdatedTimeChange: (updatedTime: FileUpdatedTimeFilter) => void
+  onKnowledgeKindChange: (kind: KnowledgeBaseKind | 'all') => void
+  onKnowledgeStatusChange: (status: KnowledgeBaseStatus | 'all') => void
+  onKnowledgeScopeChange: (scope: AssetScope | 'all') => void
+  onDataScopeChange: (scope: AssetScope | 'all') => void
+  onDataOwnerChange: (owner: string) => void
+  onExperimentKindChange: (kind: ExperimentAssetKind | 'all') => void
+  onExperimentStatusChange: (status: string) => void
+  onExperimentScopeChange: (scope: AssetScope | 'all') => void
+  onModelStatusChange: (status: string) => void
+  onModelScopeChange: (scope: AssetScope | 'all') => void
+}) {
+  const fileKindOptions = Array.from(
+    new Set(fileAssetRecords.map((record) => record.kind)),
+  ).sort((left, right) => left.localeCompare(right))
+  const dataOwnerOptions = Array.from(
+    new Set(dataAssetRecords.map((record) => record.owner)),
+  ).sort((left, right) => left.localeCompare(right))
+  const experimentRecordsForItem = isExperimentAssetItem(activeItem)
+    ? experimentAssetRecords.filter((record) => record.category === activeItem)
+    : []
+  const experimentKindOptions = Array.from(
+    new Set(experimentRecordsForItem.map((record) => record.kind)),
+  )
+  const experimentStatusOptions = Array.from(
+    new Set(experimentRecordsForItem.map((record) => record.status)),
+  )
+  const modelRecordsForItem =
+    activeSection === 'model'
+      ? getModelRecordsForItem(activeItem as ModelAssetRecord['category'])
+      : []
+  const modelStatusOptions = Array.from(
+    new Set(modelRecordsForItem.map((record) => record.status)),
+  )
+  const searchLabel = getAssetsSearchLabel(activeSection)
+  const advancedFilterCount = getAssetsAdvancedFilterCount(
+    activeSection,
+    selectedFileScope,
+    selectedFileStatus,
+    selectedKnowledgeScope,
+    selectedExperimentScope,
+  )
+  const advancedFilterLabel =
+    advancedFilterCount > 0 ? `更多筛选 ${advancedFilterCount}` : '更多筛选'
+  const hasAdvancedFilters =
+    isFileAssetItem(activeItem) ||
+    isKnowledgeBaseItem(activeItem) ||
+    isExperimentAssetItem(activeItem)
+
+  return (
+    <section className="assets-toolbar" aria-label="Assets tools">
+      <label className="assets-search">
+        <SearchIcon className="assets-search__icon" />
+        <input
+          aria-label={searchLabel}
+          value={query}
+          placeholder={searchLabel}
+          onChange={(event) => onQueryChange(event.target.value)}
+        />
+      </label>
+
+      <div className="assets-toolbar__controls">
+        {isFileAssetItem(activeItem) ? (
+          <>
+            <select
+              className="assets-filter-select"
+              aria-label="筛选文件类型"
+              value={selectedFileKind}
+              onChange={(event) => onFileKindChange(event.currentTarget.value)}
+            >
+              <option value="all">全部类型</option>
+              {fileKindOptions.map((kind) => (
+                <option key={kind} value={kind}>
+                  {kind.toUpperCase()}
+                </option>
+              ))}
+            </select>
+            <select
+              className="assets-filter-select"
+              aria-label="筛选文件更新时间"
+              value={selectedFileUpdatedTime}
+              onChange={(event) =>
+                onFileUpdatedTimeChange(
+                  event.currentTarget.value as FileUpdatedTimeFilter,
+                )
+              }
+            >
+              <option value="all">全部更新时间</option>
+              <option value="last30Minutes">近 30 分钟</option>
+              <option value="lastHour">近 1 小时</option>
+              <option value="today">今天</option>
+            </select>
+          </>
+        ) : null}
+
+        {isKnowledgeBaseItem(activeItem) ? (
+          <>
+            <select
+              className="assets-filter-select"
+              aria-label="筛选知识库类型"
+              value={selectedKnowledgeKind}
+              onChange={(event) =>
+                onKnowledgeKindChange(
+                  event.currentTarget.value as KnowledgeBaseKind | 'all',
+                )
+              }
+            >
+              <option value="all">全部类型</option>
+              {Object.entries(knowledgeKindLabels).map(([kind, label]) => (
+                <option key={kind} value={kind}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <select
+              className="assets-filter-select"
+              aria-label="筛选知识库状态"
+              value={selectedKnowledgeStatus}
+              onChange={(event) =>
+                onKnowledgeStatusChange(
+                  event.currentTarget.value as KnowledgeBaseStatus | 'all',
+                )
+              }
+            >
+              {knowledgeStatusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {status === 'all' ? '全部状态' : status}
+                </option>
+              ))}
+            </select>
+          </>
+        ) : null}
+
+        {['datasets', 'tables', 'analysis-results', 'catalog'].includes(
+          activeItem,
+        ) ? (
+          <>
+            <ScopeSelect
+              value={selectedDataScope}
+              ariaLabel="筛选数据范围"
+              onChange={onDataScopeChange}
+            />
+            <select
+              className="assets-filter-select"
+              aria-label="筛选数据负责人"
+              value={selectedDataOwner}
+              onChange={(event) => onDataOwnerChange(event.currentTarget.value)}
+            >
+              <option value="all">全部负责人</option>
+              {dataOwnerOptions.map((owner) => (
+                <option key={owner} value={owner}>
+                  {owner}
+                </option>
+              ))}
+            </select>
+          </>
+        ) : null}
+
+        {isExperimentAssetItem(activeItem) ? (
+          <>
+            <select
+              className="assets-filter-select"
+              aria-label="筛选实验类型"
+              value={selectedExperimentKind}
+              onChange={(event) =>
+                onExperimentKindChange(
+                  event.currentTarget.value as ExperimentAssetKind | 'all',
+                )
+              }
+            >
+              <option value="all">全部类型</option>
+              {experimentKindOptions.map((kind) => (
+                <option key={kind} value={kind}>
+                  {experimentKindLabels[kind]}
+                </option>
+              ))}
+            </select>
+            <select
+              className="assets-filter-select"
+              aria-label="筛选实验状态"
+              value={selectedExperimentStatus}
+              onChange={(event) => onExperimentStatusChange(event.currentTarget.value)}
+            >
+              <option value="all">全部状态</option>
+              {experimentStatusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </>
+        ) : null}
+
+        {activeSection === 'model' && activeItem !== 'xtrimo' ? (
+          <>
+            <select
+              className="assets-filter-select"
+              aria-label="筛选模型状态"
+              value={selectedModelStatus}
+              onChange={(event) => onModelStatusChange(event.currentTarget.value)}
+            >
+              <option value="all">全部状态</option>
+              {modelStatusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+            <ScopeSelect
+              value={selectedModelScope}
+              ariaLabel="筛选模型范围"
+              onChange={onModelScopeChange}
+            />
+          </>
+        ) : null}
+
+        {hasAdvancedFilters ? (
+          <div className="assets-filter-menu">
+            <button
+              type="button"
+              className="assets-filter-select assets-more-filter-button"
+              aria-expanded={advancedFiltersOpen}
+              onClick={() => onAdvancedFiltersOpenChange(!advancedFiltersOpen)}
+            >
+              {advancedFilterLabel}
+            </button>
+            {advancedFiltersOpen ? (
+              <div className="assets-advanced-filters" aria-label="更多筛选">
+                {isFileAssetItem(activeItem) ? (
+                  <>
+                    <label>
+                      <span>范围</span>
+                      <ScopeSelect
+                        value={selectedFileScope}
+                        ariaLabel="筛选文件范围"
+                        onChange={onFileScopeChange}
+                      />
+                    </label>
+                    <label>
+                      <span>状态</span>
+                      <select
+                        className="assets-filter-select"
+                        aria-label="筛选文件状态"
+                        value={selectedFileStatus}
+                        onChange={(event) =>
+                          onFileStatusChange(event.currentTarget.value)
+                        }
+                      >
+                        <option value="all">全部状态</option>
+                        <option value="ready">可用</option>
+                        <option value="processing">处理中</option>
+                        <option value="archived">已归档</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>显示方式</span>
+                      <ViewModeToggle
+                        label="文件显示方式"
+                        leftLabel="列表"
+                        rightLabel="网格"
+                        activeValue={fileViewMode}
+                        leftValue="list"
+                        rightValue="grid"
+                        onChange={onFileViewModeChange}
+                      />
+                    </label>
+                  </>
+                ) : null}
+                {isKnowledgeBaseItem(activeItem) ? (
+                  <label>
+                    <span>范围</span>
+                    <ScopeSelect
+                      value={selectedKnowledgeScope}
+                      ariaLabel="筛选知识库范围"
+                      onChange={onKnowledgeScopeChange}
+                    />
+                  </label>
+                ) : null}
+                {isExperimentAssetItem(activeItem) ? (
+                  <>
+                    <label>
+                      <span>范围</span>
+                      <ScopeSelect
+                        value={selectedExperimentScope}
+                        ariaLabel="筛选实验范围"
+                        onChange={onExperimentScopeChange}
+                      />
+                    </label>
+                    <label>
+                      <span>显示方式</span>
+                      <ViewModeToggle
+                        label="实验资产显示方式"
+                        leftLabel="卡片"
+                        rightLabel="表格"
+                        activeValue={experimentViewMode}
+                        leftValue="grid"
+                        rightValue="table"
+                        onChange={onExperimentViewModeChange}
+                      />
+                    </label>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </section>
+  )
+}
+
+function ScopeSelect({
+  value,
+  ariaLabel,
+  onChange,
+}: {
+  value: AssetScope | 'all'
+  ariaLabel: string
+  onChange: (scope: AssetScope | 'all') => void
+}) {
+  return (
+    <select
+      className="assets-filter-select"
+      aria-label={ariaLabel}
+      value={value}
+      onChange={(event) =>
+        onChange(event.currentTarget.value as AssetScope | 'all')
+      }
+    >
+      <option value="all">全部范围</option>
+      <option value="public">公开范围</option>
+      <option value="project">项目范围</option>
+    </select>
+  )
+}
+
+function ViewModeToggle<Value extends string>({
+  label,
+  leftLabel,
+  rightLabel,
+  activeValue,
+  leftValue,
+  rightValue,
+  onChange,
+}: {
+  label: string
+  leftLabel: string
+  rightLabel: string
+  activeValue: Value
+  leftValue: Value
+  rightValue: Value
+  onChange: (value: Value) => void
+}) {
+  return (
+    <div className="assets-view-toggle" aria-label={label}>
+      <button
+        type="button"
+        className={activeValue === leftValue ? 'active' : ''}
+        aria-pressed={activeValue === leftValue}
+        onClick={() => onChange(leftValue)}
+      >
+        {leftLabel}
+      </button>
+      <button
+        type="button"
+        className={activeValue === rightValue ? 'active' : ''}
+        aria-pressed={activeValue === rightValue}
+        onClick={() => onChange(rightValue)}
+      >
+        {rightLabel}
+      </button>
+    </div>
+  )
+}
+
 function AssetContent({
   activeItem,
   fileViewMode,
   experimentViewMode,
   openFolderId,
   query,
+  selectedFileKind,
+  selectedFileScope,
+  selectedFileStatus,
+  selectedFileUpdatedTime,
+  selectedKnowledgeKind,
+  selectedKnowledgeStatus,
+  selectedKnowledgeScope,
+  selectedDataScope,
+  selectedDataOwner,
+  selectedExperimentKind,
+  selectedExperimentStatus,
+  selectedExperimentScope,
+  selectedModelStatus,
+  selectedModelScope,
+  xtrimoRecommendationsExpanded,
   selectedKnowledgeBaseId,
   selectedKnowledgeTab,
   onKnowledgeBaseSelect,
   onKnowledgeBaseBack,
   onKnowledgeTabChange,
   onQueryChange,
+  onXtrimoRecommendationsExpandedChange,
   onOpenFolderChange,
   onNotify,
 }: {
@@ -398,12 +913,28 @@ function AssetContent({
   experimentViewMode: AssetsExperimentViewMode
   openFolderId: string | null
   query: string
+  selectedFileKind: string
+  selectedFileScope: AssetScope | 'all'
+  selectedFileStatus: string
+  selectedFileUpdatedTime: FileUpdatedTimeFilter
+  selectedKnowledgeKind: KnowledgeBaseKind | 'all'
+  selectedKnowledgeStatus: KnowledgeBaseStatus | 'all'
+  selectedKnowledgeScope: AssetScope | 'all'
+  selectedDataScope: AssetScope | 'all'
+  selectedDataOwner: string
+  selectedExperimentKind: ExperimentAssetKind | 'all'
+  selectedExperimentStatus: string
+  selectedExperimentScope: AssetScope | 'all'
+  selectedModelStatus: string
+  selectedModelScope: AssetScope | 'all'
+  xtrimoRecommendationsExpanded: boolean
   selectedKnowledgeBaseId: string | null
   selectedKnowledgeTab: KnowledgeDetailTab
   onKnowledgeBaseSelect: (recordId: string) => void
   onKnowledgeBaseBack: () => void
   onKnowledgeTabChange: (tab: KnowledgeDetailTab) => void
   onQueryChange: (query: string) => void
+  onXtrimoRecommendationsExpandedChange: (expanded: boolean) => void
   onOpenFolderChange: (folderId: string | null) => void
   onNotify: (message: string) => void
 }) {
@@ -414,6 +945,10 @@ function AssetContent({
         viewMode={fileViewMode}
         openFolderId={openFolderId}
         query={query}
+        selectedKind={selectedFileKind}
+        selectedScope={selectedFileScope}
+        selectedStatus={selectedFileStatus}
+        selectedUpdatedTime={selectedFileUpdatedTime}
         onOpenFolderChange={onOpenFolderChange}
         onNotify={onNotify}
       />
@@ -425,6 +960,9 @@ function AssetContent({
       <KnowledgeBaseAssetsView
         item={activeItem}
         query={query}
+        selectedKind={selectedKnowledgeKind}
+        selectedStatus={selectedKnowledgeStatus}
+        selectedScope={selectedKnowledgeScope}
         selectedRecordId={selectedKnowledgeBaseId}
         selectedTab={selectedKnowledgeTab}
         onRecordSelect={onKnowledgeBaseSelect}
@@ -436,7 +974,15 @@ function AssetContent({
   }
 
   if (['datasets', 'tables', 'analysis-results', 'catalog'].includes(activeItem)) {
-    return <DataAssetsView item={activeItem as DataAssetRecord['category']} query={query} />
+    return (
+      <DataAssetsView
+        item={activeItem as DataAssetRecord['category']}
+        query={query}
+        selectedScope={selectedDataScope}
+        selectedOwner={selectedDataOwner}
+        onNotify={onNotify}
+      />
+    )
   }
 
   if (isExperimentAssetItem(activeItem)) {
@@ -445,6 +991,9 @@ function AssetContent({
         item={activeItem}
         viewMode={experimentViewMode}
         query={query}
+        selectedKind={selectedExperimentKind}
+        selectedStatus={selectedExperimentStatus}
+        selectedScope={selectedExperimentScope}
         onNotify={onNotify}
       />
     )
@@ -454,7 +1003,11 @@ function AssetContent({
     <ModelAssetsView
       item={activeItem as ModelAssetRecord['category']}
       query={query}
+      selectedStatus={selectedModelStatus}
+      selectedScope={selectedModelScope}
+      xtrimoRecommendationsExpanded={xtrimoRecommendationsExpanded}
       onQueryChange={onQueryChange}
+      onXtrimoRecommendationsExpandedChange={onXtrimoRecommendationsExpandedChange}
       onNotify={onNotify}
     />
   )
@@ -465,6 +1018,10 @@ function FileSpaceView({
   viewMode,
   openFolderId,
   query,
+  selectedKind,
+  selectedScope,
+  selectedStatus,
+  selectedUpdatedTime,
   onOpenFolderChange,
   onNotify,
 }: {
@@ -472,6 +1029,10 @@ function FileSpaceView({
   viewMode: AssetsFileViewMode
   openFolderId: string | null
   query: string
+  selectedKind: string
+  selectedScope: AssetScope | 'all'
+  selectedStatus: string
+  selectedUpdatedTime: FileUpdatedTimeFilter
   onOpenFolderChange: (folderId: string | null) => void
   onNotify: (message: string) => void
 }) {
@@ -484,8 +1045,24 @@ function FileSpaceView({
     [query],
   )
   const records = useMemo(
-    () => getFileRecordsForItem(item, openFolderId).filter((record) => fileMatches(record, query)),
-    [item, openFolderId, query],
+    () =>
+      getFileRecordsForItem(item, openFolderId).filter(
+        (record) =>
+          (selectedKind === 'all' || record.kind === selectedKind) &&
+          (selectedScope === 'all' || record.scope === selectedScope) &&
+          (selectedStatus === 'all' || record.status === selectedStatus) &&
+          fileUpdatedTimeMatches(record.modifiedAt, selectedUpdatedTime) &&
+          fileMatches(record, query),
+      ),
+    [
+      item,
+      openFolderId,
+      query,
+      selectedKind,
+      selectedScope,
+      selectedStatus,
+      selectedUpdatedTime,
+    ],
   )
   const showFolders = item === 'project-files' && !activeFolder
 
@@ -512,9 +1089,9 @@ function FileSpaceView({
               <FolderIcon className="assets-folder-card__icon" />
               <span className="assets-folder-card__name">{folder.name}</span>
               <span className="assets-folder-card__meta">
-                {folder.itemCount} 项 · {folder.modifiedAt}
+                项目范围 · {folder.modifiedAt}
               </span>
-              <span className="assets-folder-card__desc">{folder.description}</span>
+              <span className="assets-folder-card__desc">{folder.itemCount} 项</span>
             </button>
           ))}
         </div>
@@ -534,10 +1111,9 @@ function FileSpaceView({
           <div className="assets-table__row assets-table__row--head" role="row">
             <span role="columnheader">名称</span>
             <span role="columnheader">范围</span>
-            <span role="columnheader">空间类型</span>
-            <span role="columnheader">文件类型</span>
+            <span role="columnheader">类型</span>
             <span role="columnheader">更新时间</span>
-            <span role="columnheader">操作</span>
+            <span role="columnheader">更多</span>
           </div>
           {records.map((record) => (
             <div className="assets-table__row" role="row" key={record.id}>
@@ -545,19 +1121,16 @@ function FileSpaceView({
                 <FileKindIcon kind={record.fileSpaceKind} />
                 <span>
                   <strong>{record.name}</strong>
-                  <small>{record.description}</small>
                 </span>
               </span>
               <span role="cell">{assetScopeLabel[record.scope]}</span>
-              <span role="cell">
-                {record.fileSpaceKind === 'fileAsset' ? 'File Asset' : 'Project File'}
-              </span>
               <span role="cell">{record.kind.toUpperCase()}</span>
               <span role="cell">{record.modifiedAt}</span>
               <span role="cell">
                 <button
                   type="button"
                   className="assets-row-action"
+                  aria-label={`查看 ${record.name} 的更多操作`}
                   onClick={() => onNotify('资产操作尚未接入当前工作区')}
                 >
                   <MoreHorizontalIcon className="assets-row-action__icon" />
@@ -575,31 +1148,78 @@ function FileSpaceView({
 function DataAssetsView({
   item,
   query,
+  selectedScope,
+  selectedOwner,
+  onNotify,
 }: {
   item: DataAssetRecord['category']
   query: string
+  selectedScope: AssetScope | 'all'
+  selectedOwner: string
+  onNotify: (message: string) => void
 }) {
   const records = dataAssetRecords.filter(
-    (record) => record.category === item && dataMatches(record, query),
+    (record) =>
+      record.category === item &&
+      (selectedScope === 'all' || record.scope === selectedScope) &&
+      (selectedOwner === 'all' || record.owner === selectedOwner) &&
+      dataMatches(record, query),
   )
 
   return (
     <section className="assets-content">
       <AssetListHeader title="数据资产" count={records.length} />
-      <div className="assets-record-grid assets-record-grid--dense">
+      <div className="assets-table data-assets-table" role="table" aria-label="数据资产列表">
+        <div
+          className="assets-table__row assets-table__row--head assets-table__row--data"
+          role="row"
+        >
+          <span role="columnheader">名称</span>
+          <span role="columnheader">类型</span>
+          <span role="columnheader">范围</span>
+          <span role="columnheader">数量</span>
+          <span role="columnheader">更新时间</span>
+          <span role="columnheader">更多</span>
+        </div>
         {records.map((record) => (
-          <GenericRecordCard
+          <div
+            className="assets-table__row assets-table__row--data"
+            role="row"
             key={record.id}
-            title={record.name}
-            badge={assetScopeLabel[record.scope]}
-            meta={`${record.rows} · ${record.updatedAt}`}
-            description={record.description}
-          />
+          >
+            <span className="assets-table__name" role="cell">
+              <DatabaseIcon className="assets-record-card__icon" />
+              <span>
+                <strong>{record.name}</strong>
+              </span>
+            </span>
+            <span role="cell">{dataAssetTypeLabels[record.category]}</span>
+            <span role="cell">{assetScopeLabel[record.scope]}</span>
+            <span role="cell">{record.rows}</span>
+            <span role="cell">{record.updatedAt}</span>
+            <span role="cell">
+              <button
+                type="button"
+                className="assets-row-action"
+                aria-label={`查看 ${record.name} 的更多操作`}
+                onClick={() => onNotify('数据资产详情尚未接入当前工作区')}
+              >
+                <MoreHorizontalIcon className="assets-row-action__icon" />
+              </button>
+            </span>
+          </div>
         ))}
       </div>
       {records.length === 0 ? <EmptyState /> : null}
     </section>
   )
+}
+
+const dataAssetTypeLabels: Record<DataAssetRecord['category'], string> = {
+  datasets: '数据集',
+  tables: '数据表',
+  'analysis-results': '分析结果',
+  catalog: '数据目录',
 }
 
 const knowledgeKindLabels: Record<KnowledgeBaseKind, string> = {
@@ -619,6 +1239,9 @@ const knowledgeStatusOptions: (KnowledgeBaseStatus | 'all')[] = [
 function KnowledgeBaseAssetsView({
   item,
   query,
+  selectedKind,
+  selectedStatus,
+  selectedScope,
   selectedRecordId,
   selectedTab,
   onRecordSelect,
@@ -628,6 +1251,9 @@ function KnowledgeBaseAssetsView({
 }: {
   item: KnowledgeAssetItemId
   query: string
+  selectedKind: KnowledgeBaseKind | 'all'
+  selectedStatus: KnowledgeBaseStatus | 'all'
+  selectedScope: AssetScope | 'all'
   selectedRecordId: string | null
   selectedTab: KnowledgeDetailTab
   onRecordSelect: (recordId: string) => void
@@ -635,12 +1261,6 @@ function KnowledgeBaseAssetsView({
   onTabChange: (tab: KnowledgeDetailTab) => void
   onNotify: (message: string) => void
 }) {
-  const [selectedScope, setSelectedScope] = useState<KnowledgeBaseRecord['scope'] | 'all'>(
-    'all',
-  )
-  const [selectedStatus, setSelectedStatus] = useState<KnowledgeBaseStatus | 'all'>(
-    'all',
-  )
   const selectedRecord = selectedRecordId
     ? knowledgeBaseRecords.find((record) => record.id === selectedRecordId)
     : null
@@ -659,6 +1279,7 @@ function KnowledgeBaseAssetsView({
   const records = knowledgeBaseRecords.filter(
     (record) =>
       (item === 'all-knowledge' || record.category === item) &&
+      (selectedKind === 'all' || record.kind === selectedKind) &&
       (selectedScope === 'all' || record.scope === selectedScope) &&
       (selectedStatus === 'all' || record.status === selectedStatus) &&
       knowledgeBaseMatches(record, query),
@@ -666,50 +1287,6 @@ function KnowledgeBaseAssetsView({
 
   return (
     <section className="assets-content knowledge-assets">
-      <div className="knowledge-filter-bar" aria-label="知识库筛选">
-        <div className="knowledge-filter-row">
-          <span>范围</span>
-          <button
-            type="button"
-            className={selectedScope === 'all' ? 'active' : ''}
-            aria-pressed={selectedScope === 'all'}
-            onClick={() => setSelectedScope('all')}
-          >
-            全部范围
-          </button>
-          <button
-            type="button"
-            className={selectedScope === 'public' ? 'active' : ''}
-            aria-pressed={selectedScope === 'public'}
-            onClick={() => setSelectedScope('public')}
-          >
-            公开范围
-          </button>
-          <button
-            type="button"
-            className={selectedScope === 'project' ? 'active' : ''}
-            aria-pressed={selectedScope === 'project'}
-            onClick={() => setSelectedScope('project')}
-          >
-            项目范围
-          </button>
-        </div>
-        <div className="knowledge-filter-row">
-          <span>状态</span>
-          {knowledgeStatusOptions.map((status) => (
-            <button
-              type="button"
-              key={status}
-              className={selectedStatus === status ? 'active' : ''}
-              aria-pressed={selectedStatus === status}
-              onClick={() => setSelectedStatus(status)}
-            >
-              {status === 'all' ? '全部状态' : status}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <AssetListHeader title={getKnowledgeListTitle(item)} count={records.length} />
       <div
         className="assets-table knowledge-assets-table"
@@ -718,11 +1295,11 @@ function KnowledgeBaseAssetsView({
       >
         <div className="assets-table__row assets-table__row--head knowledge-assets-table__row" role="row">
           <span role="columnheader">名称</span>
-          <span role="columnheader">类型 / 范围</span>
-          <span role="columnheader">关联对象</span>
-          <span role="columnheader">内容规模</span>
-          <span role="columnheader">状态 / 更新时间</span>
-          <span role="columnheader">操作</span>
+          <span role="columnheader">类型</span>
+          <span role="columnheader">范围</span>
+          <span role="columnheader">状态</span>
+          <span role="columnheader">更新时间</span>
+          <span role="columnheader">更多</span>
         </div>
         {records.map((record) => (
           <div
@@ -742,27 +1319,16 @@ function KnowledgeBaseAssetsView({
               <DatabaseIcon className="assets-record-card__icon" />
               <span>
                 <strong>{record.name}</strong>
-                <small>{record.description}</small>
               </span>
             </span>
-            <span className="assets-table__cell-stack" role="cell">
-              <strong>{knowledgeKindLabels[record.kind]}</strong>
-              <small>{assetScopeLabel[record.scope]}</small>
-            </span>
-            <span className="assets-table__cell-stack" role="cell">
-              <strong>{record.projectName ?? '公共资产'}</strong>
-              <small>{getKnowledgeListTitle(record.category)}</small>
-            </span>
-            <span className="assets-table__cell-stack" role="cell">
-              <strong>{record.sourceFiles.length} 个文件</strong>
-              <small>{getKnowledgeEntityRelationSummary(record)}</small>
-            </span>
+            <span role="cell">{knowledgeKindLabels[record.kind]}</span>
+            <span role="cell">{assetScopeLabel[record.scope]}</span>
             <span className="assets-table__cell-stack" role="cell">
               <span className={`knowledge-status knowledge-status--${getKnowledgeStatusTone(record.status)}`}>
                 {record.status}
               </span>
-              <small>{record.updatedAt}</small>
             </span>
+            <span role="cell">{record.updatedAt}</span>
             <span role="cell">
               <button
                 type="button"
@@ -978,88 +1544,33 @@ function ExperimentAssetsView({
   item,
   viewMode,
   query,
+  selectedKind,
+  selectedStatus,
+  selectedScope,
   onNotify,
 }: {
   item: ExperimentAssetRecord['category']
   viewMode: AssetsExperimentViewMode
   query: string
+  selectedKind: ExperimentAssetKind | 'all'
+  selectedStatus: string
+  selectedScope: AssetScope | 'all'
   onNotify: (message: string) => void
 }) {
-  const [filterState, setFilterState] = useState<{
-    item: ExperimentAssetRecord['category']
-    kind: ExperimentAssetKind | 'all'
-    status: string
-  }>({ item, kind: 'all', status: 'all' })
-  const selectedKind = filterState.item === item ? filterState.kind : 'all'
-  const selectedStatus = filterState.item === item ? filterState.status : 'all'
   const baseRecords = useMemo(
     () => experimentAssetRecords.filter((record) => record.category === item),
     [item],
-  )
-  const kindOptions = useMemo(
-    () => Array.from(new Set(baseRecords.map((record) => record.kind))),
-    [baseRecords],
-  )
-  const statusOptions = useMemo(
-    () => Array.from(new Set(baseRecords.map((record) => record.status))),
-    [baseRecords],
   )
   const records = baseRecords.filter(
     (record) =>
       (selectedKind === 'all' || record.kind === selectedKind) &&
       (selectedStatus === 'all' || record.status === selectedStatus) &&
+      (selectedScope === 'all' || record.scope === selectedScope) &&
       experimentMatches(record, query),
   )
 
   return (
     <section className="assets-content">
-      <div className="assets-experiment-filter-bar" aria-label="实验资产筛选">
-        <div className="assets-experiment-filter-row">
-          <span>类型</span>
-          <button
-            type="button"
-            className={selectedKind === 'all' ? 'active' : ''}
-            aria-pressed={selectedKind === 'all'}
-            onClick={() => setFilterState({ item, kind: 'all', status: selectedStatus })}
-          >
-            全部类型
-          </button>
-          {kindOptions.map((kind) => (
-            <button
-              type="button"
-              key={kind}
-              className={selectedKind === kind ? 'active' : ''}
-              aria-pressed={selectedKind === kind}
-              onClick={() => setFilterState({ item, kind, status: selectedStatus })}
-            >
-              {experimentKindLabels[kind]}
-            </button>
-          ))}
-        </div>
-        <div className="assets-experiment-filter-row">
-          <span>状态</span>
-          <button
-            type="button"
-            className={selectedStatus === 'all' ? 'active' : ''}
-            aria-pressed={selectedStatus === 'all'}
-            onClick={() => setFilterState({ item, kind: selectedKind, status: 'all' })}
-          >
-            全部状态
-          </button>
-          {statusOptions.map((status) => (
-            <button
-              type="button"
-              key={status}
-              className={selectedStatus === status ? 'active' : ''}
-              aria-pressed={selectedStatus === status}
-              onClick={() => setFilterState({ item, kind: selectedKind, status })}
-            >
-              {status}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <AssetListHeader title={getExperimentListTitle(item)} count={records.length} />
       {viewMode === 'grid' ? (
         <div className="assets-record-grid assets-record-grid--dense assets-record-grid--experiment">
@@ -1072,7 +1583,7 @@ function ExperimentAssetsView({
           ))}
         </div>
       ) : (
-        <ExperimentAssetsTable item={item} records={records} onNotify={onNotify} />
+        <ExperimentAssetsTable records={records} onNotify={onNotify} />
       )}
       {records.length === 0 ? (
         <div className="assets-empty">当前筛选下暂无实验资产</div>
@@ -1084,42 +1595,45 @@ function ExperimentAssetsView({
 function ModelAssetsView({
   item,
   query,
+  selectedStatus,
+  selectedScope,
+  xtrimoRecommendationsExpanded,
   onQueryChange,
+  onXtrimoRecommendationsExpandedChange,
   onNotify,
 }: {
   item: ModelAssetRecord['category']
   query: string
+  selectedStatus: string
+  selectedScope: AssetScope | 'all'
+  xtrimoRecommendationsExpanded: boolean
   onQueryChange: (query: string) => void
+  onXtrimoRecommendationsExpandedChange: (expanded: boolean) => void
   onNotify: (message: string) => void
 }) {
   if (item === 'xtrimo') {
     return (
       <XtrimoModelAssetsView
         query={query}
+        recommendationsExpanded={xtrimoRecommendationsExpanded}
         onQueryChange={onQueryChange}
+        onRecommendationsExpandedChange={onXtrimoRecommendationsExpandedChange}
         onNotify={onNotify}
       />
     )
   }
 
-  const records = modelAssetRecords.filter(
-    (record) => record.category === item && modelMatches(record, query),
+  const records = getModelRecordsForItem(item).filter(
+    (record) =>
+      (selectedStatus === 'all' || record.status === selectedStatus) &&
+      (selectedScope === 'all' || record.scope === selectedScope) &&
+      modelMatches(record, query),
   )
 
   return (
     <section className="assets-content">
       <AssetListHeader title="模型资产" count={records.length} />
-      <div className="assets-record-grid assets-record-grid--dense">
-        {records.map((record) => (
-          <GenericRecordCard
-            key={record.id}
-            title={record.name}
-            badge={record.status}
-            meta={`${assetScopeLabel[record.scope]} · ${record.updatedAt}`}
-            description={record.description}
-          />
-        ))}
-      </div>
+      <ModelAssetsTable records={records} onNotify={onNotify} />
       {records.length === 0 ? <EmptyState /> : null}
     </section>
   )
@@ -1134,11 +1648,15 @@ const xtrimoEntities = Array.from(
 
 function XtrimoModelAssetsView({
   query,
+  recommendationsExpanded,
   onQueryChange,
+  onRecommendationsExpandedChange,
   onNotify,
 }: {
   query: string
+  recommendationsExpanded: boolean
   onQueryChange: (query: string) => void
+  onRecommendationsExpandedChange: (expanded: boolean) => void
   onNotify: (message: string) => void
 }) {
   const [selectedCapability, setSelectedCapability] = useState<
@@ -1148,17 +1666,39 @@ function XtrimoModelAssetsView({
   const [selectedStatus, setSelectedStatus] = useState<XtrimoModelStatus | 'all'>(
     'all',
   )
+  const [selectedCallability, setSelectedCallability] = useState<
+    XtrimoModelRecord['callability'] | 'all'
+  >('all')
+  const [selectedProjectFit, setSelectedProjectFit] = useState<
+    XtrimoModelRecord['projectFit'] | 'all'
+  >('all')
+  const [selectedVersion, setSelectedVersion] = useState('all')
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false)
   const recommendedRecords = xtrimoModelRecords.filter(
     (record) => record.projectFit === 'recommended',
   )
+  const versionOptions = Array.from(
+    new Set(xtrimoModelRecords.map((record) => record.version)),
+  ).sort((left, right) => left.localeCompare(right))
   const filteredRecords = xtrimoModelRecords.filter(
     (record) =>
       (selectedCapability === 'all' ||
         record.capabilities.includes(selectedCapability)) &&
       (selectedEntity === 'all' || record.entities.includes(selectedEntity)) &&
       (selectedStatus === 'all' || record.status === selectedStatus) &&
+      (selectedCallability === 'all' ||
+        record.callability === selectedCallability) &&
+      (selectedProjectFit === 'all' || record.projectFit === selectedProjectFit) &&
+      (selectedVersion === 'all' || record.version === selectedVersion) &&
       xtrimoModelMatches(record, query),
   )
+  const advancedFilterCount =
+    Number(selectedStatus !== 'all') +
+    Number(selectedCallability !== 'all') +
+    Number(selectedProjectFit !== 'all') +
+    Number(selectedVersion !== 'all')
+  const advancedFilterLabel =
+    advancedFilterCount > 0 ? `更多筛选 ${advancedFilterCount}` : '更多筛选'
 
   return (
     <section className="assets-content assets-content--xtrimo">
@@ -1182,96 +1722,152 @@ function XtrimoModelAssetsView({
             />
           </label>
         </div>
-        <div className="assets-xtrimo-filter-row">
-          <span>能力</span>
-          <button
-            type="button"
-            className={selectedCapability === 'all' ? 'active' : ''}
-            aria-pressed={selectedCapability === 'all'}
-            onClick={() => setSelectedCapability('all')}
+        <div className="assets-xtrimo-core-controls">
+          <select
+            className="assets-filter-select"
+            aria-label="筛选xTrimo能力"
+            value={selectedCapability}
+            onChange={(event) =>
+              setSelectedCapability(event.currentTarget.value as XtrimoCapability | 'all')
+            }
           >
-            全部能力
-          </button>
-          {xtrimoCapabilities.map((capability) => (
+            <option value="all">全部能力</option>
+            {xtrimoCapabilities.map((capability) => (
+              <option key={capability} value={capability}>
+                {capability}
+              </option>
+            ))}
+          </select>
+          <select
+            className="assets-filter-select"
+            aria-label="筛选xTrimo实体"
+            value={selectedEntity}
+            onChange={(event) =>
+              setSelectedEntity(event.currentTarget.value as XtrimoEntity | 'all')
+            }
+          >
+            <option value="all">全部实体</option>
+            {xtrimoEntities.map((entity) => (
+              <option key={entity} value={entity}>
+                {entity}
+              </option>
+            ))}
+          </select>
+          <div className="assets-filter-menu">
             <button
               type="button"
-              key={capability}
-              className={selectedCapability === capability ? 'active' : ''}
-              aria-pressed={selectedCapability === capability}
-              onClick={() => setSelectedCapability(capability)}
+              className="assets-filter-select assets-more-filter-button"
+              aria-expanded={advancedFiltersOpen}
+              onClick={() => setAdvancedFiltersOpen((isOpen) => !isOpen)}
             >
-              {capability}
+              {advancedFilterLabel}
             </button>
-          ))}
-        </div>
-        <div className="assets-xtrimo-filter-row">
-          <span>实体</span>
-          <button
-            type="button"
-            className={selectedEntity === 'all' ? 'active' : ''}
-            aria-pressed={selectedEntity === 'all'}
-            onClick={() => setSelectedEntity('all')}
-          >
-            全部实体
-          </button>
-          {xtrimoEntities.map((entity) => (
-            <button
-              type="button"
-              key={entity}
-              className={selectedEntity === entity ? 'active' : ''}
-              aria-pressed={selectedEntity === entity}
-              onClick={() => setSelectedEntity(entity)}
-            >
-              {entity}
-            </button>
-          ))}
-        </div>
-        <div className="assets-view-toggle" aria-label="xTrimo 生命周期">
-          <button
-            type="button"
-            className={selectedStatus === 'all' ? 'active' : ''}
-            aria-pressed={selectedStatus === 'all'}
-            onClick={() => setSelectedStatus('all')}
-          >
-            全部状态
-          </button>
-          <button
-            type="button"
-            className={selectedStatus === 'online' ? 'active' : ''}
-            aria-pressed={selectedStatus === 'online'}
-            onClick={() => setSelectedStatus('online')}
-          >
-            已上线
-          </button>
-          <button
-            type="button"
-            className={selectedStatus === 'comingSoon' ? 'active' : ''}
-            aria-pressed={selectedStatus === 'comingSoon'}
-            onClick={() => setSelectedStatus('comingSoon')}
-          >
-            即将上线
-          </button>
+            {advancedFiltersOpen ? (
+              <div className="assets-advanced-filters" aria-label="更多筛选">
+                <label>
+                  <span>状态</span>
+                  <select
+                    className="assets-filter-select"
+                    aria-label="筛选xTrimo状态"
+                    value={selectedStatus}
+                    onChange={(event) =>
+                      setSelectedStatus(
+                        event.currentTarget.value as XtrimoModelStatus | 'all',
+                      )
+                    }
+                  >
+                    <option value="all">全部状态</option>
+                    <option value="online">已上线</option>
+                    <option value="comingSoon">即将上线</option>
+                  </select>
+                </label>
+                <label>
+                  <span>调用状态</span>
+                  <select
+                    className="assets-filter-select"
+                    aria-label="筛选xTrimo调用状态"
+                    value={selectedCallability}
+                    onChange={(event) =>
+                      setSelectedCallability(
+                        event.currentTarget.value as XtrimoModelRecord['callability'] | 'all',
+                      )
+                    }
+                  >
+                    <option value="all">全部调用状态</option>
+                    <option value="callable">可调用</option>
+                    <option value="previewOnly">仅预览</option>
+                  </select>
+                </label>
+                <label>
+                  <span>版本</span>
+                  <select
+                    className="assets-filter-select"
+                    aria-label="筛选xTrimo版本"
+                    value={selectedVersion}
+                    onChange={(event) =>
+                      setSelectedVersion(event.currentTarget.value)
+                    }
+                  >
+                    <option value="all">全部版本</option>
+                    {versionOptions.map((version) => (
+                      <option key={version} value={version}>
+                        {version}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>推荐</span>
+                  <select
+                    className="assets-filter-select"
+                    aria-label="筛选xTrimo推荐"
+                    value={selectedProjectFit}
+                    onChange={(event) =>
+                      setSelectedProjectFit(
+                        event.currentTarget.value as XtrimoModelRecord['projectFit'] | 'all',
+                      )
+                    }
+                  >
+                    <option value="all">全部模型</option>
+                    <option value="recommended">Agent 推荐</option>
+                    <option value="useful">项目可用</option>
+                    <option value="general">通用模型</option>
+                  </select>
+                </label>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 
       <section
         className="assets-xtrimo-recommendations xtrimo-recommendations"
-        aria-label="Agent 推荐"
+        aria-label="推荐用于当前项目"
       >
-        <div className="assets-list-header">
-          <h2>Agent 推荐</h2>
-          <span>{recommendedRecords.length} 项</span>
-        </div>
-        <div className="assets-record-grid assets-record-grid--dense xtrimo-card-grid">
-          {recommendedRecords.map((record) => (
-            <XtrimoModelCard
-              key={record.id}
-              record={record}
-              density="compact"
-              onNotify={onNotify}
-            />
-          ))}
-        </div>
+        <button
+          type="button"
+          className="xtrimo-recommendations__toggle"
+          aria-label={recommendationsExpanded ? '收起推荐' : '展开推荐'}
+          aria-expanded={recommendationsExpanded}
+          onClick={() =>
+            onRecommendationsExpandedChange(!recommendationsExpanded)
+          }
+        >
+          <span>推荐用于当前项目的 {recommendedRecords.length} 个模型</span>
+          <strong>{recommendationsExpanded ? '收起推荐' : '展开推荐'}</strong>
+        </button>
+        {recommendationsExpanded ? (
+          <div className="assets-record-grid assets-record-grid--dense xtrimo-card-grid">
+            {recommendedRecords.map((record) => (
+              <XtrimoModelCard
+                key={record.id}
+                record={record}
+                density="compact"
+                onNotify={onNotify}
+              />
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <AssetListHeader title="模型目录" count={filteredRecords.length} />
@@ -1344,15 +1940,8 @@ function ExperimentRecordCard({
         <span className="assets-record-card__badge">{record.status}</span>
       </div>
       <h3>{record.name}</h3>
-      <p>{record.description}</p>
       <div className="assets-record-card__meta assets-record-card__meta--stacked">
-        <span>{record.primaryMeta}</span>
-        <span>{record.secondaryMeta}</span>
-        {record.tertiaryMeta ? <span>{record.tertiaryMeta}</span> : null}
-      </div>
-      <div className="assets-record-card__meta">
-        <span>{assetScopeLabel[record.scope]}</span>
-        <span>{record.projectName ?? '公共资产'}</span>
+        <span>{getExperimentKeyObject(record)}</span>
         <span>{record.updatedAt}</span>
       </div>
       <button
@@ -1367,16 +1956,13 @@ function ExperimentRecordCard({
 }
 
 function ExperimentAssetsTable({
-  item,
   records,
   onNotify,
 }: {
-  item: ExperimentAssetRecord['category']
   records: ExperimentAssetRecord[]
   onNotify: (message: string) => void
 }) {
-  const columns = getExperimentTableColumns(item)
-  const rowClassName = `assets-table__row assets-table__row--experiment assets-table__row--experiment-${columns.length}`
+  const rowClassName = 'assets-table__row assets-table__row--experiment'
 
   return (
     <div className="assets-table assets-experiment-table" role="table" aria-label="实验资产表格">
@@ -1385,12 +1971,11 @@ function ExperimentAssetsTable({
         role="row"
       >
         <span role="columnheader">名称</span>
-        {columns.map((column) => (
-          <span role="columnheader" key={column.header}>
-            {column.header}
-          </span>
-        ))}
-        <span role="columnheader">操作</span>
+        <span role="columnheader">类型</span>
+        <span role="columnheader">状态</span>
+        <span role="columnheader">关键对象</span>
+        <span role="columnheader">更新时间</span>
+        <span role="columnheader">更多</span>
       </div>
       {records.map((record) => (
         <div
@@ -1402,18 +1987,17 @@ function ExperimentAssetsTable({
             <PackageIcon className="assets-record-card__icon" />
             <span>
               <strong>{record.name}</strong>
-              <small>{record.description}</small>
             </span>
           </span>
-          {columns.map((column) => (
-            <span role="cell" key={column.header}>
-              {column.value(record)}
-            </span>
-          ))}
+          <span role="cell">{experimentKindLabels[record.kind]}</span>
+          <span role="cell">{record.status}</span>
+          <span role="cell">{getExperimentKeyObject(record)}</span>
+          <span role="cell">{record.updatedAt}</span>
           <span role="cell">
             <button
               type="button"
               className="assets-row-action"
+              aria-label={`查看 ${record.name} 的更多操作`}
               onClick={() => onNotify('实验资产详情尚未接入当前工作区')}
             >
               <MoreHorizontalIcon className="assets-row-action__icon" />
@@ -1425,29 +2009,46 @@ function ExperimentAssetsTable({
   )
 }
 
-function GenericRecordCard({
-  title,
-  badge,
-  meta,
-  description,
+function ModelAssetsTable({
+  records,
+  onNotify,
 }: {
-  title: string
-  badge: string
-  meta: string
-  description: string
+  records: ModelAssetRecord[]
+  onNotify: (message: string) => void
 }) {
   return (
-    <article className="assets-record-card assets-record-card--generic">
-      <div className="assets-record-card__top">
-        <PackageIcon className="assets-record-card__icon" />
-        <span className="assets-record-card__badge">{badge}</span>
+    <div className="assets-table model-assets-table" role="table" aria-label="模型资产列表">
+      <div className="assets-table__row assets-table__row--head" role="row">
+        <span role="columnheader">名称</span>
+        <span role="columnheader">状态</span>
+        <span role="columnheader">范围</span>
+        <span role="columnheader">更新时间</span>
+        <span role="columnheader">更多</span>
       </div>
-      <h3>{title}</h3>
-      <p>{description}</p>
-      <div className="assets-record-card__meta">
-        <span>{meta}</span>
-      </div>
-    </article>
+      {records.map((record) => (
+        <div className="assets-table__row" role="row" key={record.id}>
+          <span className="assets-table__name" role="cell">
+            <PackageIcon className="assets-record-card__icon" />
+            <span>
+              <strong>{record.name}</strong>
+            </span>
+          </span>
+          <span role="cell">{record.status}</span>
+          <span role="cell">{assetScopeLabel[record.scope]}</span>
+          <span role="cell">{record.updatedAt}</span>
+          <span role="cell">
+            <button
+              type="button"
+              className="assets-row-action"
+              aria-label={`查看 ${record.name} 的更多操作`}
+              onClick={() => onNotify('模型资产详情尚未接入当前工作区')}
+            >
+              <MoreHorizontalIcon className="assets-row-action__icon" />
+            </button>
+          </span>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -1473,15 +2074,6 @@ function XtrimoModelCard({
         <span className="assets-record-card__badge xtrimo-model-card__badge">
           {record.status === 'online' ? '已上线' : '即将上线'}
         </span>
-        <span
-          className={`assets-record-card__badge xtrimo-model-card__badge ${
-            isCallable
-              ? 'xtrimo-model-card__badge--callable'
-              : 'xtrimo-model-card__badge--preview'
-          }`}
-        >
-          {isCallable ? '可调用' : '仅预览'}
-        </span>
       </div>
       <h3>{record.name}</h3>
       <p>{record.agentUse}</p>
@@ -1489,6 +2081,7 @@ function XtrimoModelCard({
         <span>{record.capabilities.join(' / ')}</span>
         <span>{record.entities.join(' / ')}</span>
         <span>{record.version}</span>
+        <span>{isCallable ? '可调用' : '仅预览'}</span>
       </div>
       <div className="assets-record-card__meta">
         <span>输入：{record.input}</span>
@@ -1591,6 +2184,16 @@ function getFileListTitle(item: FileRecordMenuItem) {
   return '项目文件'
 }
 
+function getModelRecordsForItem(item: ModelAssetRecord['category']) {
+  const records = modelAssetRecords.filter((record) => record.category === item)
+
+  if (item === 'oracles') {
+    return records.filter((record) => record.status === '已发布')
+  }
+
+  return records
+}
+
 function getExperimentListTitle(item: ExperimentAssetRecord['category']) {
   if (item === 'experiment-list') {
     return '实验列表'
@@ -1611,88 +2214,54 @@ function getExperimentListTitle(item: ExperimentAssetRecord['category']) {
   return '实验配方'
 }
 
-type ExperimentTableColumn = {
-  header: string
-  value: (record: ExperimentAssetRecord) => string
+function getExperimentKeyObject(record: ExperimentAssetRecord) {
+  if (record.projectName) {
+    return record.projectName
+  }
+
+  return record.primaryMeta
 }
 
-function getExperimentTableColumns(
-  item: ExperimentAssetRecord['category'],
-): ExperimentTableColumn[] {
-  if (item === 'experiment-list') {
-    return [
-      { header: '类型', value: (record) => experimentKindLabels[record.kind] },
-      { header: '状态', value: (record) => record.status },
-      { header: '项目', value: (record) => record.projectName ?? '公共资产' },
-      { header: '分子数', value: (record) => getMetaPart(record.primaryMeta, 0) },
-      { header: '实验类型', value: (record) => getMetaPart(record.primaryMeta, 1) },
-      { header: '负责人', value: (record) => record.owner },
-      { header: '更新时间', value: (record) => record.updatedAt },
-    ]
+function getAssetsSearchLabel(section: AssetsSection) {
+  if (section === 'knowledge') {
+    return '搜索知识库'
   }
 
-  if (item === 'execution') {
-    return [
-      { header: '类型', value: (record) => experimentKindLabels[record.kind] },
-      { header: '状态', value: (record) => record.status },
-      { header: '项目', value: (record) => record.projectName ?? '公共资产' },
-      { header: 'CRO或设备', value: (record) => getMetaPart(record.primaryMeta, 0) },
-      { header: '关联任务', value: (record) => record.secondaryMeta },
-      { header: '时间', value: (record) => record.updatedAt },
-      { header: '负责人', value: (record) => record.owner },
-    ]
+  if (section === 'experiment') {
+    return '搜索实验资产'
   }
 
-  if (item === 'inventory') {
-    return [
-      { header: '类型', value: (record) => experimentKindLabels[record.kind] },
-      { header: '状态', value: (record) => record.status },
-      { header: '范围', value: (record) => assetScopeLabel[record.scope] },
-      { header: '位置', value: (record) => record.secondaryMeta },
-      { header: '批次', value: (record) => record.tertiaryMeta ?? record.projectName ?? '公共资产' },
-      { header: '数量', value: (record) => record.primaryMeta },
-      { header: '更新时间', value: (record) => record.updatedAt },
-    ]
+  if (section === 'model') {
+    return '搜索模型资产'
   }
 
-  if (item === 'equipment') {
-    return [
-      { header: '类型', value: (record) => experimentKindLabels[record.kind] },
-      { header: '状态', value: (record) => record.status },
-      { header: '位置', value: (record) => record.primaryMeta },
-      { header: '支持实验', value: (record) => record.secondaryMeta },
-      { header: '自动化', value: (record) => record.tertiaryMeta ?? '未接入' },
-      { header: '下个可用窗口', value: (record) => getEquipmentWindow(record) },
-      { header: '更新时间', value: (record) => record.updatedAt },
-    ]
+  if (section === 'data') {
+    return '搜索数据资产'
   }
 
-  return [
-    { header: '类型', value: (record) => experimentKindLabels[record.kind] },
-    { header: '状态', value: (record) => record.status },
-    { header: '范围', value: (record) => assetScopeLabel[record.scope] },
-    { header: '适用实验', value: (record) => record.primaryMeta },
-    { header: '版本', value: (record) => getMetaPart(record.secondaryMeta, 0) },
-    { header: '关键参数', value: (record) => record.tertiaryMeta ?? getMetaPart(record.secondaryMeta, 1) },
-    { header: '维护人', value: (record) => record.owner },
-    { header: '更新时间', value: (record) => record.updatedAt },
-  ]
+  return '搜索当前资产'
 }
 
-function getMetaPart(value: string, index: number) {
-  return value.split(' · ')[index]?.trim() || value
-}
-
-function getEquipmentWindow(record: ExperimentAssetRecord) {
-  if (record.kind === 'availabilityWindow') {
-    return record.primaryMeta
+function getAssetsAdvancedFilterCount(
+  section: AssetsSection,
+  selectedFileScope: AssetScope | 'all',
+  selectedFileStatus: string,
+  selectedKnowledgeScope: AssetScope | 'all',
+  selectedExperimentScope: AssetScope | 'all',
+) {
+  if (section === 'file') {
+    return Number(selectedFileScope !== 'all') + Number(selectedFileStatus !== 'all')
   }
 
-  if (record.secondaryMeta.startsWith('Next window:')) {
-    return record.secondaryMeta.replace('Next window:', '').trim()
+  if (section === 'knowledge') {
+    return Number(selectedKnowledgeScope !== 'all')
   }
 
-  return record.status === '可用' || record.status === 'CRO 可用' ? '当前可用' : record.status
+  if (section === 'experiment') {
+    return Number(selectedExperimentScope !== 'all')
+  }
+
+  return 0
 }
 
 function getNewAssetMenuActions(
@@ -1794,9 +2363,63 @@ function fileMatches(record: FileAssetRecord, query: string) {
   )
 }
 
+function fileUpdatedTimeMatches(
+  modifiedAt: string,
+  selectedUpdatedTime: FileUpdatedTimeFilter,
+) {
+  if (selectedUpdatedTime === 'all') {
+    return true
+  }
+
+  const ageMinutes = getRelativeAgeMinutes(modifiedAt)
+
+  if (selectedUpdatedTime === 'last30Minutes') {
+    return ageMinutes <= 30
+  }
+
+  if (selectedUpdatedTime === 'lastHour') {
+    return ageMinutes <= 60
+  }
+
+  return ageMinutes < 24 * 60
+}
+
+function getRelativeAgeMinutes(relativeTime: string) {
+  const minutes = /^(\d+)\s*分钟前$/.exec(relativeTime)?.[1]
+
+  if (minutes) {
+    return Number(minutes)
+  }
+
+  const hours = /^(\d+)\s*小时前$/.exec(relativeTime)?.[1]
+
+  if (hours) {
+    return Number(hours) * 60
+  }
+
+  if (relativeTime === '昨天') {
+    return 24 * 60
+  }
+
+  const days = /^(\d+)\s*天前$/.exec(relativeTime)?.[1]
+
+  if (days) {
+    return Number(days) * 24 * 60
+  }
+
+  return Number.POSITIVE_INFINITY
+}
+
 function dataMatches(record: DataAssetRecord, query: string) {
   return matchesQuery(
-    [record.name, record.description, record.owner, record.rows, record.scope],
+    [
+      record.name,
+      record.description,
+      record.owner,
+      record.rows,
+      record.scope,
+      dataAssetTypeLabels[record.category],
+    ],
     query,
   )
 }
@@ -1883,10 +2506,6 @@ function getKnowledgeListTitle(item: KnowledgeAssetItemId) {
   }
 
   return '全部知识库'
-}
-
-function getKnowledgeEntityRelationSummary(record: KnowledgeBaseRecord) {
-  return `${record.entitySummary.split('，')[0]} / ${record.relationshipSummary.split('，')[0]}`
 }
 
 function getKnowledgeStatusTone(status: KnowledgeBaseStatus) {

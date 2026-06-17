@@ -46,6 +46,7 @@ export type DemoStateSnapshot = {
   assetsFileViewMode: AssetsFileViewMode
   assetsExperimentViewMode: AssetsExperimentViewMode
   assetsOpenFolderId: string | null
+  xtrimoRecommendationsExpanded: boolean
   notificationDrawerOpen: boolean
   notificationFilter: NotificationFilter
   notificationReadById: Record<string, boolean>
@@ -237,6 +238,7 @@ export function createInitialDemoState(
     assetsFileViewMode: 'list',
     assetsExperimentViewMode: 'grid',
     assetsOpenFolderId: null,
+    xtrimoRecommendationsExpanded: false,
     notificationDrawerOpen: false,
     notificationFilter: 'all',
     notificationReadById: {},
@@ -695,6 +697,16 @@ export function setAssetsOpenFolderSnapshot(
   return {
     ...state,
     assetsOpenFolderId,
+  }
+}
+
+export function setXtrimoRecommendationsExpandedSnapshot(
+  state: DemoStateSnapshot,
+  xtrimoRecommendationsExpanded: boolean,
+): DemoStateSnapshot {
+  return {
+    ...state,
+    xtrimoRecommendationsExpanded,
   }
 }
 
@@ -1413,6 +1425,7 @@ function sanitizeAssetsStateFields(
   | 'assetsFileViewMode'
   | 'assetsExperimentViewMode'
   | 'assetsOpenFolderId'
+  | 'xtrimoRecommendationsExpanded'
 > {
   const activeTopNav = isActiveTopNav(state.activeTopNav)
     ? state.activeTopNav
@@ -1444,6 +1457,10 @@ function sanitizeAssetsStateFields(
     (typeof state.assetsOpenFolderId === 'string' || state.assetsOpenFolderId === null)
       ? state.assetsOpenFolderId
       : null
+  const xtrimoRecommendationsExpanded =
+    typeof state.xtrimoRecommendationsExpanded === 'boolean'
+      ? state.xtrimoRecommendationsExpanded
+      : false
 
   return {
     activeTopNav,
@@ -1452,6 +1469,7 @@ function sanitizeAssetsStateFields(
     assetsFileViewMode,
     assetsExperimentViewMode,
     assetsOpenFolderId,
+    xtrimoRecommendationsExpanded,
   }
 }
 
