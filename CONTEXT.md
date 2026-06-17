@@ -6,6 +6,7 @@ This context defines the product language for the BioMap Agent workspace. It kee
 
 **Thread**:
 A conversation unit inside a Project. A Thread contains the user and Agent dialogue for one workflow or workflow slice.
+User-facing UI may label a Thread as `对话`; `任务` should be reserved for operational work items such as Work Orders or experimental tasks.
 _Avoid_: Chat, session, ticket
 
 **Agent**:
@@ -19,6 +20,30 @@ _Avoid_: Agent, generic user
 **Project**:
 A workspace-level container for related Threads, assets, capabilities, and project context. A Project may contain multiple Threads that describe different parts of the same scientific workflow.
 _Avoid_: Folder, account, workspace
+
+**Capability**:
+A reusable ability that the Agent can apply to a Thread or Project context, such as a Pipeline, Skill, MCP Server, or Plugin.
+_Avoid_: Generic feature, page module, asset file
+
+**Pipeline**:
+A governed workflow capability that sequences biological tools, human gates, approvals, and outputs for repeated R&D operations.
+_Avoid_: Approval Flow, generic workflow, static DAG image
+
+**Skill**:
+A reusable instruction package that helps the Agent perform a class of work without becoming a fixed Pipeline or external tool provider.
+_Avoid_: Pipeline, MCP Server, Plugin
+
+**Capability Provider**:
+An external or internal provider that exposes tools, resources, or extension points for Agent capabilities.
+_Avoid_: Project owner, approver, notification source
+
+**MCP Server**:
+A Capability Provider that exposes MCP tools or resources under a connection and permission boundary.
+_Avoid_: Pipeline, Skill, Plugin
+
+**Plugin**:
+A capability extension surface that can add UI or functional extension points, but is not itself a Pipeline or Skill.
+_Avoid_: Document Block, MCP Server, generic widget
 
 **Run Inspector**:
 The right-side operational panel that summarizes an Agent run, including progress, outputs, approvals, and capability calls. It is the canonical term behind the user-facing label `运行信息`.
@@ -80,13 +105,49 @@ _Avoid_: Target definition, raw bill
 Revenue minus cost, shown as both gross profit amount and gross margin rate. Gross margin views must state whether they use target, actual, forecast, or discount-line assumptions.
 _Avoid_: Net profit, cash flow
 
+**Asset**:
+A durable R&D object that the Agent can reference, call, generate, or reuse across a Project or the organization.
+_Avoid_: Temporary attachment, local file, UI card
+
+**Assets Workbench**:
+The top-level product surface for finding and reviewing Assets, Project Files, and related file resources.
+_Avoid_: Project list, personal drive, template library
+
+**Asset Scope**:
+The visibility boundary for an Asset, limited to public scope or project scope in this ToB platform.
+_Avoid_: Personal scope, private drive, account scope
+
+**File Space**:
+The file-management area inside the Assets Workbench that can show Project Files and File Assets without implying every file is an Asset.
+_Avoid_: Personal cloud drive, all-assets view
+
 **Project File**:
 A file-like asset produced, uploaded, or referenced inside a Project. A Project File can appear in Thread messages, Run Inspector outputs, and object storage views.
 _Avoid_: Attachment when it refers to durable project storage
 
+**File Asset**:
+A file-like resource that has been registered, saved, archived, or published as a reusable Asset.
+_Avoid_: Any uploaded file, transient message attachment
+
 **Object Storage Asset**:
 A Project File presented through a structured object path. It groups assets by project storage purpose rather than by the Thread that mentioned them.
 _Avoid_: Chat attachment, local file
+
+**Data Asset**:
+A structured data object such as a dataset, table, analysis result, or data catalog entry that has been standardized or registered for reuse.
+_Avoid_: Raw upload, spreadsheet attachment
+
+**Experiment Asset**:
+A durable experimental object such as an experiment list item, execution record, inventory object, device, or recipe managed through the Assets Workbench.
+_Avoid_: Run, ELN Document, temporary checklist item
+
+**Model Asset**:
+A model object that the Agent can compare, call, reuse, or reference, including xTrimo platform models, public models, project models, and Oracles.
+_Avoid_: Training job, transient inference result
+
+**Knowledge Base**:
+A reusable knowledge asset for Agent retrieval, reasoning, traceability, or biological context grounding, such as RAG, Knowledge Graph, or GraphRAG.
+_Avoid_: Raw document folder, project notes, generic file list
 
 **Run**:
 A concrete execution instance orchestrated by an Agent inside a Thread. A Run may produce Project Files such as result packages and ELN Documents.
@@ -197,6 +258,26 @@ Domain expert: No. Side Chat stays attached to the current Thread context and do
 Developer: Is the `.bmeln` asset just the Agent transcript exported as Markdown?
 
 Domain expert: No. Treat it as an ELN Document. It may be stored as a Project File and displayed as an Object Storage Asset, but its domain purpose is to record the experiment, not to summarize the conversation.
+
+Developer: Should the user-facing UI call every Thread a task?
+
+Domain expert: No. Thread is the internal and domain concept. The UI can call it `对话`. Reserve `任务` for Work Orders, experimental tasks, and Agent execution steps.
+
+Developer: Is every file shown under Assets a File Asset?
+
+Domain expert: No. File Space can show Project Files and File Assets. Only registered, saved, archived, or published reusable files should be treated as File Assets.
+
+Developer: Should Knowledge Base just be another folder under files?
+
+Domain expert: No. A Knowledge Base is a reusable knowledge asset for retrieval, reasoning, or biological grounding. It may use files as sources, but it is not the source file folder itself.
+
+Developer: Is Pipeline the same as an Approval Flow?
+
+Domain expert: No. Pipeline is an Agent capability for repeated R&D operations. Approval Flow is a BioMap-owned approval route for Approval Requests.
+
+Developer: Is an MCP Server an Asset?
+
+Domain expert: No. It is a Capability Provider. It can expose tools that operate on Assets, but it belongs in Capabilities, not the Assets Workbench.
 
 Developer: Does a `.bmeln` version mean users can browse and restore historical document versions?
 
