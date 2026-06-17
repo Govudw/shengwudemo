@@ -35,6 +35,15 @@ type CapabilitiesPageProps = {
 }
 
 type FilterValue = 'all'
+type AdvancedVersionFilter = FilterValue | 'published' | 'draft'
+type AdvancedPermissionFilter = FilterValue | 'main-agent' | 'approval'
+type AdvancedOwnerFilter = FilterValue | 'platform' | 'team' | 'external'
+
+type CapabilityAdvancedFilterValues = {
+  version: AdvancedVersionFilter
+  permission: AdvancedPermissionFilter
+  owner: AdvancedOwnerFilter
+}
 
 const sourceLabels: Record<CapabilitySource, string> = {
   created: '自建',
@@ -78,6 +87,12 @@ const actionMessages: Record<CapabilityEntryKind, string> = {
   plugin: 'Plugin 申请流程尚未接入当前工作区',
 }
 
+const defaultAdvancedFilters: CapabilityAdvancedFilterValues = {
+  version: 'all',
+  permission: 'all',
+  owner: 'all',
+}
+
 function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
   const [activeKind, setActiveKind] =
     useState<CapabilityEntryKind>('pipeline')
@@ -89,8 +104,17 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
   const [selectedByKind, setSelectedByKind] = useState<
     Record<CapabilityEntryKind, string>
   >(() => getInitialSelectedIds())
+  const [advancedFiltersOpenByKind, setAdvancedFiltersOpenByKind] = useState<
+    Record<CapabilityEntryKind, boolean>
+  >(() => getInitialAdvancedFilterOpenState())
+  const [advancedFiltersByKind, setAdvancedFiltersByKind] = useState<
+    Record<CapabilityEntryKind, CapabilityAdvancedFilterValues>
+  >(() => getInitialAdvancedFiltersByKind())
   const [dialogEntryId, setDialogEntryId] = useState<string | null>(null)
   const [dagDialogEntryId, setDagDialogEntryId] = useState<string | null>(null)
+  const [dagExpandedById, setDagExpandedById] = useState<
+    Record<string, boolean>
+  >({})
   const dagDialogTriggerRef = useRef<HTMLElement | null>(null)
   const [enabledById, setEnabledById] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
@@ -99,6 +123,7 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
         .map((entry) => [entry.id, Boolean(entry.enabledForMainAgent)]),
     ),
   )
+  const activeAdvancedFilters = advancedFiltersByKind[activeKind]
 
   const visibleEntries = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -113,6 +138,10 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
       }
 
       if (statusFilter !== 'all' && entry.status !== statusFilter) {
+        return false
+      }
+
+      if (!matchesAdvancedCapabilityFilters(entry, activeAdvancedFilters, enabledById)) {
         return false
       }
 
@@ -131,11 +160,17 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
         .toLowerCase()
         .includes(normalizedQuery)
     })
-  }, [activeKind, query, sourceFilter, statusFilter])
+  }, [
+    activeAdvancedFilters,
+    activeKind,
+    enabledById,
+    query,
+    sourceFilter,
+    statusFilter,
+  ])
 
   const selectedEntry =
-    visibleEntries.find((entry) => entry.id === selectedByKind[activeKind]) ??
-    visibleEntries[0]
+    visibleEntries.find((entry) => entry.id === selectedByKind[activeKind])
 
   const openDialogEntry =
     capabilityEntries.find(
@@ -147,6 +182,11 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
         entry.kind === 'pipeline' && entry.id === dagDialogEntryId && entry.dag,
     ) ?? null
   const hasOpenModal = Boolean(openDialogEntry || openDagEntry)
+  const advancedFilterCount = Object.values(activeAdvancedFilters).filter(
+    (value) => value !== 'all',
+  ).length
+  const advancedFiltersOpen = advancedFiltersOpenByKind[activeKind]
+  const advancedFiltersPanelId = `capabilities-advanced-filters-${activeKind}`
 
   function handleKindChange(kind: CapabilityEntryKind) {
     setActiveKind(kind)
@@ -155,6 +195,25 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
     setStatusFilter('all')
     setDialogEntryId(null)
     setDagDialogEntryId(null)
+  }
+
+  function handleAdvancedFilterChange<
+    FilterKey extends keyof CapabilityAdvancedFilterValues,
+  >(key: FilterKey, value: CapabilityAdvancedFilterValues[FilterKey]) {
+    setAdvancedFiltersByKind((current) => ({
+      ...current,
+      [activeKind]: {
+        ...current[activeKind],
+        [key]: value,
+      },
+    }))
+  }
+
+  function handleToggleAdvancedFilters() {
+    setAdvancedFiltersOpenByKind((current) => ({
+      ...current,
+      [activeKind]: !current[activeKind],
+    }))
   }
 
   function handleSelectEntry(entry: MockCapabilityEntry) {
@@ -182,6 +241,13 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
         ? document.activeElement
         : null
     setDagDialogEntryId(entryId)
+  }
+
+  function handleToggleDagExpanded(entryId: string) {
+    setDagExpandedById((current) => ({
+      ...current,
+      [entryId]: !current[entryId],
+    }))
   }
 
   function handleCloseDag() {
@@ -279,7 +345,7 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
           <select
             className="capabilities-select"
             value={sourceFilter}
-            aria-label="Filter by source"
+            aria-label="按来源筛选"
             onChange={(event) =>
               setSourceFilter(event.target.value as CapabilitySource | FilterValue)
             }
@@ -294,7 +360,7 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
           <select
             className="capabilities-select"
             value={statusFilter}
-            aria-label="Filter by status"
+            aria-label="按状态筛选"
             onChange={(event) =>
               setStatusFilter(event.target.value as CapabilityStatus | FilterValue)
             }
@@ -306,15 +372,41 @@ function CapabilitiesPage({ onNotify }: CapabilitiesPageProps) {
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            className={`capabilities-more-filter${
+              advancedFilterCount > 0 ? ' capabilities-more-filter--active' : ''
+            }`}
+            aria-expanded={advancedFiltersOpen}
+            aria-controls={advancedFiltersPanelId}
+            onClick={handleToggleAdvancedFilters}
+          >
+            <MoreHorizontalIcon className="capabilities-button-icon" />
+            <span>
+              {advancedFilterCount > 0
+                ? `更多筛选 ${advancedFilterCount}`
+                : '更多筛选'}
+            </span>
+          </button>
         </div>
+
+        {advancedFiltersOpen ? (
+          <CapabilityAdvancedFiltersPanel
+            id={advancedFiltersPanelId}
+            values={activeAdvancedFilters}
+            onChange={handleAdvancedFilterChange}
+          />
+        ) : null}
 
         {activeKind === 'pipeline' ? (
           <CapabilityInspectorLayout
             entries={visibleEntries}
             selectedEntry={selectedEntry}
             activeKind={activeKind}
+            dagExpandedById={dagExpandedById}
             onSelect={handleSelectEntry}
             onOpenDag={handleOpenDag}
+            onToggleDagExpanded={handleToggleDagExpanded}
             onNotify={onNotify}
           />
         ) : (
@@ -384,28 +476,24 @@ function CapabilityBoardList({
         return (
           <div
             key={entry.id}
-            role="button"
-            tabIndex={0}
             className="capabilities-skill-row"
-            onClick={() => onOpen(entry.id)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                onOpen(entry.id)
-              }
-            }}
           >
-            <span className="capabilities-skill-row__icon" aria-hidden="true">
-              <PackageIcon className="capabilities-icon" />
-            </span>
-            <span className="capabilities-skill-row__main">
+            <button
+              type="button"
+              className="capabilities-skill-row__main-button"
+              onClick={() => onOpen(entry.id)}
+            >
               <span className="capabilities-skill-row__name">{entry.name}</span>
               <span className="capabilities-skill-row__description">
                 {entry.description}
               </span>
-            </span>
+            </button>
+            <StatusBadge status={entry.status} />
             <span className="capabilities-skill-row__source">
               {sourceLabels[entry.source]}
+            </span>
+            <span className="capabilities-skill-row__updated">
+              {entry.updatedAt}
             </span>
             {showsSwitch ? (
               <SwitchControl
@@ -416,7 +504,17 @@ function CapabilityBoardList({
                 }
               />
             ) : (
-              <StatusBadge status={entry.status} />
+              <button
+                type="button"
+                className="capabilities-icon-button capabilities-row-more-button"
+                aria-label={`${entry.name} 的更多操作`}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onOpen(entry.id)
+                }}
+              >
+                <MoreHorizontalIcon className="capabilities-icon" />
+              </button>
             )}
           </div>
         )
@@ -425,19 +523,91 @@ function CapabilityBoardList({
   )
 }
 
+function CapabilityAdvancedFiltersPanel({
+  id,
+  values,
+  onChange,
+}: {
+  id: string
+  values: CapabilityAdvancedFilterValues
+  onChange: <FilterKey extends keyof CapabilityAdvancedFilterValues>(
+    key: FilterKey,
+    value: CapabilityAdvancedFilterValues[FilterKey],
+  ) => void
+}) {
+  return (
+    <div
+      id={id}
+      className="capabilities-advanced-filters"
+      aria-label="更多能力筛选"
+    >
+      <label className="capabilities-advanced-filter">
+        <span>版本</span>
+        <select
+          value={values.version}
+          aria-label="按版本筛选"
+          onChange={(event) =>
+            onChange('version', event.target.value as AdvancedVersionFilter)
+          }
+        >
+          <option value="all">全部版本</option>
+          <option value="published">已发布版本</option>
+          <option value="draft">草稿版本</option>
+        </select>
+      </label>
+      <label className="capabilities-advanced-filter">
+        <span>权限</span>
+        <select
+          value={values.permission}
+          aria-label="按权限筛选"
+          onChange={(event) =>
+            onChange(
+              'permission',
+              event.target.value as AdvancedPermissionFilter,
+            )
+          }
+        >
+          <option value="all">全部权限</option>
+          <option value="main-agent">主 Agent 可用</option>
+          <option value="approval">需要审批</option>
+        </select>
+      </label>
+      <label className="capabilities-advanced-filter">
+        <span>负责人</span>
+        <select
+          value={values.owner}
+          aria-label="按负责人筛选"
+          onChange={(event) =>
+            onChange('owner', event.target.value as AdvancedOwnerFilter)
+          }
+        >
+          <option value="all">全部负责人</option>
+          <option value="platform">平台团队</option>
+          <option value="team">业务团队</option>
+          <option value="external">外部接入</option>
+        </select>
+      </label>
+    </div>
+  )
+}
+
 function CapabilityInspectorLayout({
   entries,
   selectedEntry,
   activeKind,
+  dagExpandedById,
   onSelect,
   onOpenDag,
+  onToggleDagExpanded,
   onNotify,
 }: {
   entries: MockCapabilityEntry[]
   selectedEntry?: MockCapabilityEntry
   activeKind: CapabilityEntryKind
+  dagExpandedById: Record<string, boolean>
   onSelect: (entry: MockCapabilityEntry) => void
   onOpenDag: (id: string) => void
+  onToggleDagExpanded: (id: string) => void
   onNotify: (message: string) => void
 }) {
   if (!entries.length) {
@@ -467,8 +637,10 @@ function CapabilityInspectorLayout({
             </span>
             <span className="capabilities-list-row__meta">
               <span>{sourceLabels[entry.source]}</span>
-              <span>{entry.owner}</span>
               <span>{entry.updatedAt}</span>
+              <span className="capabilities-list-row__more" aria-hidden="true">
+                <MoreHorizontalIcon className="capabilities-icon" />
+              </span>
             </span>
           </button>
         ))}
@@ -478,7 +650,9 @@ function CapabilityInspectorLayout({
         <DetailPanel
           entry={selectedEntry}
           activeKind={activeKind}
+          isDagExpanded={Boolean(dagExpandedById[selectedEntry.id])}
           onOpenDag={onOpenDag}
+          onToggleDagExpanded={onToggleDagExpanded}
           onNotify={onNotify}
         />
       ) : null}
@@ -489,12 +663,16 @@ function CapabilityInspectorLayout({
 function DetailPanel({
   entry,
   activeKind,
+  isDagExpanded,
   onOpenDag,
+  onToggleDagExpanded,
   onNotify,
 }: {
   entry: MockCapabilityEntry
   activeKind: CapabilityEntryKind
+  isDagExpanded: boolean
   onOpenDag: (id: string) => void
+  onToggleDagExpanded: (id: string) => void
   onNotify: (message: string) => void
 }) {
   const detailList =
@@ -534,6 +712,7 @@ function DetailPanel({
         <StatusBadge status={entry.status} />
         <span className="capabilities-chip">{sourceLabels[entry.source]}</span>
         <span className="capabilities-chip">{entry.version}</span>
+        <span className="capabilities-chip">{entry.owner}</span>
         {entry.connectionStatus ? (
           <span className="capabilities-chip">
             {entry.connectionStatus === 'connected'
@@ -556,8 +735,10 @@ function DetailPanel({
 
       {activeKind === 'pipeline' && entry.dag ? (
         <PipelineDagPreview
-          entryName={entry.name}
+          entry={entry}
           dag={entry.dag}
+          isExpanded={isDagExpanded}
+          onToggleExpanded={() => onToggleDagExpanded(entry.id)}
           onMaximize={() => onOpenDag(entry.id)}
         />
       ) : null}
@@ -641,28 +822,51 @@ function DetailPanel({
 }
 
 function PipelineDagPreview({
-  entryName,
+  entry,
   dag,
+  isExpanded,
+  onToggleExpanded,
   onMaximize,
 }: {
-  entryName: string
+  entry: MockCapabilityEntry
   dag: PipelineDag
+  isExpanded: boolean
+  onToggleExpanded: () => void
   onMaximize: () => void
 }) {
+  const summary = getPipelineDagSummary(entry, dag)
+
   return (
     <section className="capabilities-detail-section capabilities-dag-section">
-      <div className="capabilities-dag-section__header">
-        <h3>执行 DAG</h3>
-        <button
-          type="button"
-          className="capabilities-dag-section__action"
-          aria-label={`最大化查看 ${entryName} 的执行 DAG`}
-          onClick={onMaximize}
-        >
-          最大化查看
-        </button>
+      <div className="capabilities-dag-summary-row">
+        <div className="capabilities-dag-summary-row__copy">
+          <h3>执行 DAG</h3>
+          <span>
+            {' '}
+            {summary.stepCount} 步 · {summary.approvalCount} 个审批点 · 最近运行{' '}
+            {summary.recentRunCount} 次
+          </span>
+        </div>
+        <div className="capabilities-dag-summary-row__actions">
+          <button
+            type="button"
+            className="capabilities-dag-section__action"
+            aria-label={`${isExpanded ? '收起' : '展开'} ${entry.name} 的执行 DAG`}
+            onClick={onToggleExpanded}
+          >
+            {isExpanded ? '收起' : '展开'}
+          </button>
+          <button
+            type="button"
+            className="capabilities-dag-section__action"
+            aria-label={`最大化查看 ${entry.name} 的执行 DAG`}
+            onClick={onMaximize}
+          >
+            最大化
+          </button>
+        </div>
       </div>
-      <PipelineDagCanvas key={entryName} dag={dag} mode="preview" />
+      {isExpanded ? <PipelineDagCanvas key={entry.name} dag={dag} mode="preview" /> : null}
     </section>
   )
 }
@@ -1159,6 +1363,24 @@ function getKindIcon(kind: CapabilityEntryKind) {
   return PackageIcon
 }
 
+function getInitialAdvancedFilterOpenState(): Record<CapabilityEntryKind, boolean> {
+  return Object.fromEntries(
+    capabilityTypeOrder.map((kind) => [kind, false]),
+  ) as Record<CapabilityEntryKind, boolean>
+}
+
+function getInitialAdvancedFiltersByKind(): Record<
+  CapabilityEntryKind,
+  CapabilityAdvancedFilterValues
+> {
+  return Object.fromEntries(
+    capabilityTypeOrder.map((kind) => [
+      kind,
+      { ...defaultAdvancedFilters },
+    ]),
+  ) as Record<CapabilityEntryKind, CapabilityAdvancedFilterValues>
+}
+
 function getInitialSelectedIds(): Record<CapabilityEntryKind, string> {
   return Object.fromEntries(
     capabilityTypeOrder.map((kind) => [
@@ -1166,6 +1388,116 @@ function getInitialSelectedIds(): Record<CapabilityEntryKind, string> {
       capabilityEntries.find((entry) => entry.kind === kind)?.id ?? '',
     ]),
   ) as Record<CapabilityEntryKind, string>
+}
+
+function matchesAdvancedCapabilityFilters(
+  entry: MockCapabilityEntry,
+  filters: CapabilityAdvancedFilterValues,
+  enabledById: Record<string, boolean>,
+): boolean {
+  return (
+    matchesVersionFilter(entry, filters.version) &&
+    matchesPermissionFilter(entry, filters.permission, enabledById) &&
+    matchesOwnerFilter(entry, filters.owner)
+  )
+}
+
+function matchesVersionFilter(
+  entry: MockCapabilityEntry,
+  filter: AdvancedVersionFilter,
+): boolean {
+  if (filter === 'all') {
+    return true
+  }
+
+  if (filter === 'draft') {
+    return entry.status === 'draft'
+  }
+
+  return Boolean(entry.version) && entry.status !== 'draft'
+}
+
+function matchesPermissionFilter(
+  entry: MockCapabilityEntry,
+  filter: AdvancedPermissionFilter,
+  enabledById: Record<string, boolean>,
+): boolean {
+  if (filter === 'all') {
+    return true
+  }
+
+  if (filter === 'main-agent') {
+    if (entry.kind === 'skill') {
+      return Boolean(enabledById[entry.id])
+    }
+
+    return getCapabilityPermissionText(entry).includes('自动调用')
+  }
+
+  return /审批|approval/i.test(getCapabilityPermissionText(entry))
+}
+
+function matchesOwnerFilter(
+  entry: MockCapabilityEntry,
+  filter: AdvancedOwnerFilter,
+): boolean {
+  if (filter === 'all') {
+    return true
+  }
+
+  const normalizedOwner = entry.owner.toLowerCase()
+
+  if (filter === 'platform') {
+    return (
+      normalizedOwner.includes('biomap') ||
+      entry.owner.includes('平台') ||
+      entry.owner.includes('系统') ||
+      entry.source === 'system'
+    )
+  }
+
+  if (filter === 'external') {
+    return /cro|external|connector/i.test(
+      [entry.owner, ...entry.tags].join(' '),
+    )
+  }
+
+  return !matchesOwnerFilter(entry, 'platform') &&
+    !matchesOwnerFilter(entry, 'external')
+}
+
+function getCapabilityPermissionText(entry: MockCapabilityEntry) {
+  return [
+    ...entry.interface.permissions,
+    ...entry.sections.flatMap((section) => section.items),
+  ].join(' ')
+}
+
+function getPipelineDagSummary(entry: MockCapabilityEntry, dag: PipelineDag) {
+  const stepCount =
+    getMetricValue(entry, (label) => label.includes('步骤')) ??
+    `${dag.nodes.length}`
+  const approvalCount =
+    getMetricValue(entry, (label) => label.includes('审批')) ??
+    `${dag.nodes.filter((node) => node.kind === 'human-gate').length}`
+  const recentRunCount =
+    getMetricValue(
+      entry,
+      (label) => label.includes('近期运行') || label.includes('最近运行'),
+    ) ?? '0'
+
+  return {
+    stepCount,
+    approvalCount,
+    recentRunCount,
+  }
+}
+
+function getMetricValue(
+  entry: MockCapabilityEntry,
+  matchesLabel: (label: string) => boolean,
+) {
+  return entry.metrics.find((metric) => matchesLabel(metric.label))?.value
 }
 
 function getDialogActionLabel(entry: MockCapabilityEntry) {

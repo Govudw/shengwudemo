@@ -89,6 +89,78 @@ describe('CapabilitiesPage', () => {
     ).toContain('display: none;')
   })
 
+  it('keeps advanced capability filters collapsed by default', () => {
+    const { container, root } = renderCapabilitiesPage()
+
+    expect(container.textContent).toContain('更多筛选')
+    expect(container.textContent).not.toContain('全部版本')
+    expect(container.textContent).not.toContain('全部权限')
+    expect(container.textContent).not.toContain('全部负责人')
+
+    act(() => {
+      getButtonContaining(container, '更多筛选').click()
+    })
+
+    expect(container.textContent).toContain('全部版本')
+    expect(container.textContent).toContain('全部权限')
+    expect(container.textContent).toContain('全部负责人')
+
+    root.unmount()
+  })
+
+  it('applies the advanced version filter to the capability list', () => {
+    const { container, root } = renderCapabilitiesPage()
+
+    openAdvancedCapabilityFilters(container)
+    changeSelect(container, '按版本筛选', 'draft')
+
+    expect(getButtonContaining(container, '更多筛选').textContent).toContain('1')
+    expect(container.textContent).toContain('分子候选筛选 Pipeline')
+    expect(container.textContent).not.toContain('EGFR 抗体亲和力优化 Pipeline')
+
+    root.unmount()
+  })
+
+  it('applies the advanced permission filter to the capability list', () => {
+    const { container, root } = renderCapabilitiesPage()
+
+    openAdvancedCapabilityFilters(container)
+    changeSelect(container, '按权限筛选', 'approval')
+
+    expect(getButtonContaining(container, '更多筛选').textContent).toContain('1')
+    expect(container.textContent).toContain('EGFR 抗体亲和力优化 Pipeline')
+    expect(container.textContent).not.toContain('蛋白稳定性改造 Pipeline')
+
+    root.unmount()
+  })
+
+  it('applies the advanced owner filter to the capability list', () => {
+    const { container, root } = renderCapabilitiesPage()
+
+    openAdvancedCapabilityFilters(container)
+    changeSelect(container, '按负责人筛选', 'platform')
+
+    expect(getButtonContaining(container, '更多筛选').textContent).toContain('1')
+    expect(container.textContent).toContain('EGFR 抗体亲和力优化 Pipeline')
+    expect(container.textContent).not.toContain('蛋白稳定性改造 Pipeline')
+
+    root.unmount()
+  })
+
+  it('does not open a Pipeline detail panel when filters hide the selected Pipeline', () => {
+    const { container, root } = renderCapabilitiesPage()
+
+    expect(container.querySelector('.capabilities-detail')).not.toBeNull()
+
+    changeSelect(container, '按来源筛选', 'created')
+
+    expect(container.textContent).toContain('酶库订单与实验执行 Pipeline')
+    expect(container.textContent).not.toContain('EGFR 抗体亲和力优化 Pipeline')
+    expect(container.querySelector('.capabilities-detail')).toBeNull()
+
+    root.unmount()
+  })
+
   it('supports Codex-style Skill browsing, details, toggles, and build action', () => {
     const onNotify = vi.fn()
     const { container, root } = renderCapabilitiesPage({ onNotify })
@@ -191,17 +263,43 @@ describe('CapabilitiesPage', () => {
     root.unmount()
   })
 
-  it('shows a DAG preview for the default Pipeline without duplicating the linear steps section', () => {
+  it('collapses pipeline dag details by default', () => {
     const { container, root } = renderCapabilitiesPage()
 
     expect(getDetailSectionTitles(container)).toContain('执行 DAG')
     expect(getDetailSectionTitles(container)).not.toContain('步骤')
+    expect(container.textContent).toContain(
+      '执行 DAG 7 步 · 1 个审批点 · 最近运行 14 次',
+    )
+    expect(container.querySelector('.capabilities-dag-canvas--preview')).toBeNull()
+
+    act(() => {
+      getButtonContaining(container, '展开').click()
+    })
+
+    expect(container.querySelector('.capabilities-dag-canvas--preview')).not.toBeNull()
     expect(container.textContent).toContain('候选确认')
     expect(container.textContent).toContain('Human Gate')
     expect(container.textContent).toContain('人工确认')
     expect(container.textContent).toContain('QC')
     expect(container.textContent).toContain('QC 判断')
-    expect(getButtonContaining(container, '最大化查看')).toBeTruthy()
+    expect(getButtonContaining(container, '最大化')).toBeTruthy()
+
+    root.unmount()
+  })
+
+  it('opens the maximized Pipeline DAG Viewer without expanding the inline canvas', () => {
+    const { container, root } = renderCapabilitiesPage()
+
+    expect(container.querySelector('.capabilities-dag-canvas--preview')).toBeNull()
+
+    act(() => {
+      getButtonContaining(container, '最大化').click()
+    })
+
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(container.querySelector('.capabilities-dag-canvas--modal')).not.toBeNull()
+    expect(container.querySelector('.capabilities-dag-canvas--preview')).toBeNull()
 
     root.unmount()
   })
@@ -210,7 +308,7 @@ describe('CapabilitiesPage', () => {
     const { container, root } = renderCapabilitiesPage()
 
     act(() => {
-      getButtonContaining(container, '最大化查看').click()
+      getButtonContaining(container, '最大化').click()
     })
 
     expect(container.querySelector('[role="dialog"]')).not.toBeNull()
@@ -248,7 +346,7 @@ describe('CapabilitiesPage', () => {
     const { container, root } = renderCapabilitiesPage()
 
     act(() => {
-      getButtonContaining(container, '最大化查看').click()
+      getButtonContaining(container, '最大化').click()
     })
 
     act(() => {
@@ -288,7 +386,7 @@ describe('CapabilitiesPage', () => {
     const { container, root } = renderCapabilitiesPage()
 
     act(() => {
-      getButtonContaining(container, '最大化查看').click()
+      getButtonContaining(container, '最大化').click()
     })
 
     const canvas = getDagCanvas(container)
@@ -337,6 +435,12 @@ describe('CapabilitiesPage', () => {
 
       expect(getDetailSectionTitles(container)).toContain('执行 DAG')
       expect(getDetailSectionTitles(container)).not.toContain('步骤')
+      expect(container.querySelector('.capabilities-dag-canvas--preview')).toBeNull()
+
+      act(() => {
+        getButtonContaining(container, '展开').click()
+      })
+
       expect(container.textContent).toContain('Human Gate')
       expect(container.textContent).toContain('QC Decision')
     })
@@ -417,6 +521,11 @@ describe('CapabilitiesPage', () => {
     expect(container.textContent).toContain('v1.0')
     expect(container.textContent).toContain('正式审批')
     expect(container.textContent).toContain('异常孔不得自动剔除')
+
+    act(() => {
+      getButtonContaining(container, '展开').click()
+    })
+
     expect(container.textContent).toContain('读取设计交接')
     expect(container.textContent).toContain('归档操作索引')
     expect(container.textContent).not.toContain('CRO connector 权限复核')
@@ -480,11 +589,16 @@ describe('CapabilitiesPage', () => {
 
     expect(getDetailSectionTitles(container)).toContain('执行 DAG')
     expect(container.textContent).toContain('v1.0')
+
+    act(() => {
+      getButtonContaining(container, '展开').click()
+    })
+
     expect(container.textContent).toContain('体系确认')
     expect(container.textContent).toContain('Human Gate')
 
     act(() => {
-      getButtonContaining(container, '最大化查看').click()
+      getButtonContaining(container, '最大化').click()
     })
 
     act(() => {
@@ -564,6 +678,33 @@ function getButtonContaining(container: HTMLElement, text: string) {
   }
 
   return button
+}
+
+function openAdvancedCapabilityFilters(container: HTMLElement) {
+  act(() => {
+    getButtonContaining(container, '更多筛选').click()
+  })
+}
+
+function changeSelect(container: HTMLElement, label: string, value: string) {
+  const select = getSelectByLabel(container, label)
+
+  act(() => {
+    select.value = value
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+}
+
+function getSelectByLabel(container: HTMLElement, label: string) {
+  const select = Array.from(container.querySelectorAll('select')).find(
+    (element) => element.getAttribute('aria-label') === label,
+  )
+
+  if (!select) {
+    throw new Error(`Select not found with label: ${label}`)
+  }
+
+  return select
 }
 
 function getClickableContaining(container: HTMLElement, text: string) {

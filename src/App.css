@@ -6273,7 +6273,7 @@
 .capabilities-danger-action,
 .capabilities-icon-button,
 .capabilities-list-row,
-.capabilities-skill-row,
+.capabilities-skill-row__main-button,
 .capabilities-switch {
   border: 0;
   cursor: pointer;
@@ -6476,7 +6476,7 @@
 
 .capabilities-toolbar {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) 170px 170px;
+  grid-template-columns: minmax(260px, 1fr) 160px 150px max-content;
   gap: 10px;
   padding: 14px 34px;
   border-bottom: 1px solid var(--line);
@@ -6520,6 +6520,71 @@
   background: var(--surface);
   font-size: 13px;
   font-weight: 700;
+}
+
+.capabilities-more-filter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 116px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 8px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.capabilities-more-filter:hover,
+.capabilities-more-filter:focus-visible,
+.capabilities-more-filter--active {
+  border-color: rgba(44, 156, 240, 0.42);
+  color: var(--accent-strong);
+  background: #f4f9fe;
+  outline: 0;
+}
+
+.capabilities-advanced-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+  gap: 10px;
+  padding: 0 34px 14px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.capabilities-advanced-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.capabilities-advanced-filter span {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.capabilities-advanced-filter select {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 750;
 }
 
 .capabilities-browser {
@@ -6618,6 +6683,17 @@
   color: var(--line-strong);
 }
 
+.capabilities-list-row__more {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+}
+
+.capabilities-list-row__more .capabilities-icon {
+  width: 15px;
+  height: 15px;
+}
+
 .capabilities-detail {
   display: flex;
   min-width: 0;
@@ -6639,6 +6715,10 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
+}
+
+.capabilities-detail__badges {
+  flex-wrap: wrap;
 }
 
 .capabilities-detail__header h2 {
@@ -6820,6 +6900,39 @@
 
 .capabilities-dag-section {
   gap: 8px;
+}
+
+.capabilities-dag-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line-subtle);
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.capabilities-dag-summary-row__copy {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-width: 0;
+}
+
+.capabilities-dag-summary-row__copy span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.capabilities-dag-summary-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
 }
 
 .capabilities-dag-section__header {
@@ -7056,18 +7169,18 @@ button.capabilities-dag-node:focus-visible,
 
 .capabilities-skill-row {
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr) 86px 54px;
+  grid-template-columns: minmax(0, 1fr) 88px 86px 96px 54px;
   align-items: center;
-  gap: 14px;
-  min-height: 78px;
-  padding: 13px 18px;
+  gap: 12px;
+  min-height: 72px;
+  padding: 12px 14px;
   border-radius: 8px;
   color: var(--text);
   background: transparent;
 }
 
 .capabilities-skill-row:hover,
-.capabilities-skill-row:focus-visible {
+.capabilities-skill-row:focus-within {
   background: var(--surface);
   box-shadow: var(--shadow-card);
   outline: 0;
@@ -7078,11 +7191,20 @@ button.capabilities-dag-node:focus-visible,
   height: 40px;
 }
 
-.capabilities-skill-row__main {
+.capabilities-skill-row__main-button {
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: 5px;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+}
+
+.capabilities-skill-row__main-button:focus-visible {
+  outline: 2px solid rgba(44, 156, 240, 0.34);
+  outline-offset: 4px;
 }
 
 .capabilities-skill-row__name {
@@ -7107,8 +7229,23 @@ button.capabilities-dag-node:focus-visible,
   color: #5f6874;
   font-size: 13px;
   font-weight: 750;
-  text-align: right;
+  text-align: left;
   white-space: nowrap;
+}
+
+.capabilities-skill-row__updated {
+  color: var(--faint);
+  font-size: 12px;
+  font-weight: 750;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.capabilities-row-more-button {
+  width: 32px;
+  height: 32px;
+  justify-self: end;
+  flex-basis: 32px;
 }
 
 .capabilities-switch {
@@ -12652,6 +12789,7 @@ textarea:focus-visible {
 
   .capabilities-header,
   .capabilities-toolbar,
+  .capabilities-advanced-filters,
   .capabilities-skill-list {
     padding-inline: 24px;
   }
@@ -12706,6 +12844,10 @@ textarea:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .capabilities-advanced-filters {
+    grid-template-columns: 1fr;
+  }
+
   .capabilities-skill-list,
   .capabilities-browser {
     min-height: auto;
@@ -12713,11 +12855,17 @@ textarea:focus-visible {
   }
 
   .capabilities-skill-row {
-    grid-template-columns: 44px minmax(0, 1fr) 54px;
+    grid-template-columns: minmax(0, 1fr) 54px;
   }
 
-  .capabilities-skill-row__source {
+  .capabilities-skill-row__source,
+  .capabilities-skill-row__updated {
     display: none;
+  }
+
+  .capabilities-skill-row .capabilities-switch,
+  .capabilities-row-more-button {
+    grid-column: 2;
   }
 
   .capabilities-dag-modal__body {
@@ -12736,6 +12884,7 @@ textarea:focus-visible {
   }
 
   .capabilities-toolbar,
+  .capabilities-advanced-filters,
   .capabilities-browser,
   .capabilities-skill-list {
     padding-inline: 16px;
@@ -12765,7 +12914,7 @@ textarea:focus-visible {
   }
 
   .capabilities-skill-row {
-    grid-template-columns: 40px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 54px;
     gap: 10px;
     padding: 12px;
   }
