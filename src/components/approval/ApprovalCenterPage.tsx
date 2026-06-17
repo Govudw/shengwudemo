@@ -449,35 +449,62 @@ function ExternalSection() {
         外部系统拥有自己的流程、节点和处理人，BioMap 只记录提交/回调/撤回元数据和审计完整度。
       </p>
       <DataTable
-        minWidth={1640}
+        minWidth={1080}
         columns={[
           { key: 'name', header: '连接器', render: (connector) => <strong>{connector.name}</strong> },
-          { key: 'provider', header: 'Provider', render: (connector) => connector.provider },
           {
-            key: 'status',
-            header: '状态',
+            key: 'provider',
+            header: 'Provider / 状态',
             render: (connector) => (
-              <StatusPill tone={connector.status === 'healthy' ? 'success' : 'warning'}>
-                {connector.status}
-              </StatusPill>
+              <span className="approval-center__cell-stack">
+                <strong>{connector.provider}</strong>
+                <StatusPill tone={connector.status === 'healthy' ? 'success' : 'warning'}>
+                  {connector.status}
+                </StatusPill>
+              </span>
             ),
           },
           {
-            key: 'lastSyncStatus',
-            header: '最近同步',
-            render: (connector) => approvalSyncStatusLabels[connector.lastSyncStatus],
+            key: 'externalFlowKey',
+            header: '外部流程',
+            render: (connector) => (
+              <span className="approval-center__cell-stack">
+                <strong>{connector.externalFlowKey}</strong>
+                <small>认证：{connector.authenticationLabel}</small>
+              </span>
+            ),
           },
-          { key: 'externalFlowKey', header: '外部流程 Key', render: (connector) => connector.externalFlowKey },
-          { key: 'submissionEndpoint', header: '提交端点', render: (connector) => connector.submissionEndpoint },
-          { key: 'callbackEndpoint', header: '回调端点', render: (connector) => connector.callbackEndpoint },
-          { key: 'withdrawEndpoint', header: '撤回端点', render: (connector) => connector.withdrawEndpoint },
-          { key: 'retryPolicy', header: '重试策略', render: (connector) => connector.retryPolicy },
-          { key: 'authenticationLabel', header: '认证', render: (connector) => connector.authenticationLabel },
-          { key: 'lastSyncAt', header: '最近同步时间', render: (connector) => formatDate(connector.lastSyncAt) },
+          {
+            key: 'endpoints',
+            header: '提交 / 回调 / 撤回',
+            render: (connector) => (
+              <span className="approval-center__cell-stack">
+                <small>提交端点：{connector.submissionEndpoint}</small>
+                <small>回调端点：{connector.callbackEndpoint}</small>
+                <small>撤回端点：{connector.withdrawEndpoint}</small>
+              </span>
+            ),
+          },
+          {
+            key: 'syncPolicy',
+            header: '同步策略',
+            render: (connector) => (
+              <span className="approval-center__cell-stack">
+                <strong>{approvalSyncStatusLabels[connector.lastSyncStatus]}</strong>
+                <small>最近同步时间：{formatDate(connector.lastSyncAt)}</small>
+                <small>{connector.retryPolicy}</small>
+              </span>
+            ),
+          },
           {
             key: 'auditCompleteness',
-            header: '审计完整度',
-            render: (connector) => connector.auditCompleteness,
+            header: '审计',
+            render: (connector) => (
+              <span className="approval-center__cell-stack">
+                <strong>{connector.auditCompleteness}</strong>
+                <small>只记录元数据与回调结果</small>
+              </span>
+            ),
           },
         ]}
         records={externalApprovalConnectors}
@@ -612,7 +639,9 @@ function DataTable<TRecord>({
         <thead>
           <tr>
             {columns.map((column) => (
-              <th key={column.key}>{column.header}</th>
+              <th key={column.key} data-column-key={column.key}>
+                {column.header}
+              </th>
             ))}
           </tr>
         </thead>
@@ -620,7 +649,9 @@ function DataTable<TRecord>({
           {records.map((record, index) => (
             <tr key={getRecordKey(record, index)}>
               {columns.map((column) => (
-                <td key={column.key}>{column.render(record)}</td>
+                <td key={column.key} data-column-key={column.key}>
+                  {column.render(record)}
+                </td>
               ))}
             </tr>
           ))}

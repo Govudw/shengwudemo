@@ -718,13 +718,10 @@ function KnowledgeBaseAssetsView({
       >
         <div className="assets-table__row assets-table__row--head knowledge-assets-table__row" role="row">
           <span role="columnheader">名称</span>
-          <span role="columnheader">类型</span>
-          <span role="columnheader">范围</span>
-          <span role="columnheader">关联项目</span>
-          <span role="columnheader">文件数</span>
-          <span role="columnheader">实体 / 关系</span>
-          <span role="columnheader">最近构建</span>
-          <span role="columnheader">状态</span>
+          <span role="columnheader">类型 / 范围</span>
+          <span role="columnheader">关联对象</span>
+          <span role="columnheader">内容规模</span>
+          <span role="columnheader">状态 / 更新时间</span>
           <span role="columnheader">操作</span>
         </div>
         {records.map((record) => (
@@ -748,27 +745,35 @@ function KnowledgeBaseAssetsView({
                 <small>{record.description}</small>
               </span>
             </span>
-            <span role="cell">{knowledgeKindLabels[record.kind]}</span>
-            <span role="cell">{assetScopeLabel[record.scope]}</span>
-            <span role="cell">{record.projectName ?? '公共资产'}</span>
-            <span role="cell">{record.sourceFiles.length}</span>
-            <span role="cell">{getKnowledgeEntityRelationSummary(record)}</span>
-            <span role="cell">{record.updatedAt}</span>
-            <span role="cell">
+            <span className="assets-table__cell-stack" role="cell">
+              <strong>{knowledgeKindLabels[record.kind]}</strong>
+              <small>{assetScopeLabel[record.scope]}</small>
+            </span>
+            <span className="assets-table__cell-stack" role="cell">
+              <strong>{record.projectName ?? '公共资产'}</strong>
+              <small>{getKnowledgeListTitle(record.category)}</small>
+            </span>
+            <span className="assets-table__cell-stack" role="cell">
+              <strong>{record.sourceFiles.length} 个文件</strong>
+              <small>{getKnowledgeEntityRelationSummary(record)}</small>
+            </span>
+            <span className="assets-table__cell-stack" role="cell">
               <span className={`knowledge-status knowledge-status--${getKnowledgeStatusTone(record.status)}`}>
                 {record.status}
               </span>
+              <small>{record.updatedAt}</small>
             </span>
             <span role="cell">
               <button
                 type="button"
                 className="assets-record-card__action knowledge-row-open"
+                aria-label={`打开 ${record.name}`}
                 onClick={(event) => {
                   event.stopPropagation()
                   onRecordSelect(record.id)
                 }}
               >
-                打开 {record.name}
+                打开
               </button>
             </span>
           </div>
