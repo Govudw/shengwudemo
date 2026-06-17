@@ -29,7 +29,7 @@ type NotificationCenterDrawerProps = {
   onMarkAllRead: () => void
   onMarkResolved: (notificationId: string) => void
   onPrimaryAction: (notification: NotificationItem) => void
-  onOpenFullPage?: () => void
+  onOpenFullPage?: (notificationId?: string) => void
 }
 
 const filters: { id: NotificationFilter; label: string; empty: string }[] = [
@@ -94,6 +94,7 @@ function NotificationCenterDrawer({
   function handleRowSelect(notification: NotificationItem) {
     setActiveNotificationId(notification.id)
     onMarkRead(notification.id)
+    onOpenFullPage?.(notification.id)
   }
 
   function handlePrimaryAction(notification: NotificationItem) {
@@ -123,7 +124,7 @@ function NotificationCenterDrawer({
               <button
                 type="button"
                 className="notification-center__open-full"
-                onClick={onOpenFullPage}
+                onClick={() => onOpenFullPage()}
               >
                 查看全部
               </button>
@@ -241,7 +242,6 @@ function NotificationRow({
             </span>
           ) : null}
         </div>
-        <p className="notification-center__summary">{notification.summary}</p>
         <div className="notification-center__meta">
           <span>{notification.sourceLabel}</span>
           <time dateTime={notification.createdAt}>

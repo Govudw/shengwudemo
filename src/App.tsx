@@ -93,14 +93,23 @@ function App() {
   const notificationCenterStatusFilter = useDemoStore(
     (state) => state.notificationCenterStatusFilter,
   )
+  const notificationCenterReadStatusFilter = useDemoStore(
+    (state) => state.notificationCenterReadStatusFilter,
+  )
   const notificationCenterBusinessStatusFilter = useDemoStore(
     (state) => state.notificationCenterBusinessStatusFilter,
   )
   const notificationCenterSourceFilter = useDemoStore(
     (state) => state.notificationCenterSourceFilter,
   )
+  const notificationCenterTypeFilter = useDemoStore(
+    (state) => state.notificationCenterTypeFilter,
+  )
   const notificationCenterTimeFilter = useDemoStore(
     (state) => state.notificationCenterTimeFilter,
+  )
+  const notificationCenterAdvancedFiltersOpen = useDemoStore(
+    (state) => state.notificationCenterAdvancedFiltersOpen,
   )
   const notificationCenterSelectedId = useDemoStore(
     (state) => state.notificationCenterSelectedId,
@@ -165,14 +174,23 @@ function App() {
   const setNotificationCenterStatusFilter = useDemoStore(
     (state) => state.setNotificationCenterStatusFilter,
   )
+  const setNotificationCenterReadStatusFilter = useDemoStore(
+    (state) => state.setNotificationCenterReadStatusFilter,
+  )
   const setNotificationCenterBusinessStatusFilter = useDemoStore(
     (state) => state.setNotificationCenterBusinessStatusFilter,
   )
   const setNotificationCenterSourceFilter = useDemoStore(
     (state) => state.setNotificationCenterSourceFilter,
   )
+  const setNotificationCenterTypeFilter = useDemoStore(
+    (state) => state.setNotificationCenterTypeFilter,
+  )
   const setNotificationCenterTimeFilter = useDemoStore(
     (state) => state.setNotificationCenterTimeFilter,
+  )
+  const setNotificationCenterAdvancedFiltersOpen = useDemoStore(
+    (state) => state.setNotificationCenterAdvancedFiltersOpen,
   )
   const selectNotificationCenterItem = useDemoStore(
     (state) => state.selectNotificationCenterItem,
@@ -276,7 +294,7 @@ function App() {
 
     startNewThread()
     selectTopNav('Workspace')
-    showStatus('Thread 不存在或已被删除')
+    showStatus('对话不存在或已被删除')
 
     if (pathname !== '/') {
       window.history.replaceState(null, '', getExternalPath('/', appBasePath))
@@ -441,6 +459,7 @@ function App() {
     }
 
     if (item === 'product-management-platform') {
+      clearNotificationCenterSelection()
       navigateToPath(productManagementPlatformPath)
       return
     }
@@ -462,7 +481,7 @@ function App() {
       const entry = findThreadById(projects, target.threadId)
 
       if (!entry || entry.project.id !== target.projectId) {
-        showStatus('相关 Thread 不存在或已被删除')
+        showStatus('相关对话不存在或已被删除')
         return
       }
 
@@ -489,11 +508,15 @@ function App() {
     showStatus('已打开管理后台详情')
   }
 
-  function handleOpenFullNotificationCenter() {
+  function handleOpenFullNotificationCenter(notificationId?: string) {
     if (getInternalPathname(window.location.pathname, appBasePath) !== '/') {
       navigateToPathWithoutRootSync('/')
     }
     openNotificationCenterPageFromDrawer()
+
+    if (notificationId) {
+      selectNotificationCenterItem(notificationId, true)
+    }
   }
 
   function handleBatchClearNotificationReminders(notificationIds: string[]) {
@@ -596,18 +619,24 @@ function App() {
           preset={notificationCenterPreset}
           search={notificationCenterSearchQuery}
           statusFilter={notificationCenterStatusFilter}
+          readStatusFilter={notificationCenterReadStatusFilter}
           businessStatusFilter={notificationCenterBusinessStatusFilter}
           sourceFilter={notificationCenterSourceFilter}
+          typeFilter={notificationCenterTypeFilter}
           timeFilter={notificationCenterTimeFilter}
+          advancedFiltersOpen={notificationCenterAdvancedFiltersOpen}
           selectedNotificationId={notificationCenterSelectedId}
           selectedNotificationIds={notificationCenterSelectedIds}
           detailOpen={notificationCenterDetailOpen}
           onPresetChange={setNotificationCenterPreset}
           onSearchChange={setNotificationCenterSearchQuery}
           onStatusFilterChange={setNotificationCenterStatusFilter}
+          onReadStatusFilterChange={setNotificationCenterReadStatusFilter}
           onBusinessStatusFilterChange={setNotificationCenterBusinessStatusFilter}
           onSourceFilterChange={setNotificationCenterSourceFilter}
+          onTypeFilterChange={setNotificationCenterTypeFilter}
           onTimeFilterChange={setNotificationCenterTimeFilter}
+          onAdvancedFiltersOpenChange={setNotificationCenterAdvancedFiltersOpen}
           onSelectNotification={selectNotificationCenterItem}
           onToggleNotification={(notificationId, selected) =>
             setNotificationCenterSelectedId(notificationId, selected)

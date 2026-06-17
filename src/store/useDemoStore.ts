@@ -24,11 +24,14 @@ import {
   setNotificationDrawerOpenSnapshot,
   setNotificationFilterSnapshot,
   setNotificationCenterBusinessStatusFilterSnapshot,
+  setNotificationCenterAdvancedFiltersOpenSnapshot,
   setNotificationCenterPresetSnapshot,
+  setNotificationCenterReadStatusFilterSnapshot,
   setNotificationCenterSearchQuerySnapshot,
   setNotificationCenterSourceFilterSnapshot,
   setNotificationCenterStatusFilterSnapshot,
   setNotificationCenterTimeFilterSnapshot,
+  setNotificationCenterTypeFilterSnapshot,
   setNotificationCenterSelectedIdSnapshot,
   setSelectedProjectSnapshot,
   startNewThreadSnapshot,
@@ -55,9 +58,11 @@ import { notificationCenterSeedItems } from '../data/notificationCenterMockData'
 import type {
   NotificationCenterBusinessStatusFilter,
   NotificationCenterPreset,
+  NotificationCenterReadStatusFilter,
+  NotificationCenterReminderStatusFilter,
   NotificationCenterSourceFilter,
-  NotificationCenterStatusFilter,
   NotificationCenterTimeFilter,
+  NotificationCenterTypeFilter,
   NotificationFilter,
 } from '../data/notificationCenterMockData'
 
@@ -102,7 +107,10 @@ type DemoStoreState = DemoStateSnapshot & {
   setNotificationCenterPreset: (preset: NotificationCenterPreset) => void
   setNotificationCenterSearchQuery: (query: string) => void
   setNotificationCenterStatusFilter: (
-    filter: NotificationCenterStatusFilter,
+    filter: NotificationCenterReminderStatusFilter,
+  ) => void
+  setNotificationCenterReadStatusFilter: (
+    filter: NotificationCenterReadStatusFilter,
   ) => void
   setNotificationCenterBusinessStatusFilter: (
     filter: NotificationCenterBusinessStatusFilter,
@@ -110,9 +118,13 @@ type DemoStoreState = DemoStateSnapshot & {
   setNotificationCenterSourceFilter: (
     filter: NotificationCenterSourceFilter,
   ) => void
+  setNotificationCenterTypeFilter: (
+    filter: NotificationCenterTypeFilter,
+  ) => void
   setNotificationCenterTimeFilter: (
     filter: NotificationCenterTimeFilter,
   ) => void
+  setNotificationCenterAdvancedFiltersOpen: (open: boolean) => void
   selectNotificationCenterItem: (
     notificationId: string | null,
     detailOpen?: boolean,
@@ -204,14 +216,24 @@ export const useDemoStore = create<DemoStoreState>()(
         set((state) => setNotificationCenterSearchQuerySnapshot(state, query)),
       setNotificationCenterStatusFilter: (filter) =>
         set((state) => setNotificationCenterStatusFilterSnapshot(state, filter)),
+      setNotificationCenterReadStatusFilter: (filter) =>
+        set((state) =>
+          setNotificationCenterReadStatusFilterSnapshot(state, filter),
+        ),
       setNotificationCenterBusinessStatusFilter: (filter) =>
         set((state) =>
           setNotificationCenterBusinessStatusFilterSnapshot(state, filter),
         ),
       setNotificationCenterSourceFilter: (filter) =>
         set((state) => setNotificationCenterSourceFilterSnapshot(state, filter)),
+      setNotificationCenterTypeFilter: (filter) =>
+        set((state) => setNotificationCenterTypeFilterSnapshot(state, filter)),
       setNotificationCenterTimeFilter: (filter) =>
         set((state) => setNotificationCenterTimeFilterSnapshot(state, filter)),
+      setNotificationCenterAdvancedFiltersOpen: (open) =>
+        set((state) =>
+          setNotificationCenterAdvancedFiltersOpenSnapshot(state, open),
+        ),
       selectNotificationCenterItem: (notificationId, detailOpen) =>
         set((state) =>
           selectNotificationCenterItemSnapshot(
@@ -266,16 +288,23 @@ export const useDemoStore = create<DemoStoreState>()(
         notificationCenterPreset: state.notificationCenterPreset,
         notificationCenterSearchQuery: state.notificationCenterSearchQuery,
         notificationCenterStatusFilter: state.notificationCenterStatusFilter,
+        notificationCenterReadStatusFilter:
+          state.notificationCenterReadStatusFilter,
         notificationCenterBusinessStatusFilter:
           state.notificationCenterBusinessStatusFilter,
         notificationCenterSourceFilter: state.notificationCenterSourceFilter,
+        notificationCenterTypeFilter: state.notificationCenterTypeFilter,
         notificationCenterTimeFilter: state.notificationCenterTimeFilter,
+        notificationCenterAdvancedFiltersOpen:
+          state.notificationCenterAdvancedFiltersOpen,
         notificationCenterSelectedId: state.notificationCenterSelectedId,
-        notificationCenterSelectedIds: state.notificationCenterSelectedIds,
         notificationCenterDetailOpen: state.notificationCenterDetailOpen,
       }),
       merge: (persistedState, currentState) => {
-        const restoredState = (persistedState ?? {}) as Partial<DemoStateSnapshot>
+        const restoredState = (persistedState ?? {}) as Partial<DemoStateSnapshot> & {
+          notificationCenterStatusFilter?: unknown
+          notificationCenterReadStatusFilter?: unknown
+        }
         const selectedProjectId =
           restoredState.selectedProjectId ?? currentState.selectedProjectId
         const selectedThreadId =
@@ -284,6 +313,21 @@ export const useDemoStore = create<DemoStoreState>()(
           selectedProjectId,
           selectedThreadId,
         )
+        const legacyReadStatusFilter = getLegacyNotificationCenterReadStatusFilter(
+          restoredState.notificationCenterStatusFilter,
+        )
+        const restoredReminderStatusFilter =
+          legacyReadStatusFilter ||
+          !isNotificationCenterReminderStatusFilter(
+            restoredState.notificationCenterStatusFilter,
+          )
+            ? currentState.notificationCenterStatusFilter
+            : restoredState.notificationCenterStatusFilter
+        const restoredReadStatusFilter = isNotificationCenterReadStatusFilter(
+          restoredState.notificationCenterReadStatusFilter,
+        )
+          ? restoredState.notificationCenterReadStatusFilter
+          : (legacyReadStatusFilter ?? currentState.notificationCenterReadStatusFilter)
         const mergedState: DemoStateSnapshot = {
           ...currentState,
           ...restoredState,
@@ -347,24 +391,27 @@ export const useDemoStore = create<DemoStoreState>()(
           notificationCenterSearchQuery:
             restoredState.notificationCenterSearchQuery ??
             currentState.notificationCenterSearchQuery,
-          notificationCenterStatusFilter:
-            restoredState.notificationCenterStatusFilter ??
-            currentState.notificationCenterStatusFilter,
+          notificationCenterStatusFilter: restoredReminderStatusFilter,
+          notificationCenterReadStatusFilter: restoredReadStatusFilter,
           notificationCenterBusinessStatusFilter:
             restoredState.notificationCenterBusinessStatusFilter ??
             currentState.notificationCenterBusinessStatusFilter,
           notificationCenterSourceFilter:
             restoredState.notificationCenterSourceFilter ??
             currentState.notificationCenterSourceFilter,
+          notificationCenterTypeFilter:
+            restoredState.notificationCenterTypeFilter ??
+            currentState.notificationCenterTypeFilter,
           notificationCenterTimeFilter:
             restoredState.notificationCenterTimeFilter ??
             currentState.notificationCenterTimeFilter,
+          notificationCenterAdvancedFiltersOpen:
+            restoredState.notificationCenterAdvancedFiltersOpen ??
+            currentState.notificationCenterAdvancedFiltersOpen,
           notificationCenterSelectedId:
             restoredState.notificationCenterSelectedId ??
             currentState.notificationCenterSelectedId,
-          notificationCenterSelectedIds:
-            restoredState.notificationCenterSelectedIds ??
-            currentState.notificationCenterSelectedIds,
+          notificationCenterSelectedIds: [],
           notificationCenterDetailOpen:
             restoredState.notificationCenterDetailOpen ??
             currentState.notificationCenterDetailOpen,
@@ -399,6 +446,24 @@ function isRunInspectorStateRecord(
         typeof (item as { open?: unknown }).open === 'boolean',
     )
   )
+}
+
+function isNotificationCenterReminderStatusFilter(
+  value: unknown,
+): value is NotificationCenterReminderStatusFilter {
+  return value === 'all' || value === 'actionRequired' || value === 'cleared'
+}
+
+function isNotificationCenterReadStatusFilter(
+  value: unknown,
+): value is NotificationCenterReadStatusFilter {
+  return value === 'all' || value === 'read' || value === 'unread'
+}
+
+function getLegacyNotificationCenterReadStatusFilter(
+  value: unknown,
+): NotificationCenterReadStatusFilter | undefined {
+  return value === 'read' || value === 'unread' ? value : undefined
 }
 
 function createThreadId() {

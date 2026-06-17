@@ -212,6 +212,33 @@ describe('demo store logic', () => {
     expect(workspace.selectedThreadId).toBe('egfr-affinity')
   })
 
+  it('clears Notification Center batch selection when leaving the page', () => {
+    const state = {
+      ...createInitialDemoState(seedProjects, now),
+      activeTopNav: 'NotificationCenter' as const,
+      notificationCenterSelectedId: 'notification-approval-egfr-order',
+      notificationCenterSelectedIds: [
+        'notification-approval-egfr-order',
+        'notification-agent-egfr-confirmation',
+      ],
+      notificationCenterDetailOpen: true,
+    }
+
+    const projects = selectTopNavSnapshot(state, 'Projects')
+    const notificationCenter = selectTopNavSnapshot(
+      projects,
+      'NotificationCenter',
+    )
+
+    expect(projects.activeTopNav).toBe('Projects')
+    expect(projects.notificationCenterSelectedIds).toEqual([])
+    expect(projects.notificationCenterSelectedId).toBe(
+      'notification-approval-egfr-order',
+    )
+    expect(projects.notificationCenterDetailOpen).toBe(true)
+    expect(notificationCenter.notificationCenterSelectedIds).toEqual([])
+  })
+
   it('persists the current Assets menu item and view modes as plain state', () => {
     const state = createInitialDemoState(seedProjects, now)
     const selectedExperiment = setAssetsSelectionSnapshot(

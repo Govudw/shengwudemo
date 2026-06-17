@@ -1,11 +1,14 @@
 import type { ConversationTurn, RunInspectorData } from '../data/conversationTypes'
 import type { Project } from '../data/mockData'
+import { notificationCenterSeedItems } from '../data/notificationCenterMockData'
 import type {
   NotificationCenterBusinessStatusFilter,
   NotificationCenterPreset,
+  NotificationCenterReadStatusFilter,
+  NotificationCenterReminderStatusFilter,
   NotificationCenterSourceFilter,
-  NotificationCenterStatusFilter,
   NotificationCenterTimeFilter,
+  NotificationCenterTypeFilter,
   NotificationFilter,
 } from '../data/notificationCenterMockData'
 
@@ -50,10 +53,13 @@ export type DemoStateSnapshot = {
   notificationResolvedById: Record<string, boolean>
   notificationCenterPreset: NotificationCenterPreset
   notificationCenterSearchQuery: string
-  notificationCenterStatusFilter: NotificationCenterStatusFilter
+  notificationCenterStatusFilter: NotificationCenterReminderStatusFilter
+  notificationCenterReadStatusFilter: NotificationCenterReadStatusFilter
   notificationCenterBusinessStatusFilter: NotificationCenterBusinessStatusFilter
   notificationCenterSourceFilter: NotificationCenterSourceFilter
+  notificationCenterTypeFilter: NotificationCenterTypeFilter
   notificationCenterTimeFilter: NotificationCenterTimeFilter
+  notificationCenterAdvancedFiltersOpen: boolean
   notificationCenterSelectedId: string | null
   notificationCenterSelectedIds: string[]
   notificationCenterDetailOpen: boolean
@@ -159,13 +165,16 @@ const notificationCenterPresets = [
   'asset',
   'system',
 ] as const satisfies readonly NotificationCenterPreset[]
-const notificationCenterStatusFilters = [
+const notificationCenterReminderStatusFilters = [
   'all',
   'actionRequired',
   'cleared',
+] as const satisfies readonly NotificationCenterReminderStatusFilter[]
+const notificationCenterReadStatusFilters = [
+  'all',
   'read',
   'unread',
-] as const satisfies readonly NotificationCenterStatusFilter[]
+] as const satisfies readonly NotificationCenterReadStatusFilter[]
 const notificationCenterBusinessStatusFilters = [
   'all',
   'approvalPending',
@@ -181,12 +190,23 @@ const notificationCenterSourceFilters = [
   'connector',
   'admin',
 ] as const satisfies readonly NotificationCenterSourceFilter[]
+const notificationCenterTypeFilters = [
+  'all',
+  'approval',
+  'agent',
+  'asset',
+  'system',
+  'collaboration',
+] as const satisfies readonly NotificationCenterTypeFilter[]
 const notificationCenterTimeFilters = [
   'all',
   'today',
   'last7Days',
   'last30Days',
 ] as const satisfies readonly NotificationCenterTimeFilter[]
+const notificationCenterSeedItemIds = new Set(
+  notificationCenterSeedItems.map((item) => item.id),
+)
 const assetMenuItemsBySection = {
   file: ['public-files', 'project-files', 'recent-uploads', 'archived-files'],
   knowledge: ['all-knowledge', 'rag', 'knowledge-graph', 'graph-rag'],
@@ -225,9 +245,12 @@ export function createInitialDemoState(
     notificationCenterPreset: 'all',
     notificationCenterSearchQuery: '',
     notificationCenterStatusFilter: 'all',
+    notificationCenterReadStatusFilter: 'all',
     notificationCenterBusinessStatusFilter: 'all',
     notificationCenterSourceFilter: 'all',
+    notificationCenterTypeFilter: 'all',
     notificationCenterTimeFilter: 'all',
+    notificationCenterAdvancedFiltersOpen: false,
     notificationCenterSelectedId: null,
     notificationCenterSelectedIds: [],
     notificationCenterDetailOpen: false,
@@ -594,9 +617,16 @@ export function selectTopNavSnapshot(
     return state
   }
 
+  const isLeavingNotificationCenter =
+    state.activeTopNav === 'NotificationCenter' &&
+    activeTopNav !== 'NotificationCenter'
+
   return {
     ...state,
     activeTopNav,
+    notificationCenterSelectedIds: isLeavingNotificationCenter
+      ? []
+      : state.notificationCenterSelectedIds,
   }
 }
 
@@ -777,15 +807,30 @@ export function setNotificationCenterSearchQuerySnapshot(
 
 export function setNotificationCenterStatusFilterSnapshot(
   state: DemoStateSnapshot,
-  notificationCenterStatusFilter: NotificationCenterStatusFilter,
+  notificationCenterStatusFilter: NotificationCenterReminderStatusFilter,
 ): DemoStateSnapshot {
-  if (!isNotificationCenterStatusFilter(notificationCenterStatusFilter)) {
+  if (!isNotificationCenterReminderStatusFilter(notificationCenterStatusFilter)) {
     return state
   }
 
   return {
     ...state,
     notificationCenterStatusFilter,
+    notificationCenterSelectedIds: [],
+  }
+}
+
+export function setNotificationCenterReadStatusFilterSnapshot(
+  state: DemoStateSnapshot,
+  notificationCenterReadStatusFilter: NotificationCenterReadStatusFilter,
+): DemoStateSnapshot {
+  if (!isNotificationCenterReadStatusFilter(notificationCenterReadStatusFilter)) {
+    return state
+  }
+
+  return {
+    ...state,
+    notificationCenterReadStatusFilter,
     notificationCenterSelectedIds: [],
   }
 }
@@ -820,6 +865,21 @@ export function setNotificationCenterSourceFilterSnapshot(
   }
 }
 
+export function setNotificationCenterTypeFilterSnapshot(
+  state: DemoStateSnapshot,
+  notificationCenterTypeFilter: NotificationCenterTypeFilter,
+): DemoStateSnapshot {
+  if (!isNotificationCenterTypeFilter(notificationCenterTypeFilter)) {
+    return state
+  }
+
+  return {
+    ...state,
+    notificationCenterTypeFilter,
+    notificationCenterSelectedIds: [],
+  }
+}
+
 export function setNotificationCenterTimeFilterSnapshot(
   state: DemoStateSnapshot,
   notificationCenterTimeFilter: NotificationCenterTimeFilter,
@@ -832,6 +892,16 @@ export function setNotificationCenterTimeFilterSnapshot(
     ...state,
     notificationCenterTimeFilter,
     notificationCenterSelectedIds: [],
+  }
+}
+
+export function setNotificationCenterAdvancedFiltersOpenSnapshot(
+  state: DemoStateSnapshot,
+  notificationCenterAdvancedFiltersOpen: boolean,
+): DemoStateSnapshot {
+  return {
+    ...state,
+    notificationCenterAdvancedFiltersOpen,
   }
 }
 
@@ -1397,9 +1467,12 @@ function sanitizeNotificationStateFields(
   | 'notificationCenterPreset'
   | 'notificationCenterSearchQuery'
   | 'notificationCenterStatusFilter'
+  | 'notificationCenterReadStatusFilter'
   | 'notificationCenterBusinessStatusFilter'
   | 'notificationCenterSourceFilter'
+  | 'notificationCenterTypeFilter'
   | 'notificationCenterTimeFilter'
+  | 'notificationCenterAdvancedFiltersOpen'
   | 'notificationCenterSelectedId'
   | 'notificationCenterSelectedIds'
   | 'notificationCenterDetailOpen'
@@ -1409,6 +1482,22 @@ function sanitizeNotificationStateFields(
     ...legacyResolvedById,
     ...sanitizeBooleanRecord(state.notificationClearedById),
   }
+  const notificationCenterSelectedId =
+    typeof state.notificationCenterSelectedId === 'string' &&
+    notificationCenterSeedItemIds.has(state.notificationCenterSelectedId)
+      ? state.notificationCenterSelectedId
+      : null
+  const legacyStatusFilter = (
+    state as DemoStateSnapshot & {
+      notificationCenterStatusFilter?: unknown
+      notificationCenterReadStatusFilter?: unknown
+    }
+  ).notificationCenterStatusFilter
+  const persistedReadStatusFilter = (
+    state as DemoStateSnapshot & {
+      notificationCenterReadStatusFilter?: unknown
+    }
+  ).notificationCenterReadStatusFilter
 
   return {
     notificationDrawerOpen:
@@ -1430,11 +1519,15 @@ function sanitizeNotificationStateFields(
       typeof state.notificationCenterSearchQuery === 'string'
         ? state.notificationCenterSearchQuery
         : '',
-    notificationCenterStatusFilter: isNotificationCenterStatusFilter(
-      state.notificationCenterStatusFilter,
-    )
-      ? state.notificationCenterStatusFilter
-      : 'all',
+    notificationCenterStatusFilter: normalizeNotificationCenterStatusFilter(
+      legacyStatusFilter,
+      'all',
+    ),
+    notificationCenterReadStatusFilter: normalizeNotificationCenterReadStatusFilter(
+      persistedReadStatusFilter,
+      legacyStatusFilter,
+      'all',
+    ),
     notificationCenterBusinessStatusFilter:
       isNotificationCenterBusinessStatusFilter(
         state.notificationCenterBusinessStatusFilter,
@@ -1446,19 +1539,24 @@ function sanitizeNotificationStateFields(
     )
       ? state.notificationCenterSourceFilter
       : 'all',
+    notificationCenterTypeFilter: isNotificationCenterTypeFilter(
+      state.notificationCenterTypeFilter,
+    )
+      ? state.notificationCenterTypeFilter
+      : 'all',
     notificationCenterTimeFilter: isNotificationCenterTimeFilter(
       state.notificationCenterTimeFilter,
     )
       ? state.notificationCenterTimeFilter
       : 'all',
-    notificationCenterSelectedId:
-      typeof state.notificationCenterSelectedId === 'string'
-        ? state.notificationCenterSelectedId
-        : null,
-    notificationCenterSelectedIds: sanitizeStringArray(
-      state.notificationCenterSelectedIds,
-    ),
+    notificationCenterAdvancedFiltersOpen:
+      typeof state.notificationCenterAdvancedFiltersOpen === 'boolean'
+        ? state.notificationCenterAdvancedFiltersOpen
+        : false,
+    notificationCenterSelectedId,
+    notificationCenterSelectedIds: [],
     notificationCenterDetailOpen:
+      notificationCenterSelectedId &&
       typeof state.notificationCenterDetailOpen === 'boolean'
         ? state.notificationCenterDetailOpen
         : false,
@@ -1479,12 +1577,43 @@ function isNotificationCenterPreset(
   return notificationCenterPresets.includes(value as NotificationCenterPreset)
 }
 
-function isNotificationCenterStatusFilter(
+function isNotificationCenterReminderStatusFilter(
   value: unknown,
-): value is NotificationCenterStatusFilter {
-  return notificationCenterStatusFilters.includes(
-    value as NotificationCenterStatusFilter,
+): value is NotificationCenterReminderStatusFilter {
+  return notificationCenterReminderStatusFilters.includes(
+    value as NotificationCenterReminderStatusFilter,
   )
+}
+
+function isNotificationCenterReadStatusFilter(
+  value: unknown,
+): value is NotificationCenterReadStatusFilter {
+  return notificationCenterReadStatusFilters.includes(
+    value as NotificationCenterReadStatusFilter,
+  )
+}
+
+function normalizeNotificationCenterStatusFilter(
+  value: unknown,
+  fallback: NotificationCenterReminderStatusFilter,
+): NotificationCenterReminderStatusFilter {
+  return isNotificationCenterReminderStatusFilter(value) ? value : fallback
+}
+
+function normalizeNotificationCenterReadStatusFilter(
+  value: unknown,
+  legacyStatusFilter: unknown,
+  fallback: NotificationCenterReadStatusFilter,
+): NotificationCenterReadStatusFilter {
+  if (isNotificationCenterReadStatusFilter(value)) {
+    return value
+  }
+
+  if (legacyStatusFilter === 'read' || legacyStatusFilter === 'unread') {
+    return legacyStatusFilter
+  }
+
+  return fallback
 }
 
 function isNotificationCenterBusinessStatusFilter(
@@ -1500,6 +1629,14 @@ function isNotificationCenterSourceFilter(
 ): value is NotificationCenterSourceFilter {
   return notificationCenterSourceFilters.includes(
     value as NotificationCenterSourceFilter,
+  )
+}
+
+function isNotificationCenterTypeFilter(
+  value: unknown,
+): value is NotificationCenterTypeFilter {
+  return notificationCenterTypeFilters.includes(
+    value as NotificationCenterTypeFilter,
   )
 }
 
@@ -1521,14 +1658,6 @@ function sanitizeBooleanRecord(value: unknown): Record<string, boolean> {
       ([key, recordValue]) => key && typeof recordValue === 'boolean',
     ),
   )
-}
-
-function sanitizeStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return []
-  }
-
-  return value.filter((item): item is string => typeof item === 'string')
 }
 
 function mapNotificationFilterToCenterPreset(

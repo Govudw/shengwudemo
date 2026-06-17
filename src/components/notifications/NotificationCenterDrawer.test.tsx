@@ -32,15 +32,17 @@ describe('NotificationCenterDrawer', () => {
     root.unmount()
   })
 
-  it('marks a notification read when its row is clicked without resolving it', () => {
+  it('opens the full notification center with detail when its title is clicked', () => {
     const onMarkRead = vi.fn()
-    const { container, root } = renderDrawer({ onMarkRead })
+    const onOpenFullPage = vi.fn()
+    const { container, root } = renderDrawer({ onMarkRead, onOpenFullPage })
 
     act(() => {
       getButton(container, 'EGFR 实验订单等待审批').click()
     })
 
     expect(onMarkRead).toHaveBeenCalledWith('notification-approval-egfr-order')
+    expect(onOpenFullPage).toHaveBeenCalledWith('notification-approval-egfr-order')
     expect(container.textContent).toContain('清除提醒')
 
     root.unmount()
@@ -67,7 +69,12 @@ describe('NotificationCenterDrawer', () => {
   it('closes the drawer after a primary notification action', () => {
     const onPrimaryAction = vi.fn()
     const onClose = vi.fn()
-    const { container, root } = renderDrawer({ onClose, onPrimaryAction })
+    const onOpenFullPage = vi.fn()
+    const { container, root } = renderDrawer({
+      onClose,
+      onOpenFullPage,
+      onPrimaryAction,
+    })
 
     act(() => {
       getButton(container, '去审批').click()
@@ -76,6 +83,7 @@ describe('NotificationCenterDrawer', () => {
     expect(onPrimaryAction).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'notification-approval-egfr-order' }),
     )
+    expect(onOpenFullPage).not.toHaveBeenCalled()
     expect(onClose).toHaveBeenCalledTimes(1)
 
     root.unmount()
@@ -120,6 +128,22 @@ describe('NotificationCenterDrawer', () => {
     })
 
     expect(onFilterChange).toHaveBeenCalledWith('system')
+
+    root.unmount()
+  })
+
+  it('uses compact drawer rows without long object ids', () => {
+    const { container, root } = renderDrawer({
+      onOpenFullPage: () => undefined,
+    })
+
+    expect(container.textContent).toContain('查看全部')
+    expect(container.textContent).not.toContain('BM-APR-20260615')
+    expect(container.textContent).not.toContain('打开 Thread')
+    expect(container.textContent).not.toContain(
+      '资料包已生成，需要 Data Governance Reviewers 审批后才能提交 CRO 订单。',
+    )
+    expect(container.querySelector('.notification-center__summary')).toBeNull()
 
     root.unmount()
   })

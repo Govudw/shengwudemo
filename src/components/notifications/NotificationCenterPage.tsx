@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   isActionRequiredNotification,
   sortNotificationsForTriage,
@@ -7,9 +7,11 @@ import type {
   NotificationCategory,
   NotificationCenterBusinessStatusFilter,
   NotificationCenterPreset,
+  NotificationCenterReadStatusFilter,
+  NotificationCenterReminderStatusFilter,
   NotificationCenterSourceFilter,
-  NotificationCenterStatusFilter,
   NotificationCenterTimeFilter,
+  NotificationCenterTypeFilter,
   NotificationItem,
 } from '../../data/notificationCenterMockData'
 
@@ -17,21 +19,27 @@ export type NotificationCenterPageProps = {
   notifications: NotificationItem[]
   preset: NotificationCenterPreset
   search: string
-  statusFilter: NotificationCenterStatusFilter
+  statusFilter: NotificationCenterReminderStatusFilter
+  readStatusFilter: NotificationCenterReadStatusFilter
   businessStatusFilter: NotificationCenterBusinessStatusFilter
   sourceFilter: NotificationCenterSourceFilter
+  typeFilter: NotificationCenterTypeFilter
   timeFilter: NotificationCenterTimeFilter
+  advancedFiltersOpen?: boolean
   selectedNotificationId: string | null
   selectedNotificationIds: string[]
   detailOpen: boolean
   onPresetChange: (preset: NotificationCenterPreset) => void
   onSearchChange: (search: string) => void
-  onStatusFilterChange: (filter: NotificationCenterStatusFilter) => void
+  onStatusFilterChange: (filter: NotificationCenterReminderStatusFilter) => void
+  onReadStatusFilterChange: (filter: NotificationCenterReadStatusFilter) => void
   onBusinessStatusFilterChange: (
     filter: NotificationCenterBusinessStatusFilter,
   ) => void
   onSourceFilterChange: (filter: NotificationCenterSourceFilter) => void
+  onTypeFilterChange: (filter: NotificationCenterTypeFilter) => void
   onTimeFilterChange: (filter: NotificationCenterTimeFilter) => void
+  onAdvancedFiltersOpenChange?: (open: boolean) => void
   onSelectNotification: (notificationId: string) => void
   onToggleNotification: (notificationId: string, selected: boolean) => void
   onDetailOpenChange: (open: boolean) => void
@@ -63,11 +71,16 @@ const categoryLabels: Record<NotificationCategory, string> = {
 
 const sourceLabels: Record<NotificationCenterSourceFilter, string> = {
   all: '全部来源',
-  project: 'Project',
-  thread: 'Thread',
-  asset: 'Asset',
-  connector: 'Connector',
-  admin: 'Admin',
+  project: '项目',
+  thread: '对话',
+  asset: '资产',
+  connector: '连接器',
+  admin: '管理后台',
+}
+
+const typeLabels: Record<NotificationCenterTypeFilter, string> = {
+  all: '全部类型',
+  ...categoryLabels,
 }
 
 function NotificationCenterPage({
@@ -75,18 +88,24 @@ function NotificationCenterPage({
   preset,
   search,
   statusFilter,
+  readStatusFilter,
   businessStatusFilter,
   sourceFilter,
+  typeFilter,
   timeFilter,
+  advancedFiltersOpen,
   selectedNotificationId,
   selectedNotificationIds,
   detailOpen,
   onPresetChange,
   onSearchChange,
   onStatusFilterChange,
+  onReadStatusFilterChange,
   onBusinessStatusFilterChange,
   onSourceFilterChange,
+  onTypeFilterChange,
   onTimeFilterChange,
+  onAdvancedFiltersOpenChange,
   onSelectNotification,
   onToggleNotification,
   onDetailOpenChange,
@@ -103,23 +122,31 @@ function NotificationCenterPage({
         preset,
         search,
         statusFilter,
+        readStatusFilter,
         businessStatusFilter,
         sourceFilter,
+        typeFilter,
         timeFilter,
       }),
     [
       businessStatusFilter,
       notifications,
       preset,
+      readStatusFilter,
       search,
       sourceFilter,
       statusFilter,
+      typeFilter,
       timeFilter,
     ],
   )
   const selectedNotification =
     visibleNotifications.find((item) => item.id === selectedNotificationId) ??
     null
+  const [internalAdvancedFiltersOpen, setInternalAdvancedFiltersOpen] =
+    useState(false)
+  const advancedFiltersVisible =
+    advancedFiltersOpen ?? internalAdvancedFiltersOpen
   const detailActive = Boolean(detailOpen && selectedNotification)
   const selectedAttentionIds = selectedNotificationIds.filter((notificationId) => {
     const notification = notifications.find((item) => item.id === notificationId)
@@ -134,6 +161,16 @@ function NotificationCenterPage({
   const exceptionCount = notifications.filter(
     (item) => item.severity === 'danger' || item.actionState === 'failed',
   ).length
+  const advancedFilterCount = [
+    businessStatusFilter !== 'all',
+    sourceFilter !== 'all',
+    typeFilter !== 'all',
+    readStatusFilter !== 'all',
+  ].filter(Boolean).length
+  const advancedFilterLabel =
+    advancedFilterCount > 0
+      ? `更多筛选 ${advancedFilterCount}`
+      : '更多筛选'
 
   function handleSelect(notification: NotificationItem) {
     onSelectNotification(notification.id)
@@ -144,6 +181,14 @@ function NotificationCenterPage({
   function handleBatchClear() {
     if (selectedAttentionIds.length > 0) {
       onBatchClearReminders(selectedAttentionIds)
+    }
+  }
+
+  function handleAdvancedFiltersOpenChange(open: boolean) {
+    onAdvancedFiltersOpenChange?.(open)
+
+    if (advancedFiltersOpen === undefined) {
+      setInternalAdvancedFiltersOpen(open)
     }
   }
 
@@ -203,42 +248,16 @@ function NotificationCenterPage({
             label="提醒状态"
             value={statusFilter}
             onChange={(value) =>
-              onStatusFilterChange(value as NotificationCenterStatusFilter)
+              onStatusFilterChange(value as NotificationCenterReminderStatusFilter)
             }
             options={[
               ['all', '全部提醒'],
               ['actionRequired', '待关注'],
               ['cleared', '已清除'],
-              ['unread', '未读'],
-              ['read', '已读'],
             ]}
           />
           <FilterSelect
-            label="业务状态"
-            value={businessStatusFilter}
-            onChange={(value) =>
-              onBusinessStatusFilterChange(
-                value as NotificationCenterBusinessStatusFilter,
-              )
-            }
-            options={[
-              ['all', '全部业务状态'],
-              ['approvalPending', '待审批'],
-              ['confirmationPending', '待确认'],
-              ['failed', '失败'],
-              ['completed', '已完成'],
-            ]}
-          />
-          <FilterSelect
-            label="来源"
-            value={sourceFilter}
-            onChange={(value) =>
-              onSourceFilterChange(value as NotificationCenterSourceFilter)
-            }
-            options={Object.entries(sourceLabels)}
-          />
-          <FilterSelect
-            label="时间范围"
+            label="时间"
             value={timeFilter}
             onChange={(value) =>
               onTimeFilterChange(value as NotificationCenterTimeFilter)
@@ -250,24 +269,84 @@ function NotificationCenterPage({
               ['last30Days', '最近 30 天'],
             ]}
           />
-        </div>
-        <div className="notification-page-actions">
           <button
             type="button"
-            className="notification-page-secondary-action"
-            onClick={onMarkAllRead}
+            className="notification-page-more-filter"
+            aria-expanded={advancedFiltersVisible}
+            onClick={() =>
+              handleAdvancedFiltersOpenChange(!advancedFiltersVisible)
+            }
           >
-            全部已读
-          </button>
-          <button
-            type="button"
-            className="notification-page-primary-action"
-            disabled={selectedAttentionIds.length === 0}
-            onClick={handleBatchClear}
-          >
-            批量清除提醒
+            {advancedFilterLabel}
           </button>
         </div>
+        {selectedNotificationIds.length > 0 ? (
+          <div className="notification-page-actions" aria-label="批量操作">
+            <button
+              type="button"
+              className="notification-page-secondary-action"
+              onClick={onMarkAllRead}
+            >
+              全部已读
+            </button>
+            <button
+              type="button"
+              className="notification-page-primary-action"
+              disabled={selectedAttentionIds.length === 0}
+              onClick={handleBatchClear}
+            >
+              批量清除提醒
+            </button>
+          </div>
+        ) : null}
+        {advancedFiltersVisible ? (
+          <div className="notification-page-advanced-filters" aria-label="更多筛选">
+            <FilterSelect
+              label="业务状态"
+              value={businessStatusFilter}
+              onChange={(value) =>
+                onBusinessStatusFilterChange(
+                  value as NotificationCenterBusinessStatusFilter,
+                )
+              }
+              options={[
+                ['all', '全部业务状态'],
+                ['approvalPending', '待审批'],
+                ['confirmationPending', '待确认'],
+                ['failed', '失败'],
+                ['completed', '已完成'],
+              ]}
+            />
+            <FilterSelect
+              label="来源"
+              value={sourceFilter}
+              onChange={(value) =>
+                onSourceFilterChange(value as NotificationCenterSourceFilter)
+              }
+              options={Object.entries(sourceLabels)}
+            />
+            <FilterSelect
+              label="类型"
+              value={typeFilter}
+              onChange={(value) =>
+                onTypeFilterChange(value as NotificationCenterTypeFilter)
+              }
+              options={Object.entries(typeLabels)}
+            />
+            <FilterSelect
+              label="已读状态"
+              value={readStatusFilter}
+              onChange={(value) =>
+                onReadStatusFilterChange(value as NotificationCenterReadStatusFilter)
+              }
+              options={[
+                ['all', '全部已读状态'],
+                ['unread', '未读'],
+                ['read', '已读'],
+              ]}
+            />
+          </div>
+        ) : null}
       </section>
 
       <div
@@ -288,10 +367,6 @@ function NotificationCenterPage({
                 <th scope="col">类型</th>
                 <th scope="col">通知内容</th>
                 <th scope="col">来源</th>
-                <th scope="col">对象</th>
-                <th scope="col" className="notification-page-table__business-status">
-                  业务状态
-                </th>
                 <th scope="col" className="notification-page-table__time">
                   时间
                 </th>
@@ -346,10 +421,6 @@ function NotificationCenterPage({
                       </p>
                     </td>
                     <td>{notification.sourceLabel}</td>
-                    <td>{getNotificationObjectLabel(notification)}</td>
-                    <td className="notification-page-table__business-status">
-                      {getBusinessStatusLabel(notification)}
-                    </td>
                     <td className="notification-page-table__time">
                       <time dateTime={notification.createdAt}>
                         {formatNotificationDateTime(notification.createdAt)}
@@ -500,9 +571,11 @@ function filterNotificationCenterItems(
   filters: {
     preset: NotificationCenterPreset
     search: string
-    statusFilter: NotificationCenterStatusFilter
+    statusFilter: NotificationCenterReminderStatusFilter
+    readStatusFilter: NotificationCenterReadStatusFilter
     businessStatusFilter: NotificationCenterBusinessStatusFilter
     sourceFilter: NotificationCenterSourceFilter
+    typeFilter: NotificationCenterTypeFilter
     timeFilter: NotificationCenterTimeFilter
   },
 ) {
@@ -540,11 +613,11 @@ function filterNotificationCenterItems(
       return false
     }
 
-    if (filters.statusFilter === 'read' && !notification.read) {
+    if (filters.readStatusFilter === 'read' && !notification.read) {
       return false
     }
 
-    if (filters.statusFilter === 'unread' && notification.read) {
+    if (filters.readStatusFilter === 'unread' && notification.read) {
       return false
     }
 
@@ -559,6 +632,10 @@ function filterNotificationCenterItems(
       filters.sourceFilter !== 'all' &&
       getNotificationSourceFilterValue(notification) !== filters.sourceFilter
     ) {
+      return false
+    }
+
+    if (filters.typeFilter !== 'all' && notification.category !== filters.typeFilter) {
       return false
     }
 

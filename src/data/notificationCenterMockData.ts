@@ -22,12 +22,19 @@ export type NotificationCenterPreset =
   | 'asset'
   | 'system'
 
-export type NotificationCenterStatusFilter =
+export type NotificationCenterReminderStatusFilter =
   | 'all'
   | 'actionRequired'
   | 'cleared'
+
+export type NotificationCenterReadStatusFilter =
+  | 'all'
   | 'read'
   | 'unread'
+
+export type NotificationCenterStatusFilter =
+  | NotificationCenterReminderStatusFilter
+  | NotificationCenterReadStatusFilter
 
 export type NotificationCenterBusinessStatusFilter =
   | 'all'
@@ -43,6 +50,8 @@ export type NotificationCenterSourceFilter =
   | 'asset'
   | 'connector'
   | 'admin'
+
+export type NotificationCenterTypeFilter = 'all' | NotificationCategory
 
 export type NotificationCenterTimeFilter =
   | 'all'
@@ -127,7 +136,7 @@ export const notificationCenterSeedItems: NotificationItem[] = [
     type: 'approval_requested',
     title: 'EGFR 实验订单等待审批',
     summary: '资料包已生成，需要 Data Governance Reviewers 审批后才能提交 CRO 订单。',
-    sourceLabel: 'Antibody Optimization · BM-APR-20260615-002',
+    sourceLabel: 'Antibody Optimization · 审批',
     projectName: 'Antibody Optimization',
     threadTitle: 'EGFR 抗体亲和力优化',
     createdAt: '2026-06-15T10:40:00+08:00',
@@ -148,14 +157,14 @@ export const notificationCenterSeedItems: NotificationItem[] = [
     type: 'approval_sync_failed',
     title: 'CRO 订单外部审批回调失败',
     summary: '飞书审批集成返回超时，BioMap 已保留外部流程编号，等待管理员处理。',
-    sourceLabel: '飞书审批集成 · BM-APR-20260615-007',
+    sourceLabel: '飞书审批集成',
     projectName: 'Antibody Optimization',
     createdAt: '2026-06-15T14:48:00+08:00',
     read: false,
     severity: 'danger',
     actionState: 'failed',
     statusLabel: '失败',
-    primaryActionLabel: '查看审批中心',
+    primaryActionLabel: '查看详情',
     target: {
       surface: 'approvalCenter',
       section: 'external',
@@ -168,7 +177,7 @@ export const notificationCenterSeedItems: NotificationItem[] = [
     type: 'human_confirmation_requested',
     title: 'EGFR 亲和力优化等待确认',
     summary: 'Agent 已完成候选排序，正在等待你确认是否提交湿实验订单。',
-    sourceLabel: 'EGFR 抗体亲和力优化 · Run Inspector',
+    sourceLabel: 'EGFR 抗体亲和力优化 · 对话',
     projectName: 'Antibody Optimization',
     threadTitle: 'EGFR 抗体亲和力优化',
     createdAt: '2026-06-15T14:20:00+08:00',
@@ -176,7 +185,7 @@ export const notificationCenterSeedItems: NotificationItem[] = [
     severity: 'warning',
     actionState: 'actionRequired',
     statusLabel: '待确认',
-    primaryActionLabel: '打开 Thread',
+    primaryActionLabel: '打开对话',
     target: {
       surface: 'thread',
       projectId: 'antibody-optimization',
@@ -189,13 +198,13 @@ export const notificationCenterSeedItems: NotificationItem[] = [
     type: 'tool_failed',
     title: 'LIMS 回调任务被阻塞',
     summary: '实验记录本回调缺少 plate map 字段，Agent 已暂停后续数据整理。',
-    sourceLabel: 'Enzyme Discovery · LIMS Connector',
+    sourceLabel: 'Enzyme Discovery · LIMS 连接器',
     projectName: 'Enzyme Discovery',
     createdAt: '2026-06-15T09:35:00+08:00',
     read: true,
     severity: 'info',
     actionState: 'none',
-    primaryActionLabel: '打开运行信息',
+    primaryActionLabel: '打开对话',
     target: {
       surface: 'runInspector',
       projectId: 'enzyme-discovery',
@@ -209,7 +218,7 @@ export const notificationCenterSeedItems: NotificationItem[] = [
     type: 'dataset_ready',
     title: 'AI-Ready Dataset 已生成',
     summary: 'SEC-HPLC、BLI 和表达量结果已标准化，可用于 Oracle 微调。',
-    sourceLabel: 'Data Assetization · Dataset',
+    sourceLabel: 'Data Assetization · 数据集',
     projectName: 'Data Assetization',
     assetName: 'EGFR_binding_screening_ai_ready_v1',
     createdAt: '2026-06-15T13:12:00+08:00',
@@ -217,7 +226,7 @@ export const notificationCenterSeedItems: NotificationItem[] = [
     severity: 'success',
     actionState: 'resolved',
     statusLabel: '已完成',
-    primaryActionLabel: '查看数据集',
+    primaryActionLabel: '查看资产',
     target: {
       surface: 'asset',
       assetSection: 'data',
@@ -238,7 +247,7 @@ export const notificationCenterSeedItems: NotificationItem[] = [
     severity: 'success',
     actionState: 'resolved',
     statusLabel: '已完成',
-    primaryActionLabel: '查看知识库',
+    primaryActionLabel: '查看资产',
     target: {
       surface: 'asset',
       assetSection: 'knowledgeBase',
@@ -258,7 +267,7 @@ export const notificationCenterSeedItems: NotificationItem[] = [
     severity: 'success',
     actionState: 'resolved',
     statusLabel: '已完成',
-    primaryActionLabel: '查看模型',
+    primaryActionLabel: '查看资产',
     target: {
       surface: 'asset',
       assetSection: 'model',
@@ -271,7 +280,7 @@ export const notificationCenterSeedItems: NotificationItem[] = [
     type: 'connector_degraded',
     title: '飞书审批连接器延迟升高',
     summary: '过去 30 分钟外部审批回调 p95 延迟超过 12 秒，建议管理员检查企业网络或回调配置。',
-    sourceLabel: '系统 · External Approval Connector',
+    sourceLabel: '系统 · 外部审批连接器',
     createdAt: '2026-06-15T15:02:00+08:00',
     read: false,
     severity: 'warning',

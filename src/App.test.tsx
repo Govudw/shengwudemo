@@ -101,6 +101,30 @@ describe('App Product Management Platform route', () => {
     root.unmount()
   })
 
+  it('opens a notification detail from the drawer title', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, '打开通知').click()
+    })
+    act(() => {
+      getButton(container, 'EGFR 实验订单等待审批').click()
+    })
+
+    expect(useDemoStore.getState().notificationDrawerOpen).toBe(false)
+    expect(useDemoStore.getState().activeTopNav).toBe('NotificationCenter')
+    expect(useDemoStore.getState().notificationCenterSelectedId).toBe(
+      'notification-approval-egfr-order',
+    )
+    expect(useDemoStore.getState().notificationCenterDetailOpen).toBe(true)
+    expect(container.querySelector('.notification-center')).toBeNull()
+    expect(container.querySelector('.notification-page-inspector')?.textContent).toContain(
+      'EGFR 实验订单等待审批',
+    )
+
+    root.unmount()
+  })
+
   it('clears notification reminder without changing the source business status', () => {
     const { container, root } = renderApp()
 
@@ -191,6 +215,38 @@ describe('App Product Management Platform route', () => {
     expect(window.location.pathname).toBe('/product-management-platform')
     expect(container.querySelector('.product-platform-page')).not.toBeNull()
     expect(container.querySelector('.agent-shell')).toBeNull()
+
+    root.unmount()
+  })
+
+  it('clears Notification Center batch selection when opening Product Management Platform', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getAccountButton(container).click()
+    })
+    act(() => {
+      getButton(container, '通知中心').click()
+    })
+    act(() => {
+      getLabeledControl(container, '选择 EGFR 实验订单等待审批').click()
+    })
+
+    expect(useDemoStore.getState().activeTopNav).toBe('NotificationCenter')
+    expect(useDemoStore.getState().notificationCenterSelectedIds).toEqual([
+      'notification-approval-egfr-order',
+    ])
+
+    act(() => {
+      getAccountButton(container).click()
+    })
+    act(() => {
+      getButton(container, '管理后台').click()
+    })
+
+    expect(window.location.pathname).toBe('/product-management-platform')
+    expect(container.querySelector('.product-platform-page')).not.toBeNull()
+    expect(useDemoStore.getState().notificationCenterSelectedIds).toEqual([])
 
     root.unmount()
   })
@@ -521,7 +577,7 @@ describe('App Thread URL route', () => {
 
     expect(window.location.pathname).toBe('/')
     expect(container.querySelector('.workspace-main--thread')).toBeNull()
-    expect(getStatus(container).textContent).toContain('Thread 不存在或已被删除')
+    expect(getStatus(container).textContent).toContain('对话不存在或已被删除')
 
     root.unmount()
   })

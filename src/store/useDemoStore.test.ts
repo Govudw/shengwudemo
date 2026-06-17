@@ -466,7 +466,7 @@ describe('demo store persistence', () => {
     expect(useDemoStore.getState().activeTopNav).toBe('Workspace')
   })
 
-  it('persists notification drawer, full-page filters, read, and cleared demo state', async () => {
+  it('persists notification drawer, full-page filters, detail, read, and cleared demo state without batch selection', async () => {
     const { demoStorePersistVersion } = await import('./useDemoStore')
     const { useDemoStore } = await loadStoreWithPersistedState({
       state: {
@@ -504,7 +504,28 @@ describe('demo store persistence', () => {
       .getState()
       .setNotificationCenterBusinessStatusFilter('approvalPending')
     useDemoStore.getState().setNotificationCenterSourceFilter('project')
+    const notificationExtraState = useDemoStore.getState() as ReturnType<
+      typeof useDemoStore.getState
+    > &
+      NotificationExtraFilterStore
+    expect(typeof notificationExtraState.setNotificationCenterTypeFilter).toBe(
+      'function',
+    )
+    notificationExtraState.setNotificationCenterTypeFilter('agent')
     useDemoStore.getState().setNotificationCenterTimeFilter('today')
+    const notificationUiState = useDemoStore.getState() as ReturnType<
+      typeof useDemoStore.getState
+    > &
+      NotificationExtraFilterStore
+    expect(notificationUiState.notificationCenterAdvancedFiltersOpen).toBe(false)
+    expect(typeof notificationUiState.setNotificationCenterAdvancedFiltersOpen).toBe(
+      'function',
+    )
+    notificationUiState.setNotificationCenterAdvancedFiltersOpen(true)
+    expect(typeof notificationUiState.setNotificationCenterReadStatusFilter).toBe(
+      'function',
+    )
+    notificationUiState.setNotificationCenterReadStatusFilter('unread')
     useDemoStore
       .getState()
       .selectNotificationCenterItem('notification-approval-egfr-order')
@@ -540,17 +561,22 @@ describe('demo store persistence', () => {
     expect(persistedPayload.state.notificationCenterStatusFilter).toBe(
       'actionRequired',
     )
+    expect(persistedPayload.state.notificationCenterReadStatusFilter).toBe(
+      'unread',
+    )
     expect(persistedPayload.state.notificationCenterBusinessStatusFilter).toBe(
       'approvalPending',
     )
     expect(persistedPayload.state.notificationCenterSourceFilter).toBe('project')
+    expect(persistedPayload.state.notificationCenterTypeFilter).toBe('agent')
     expect(persistedPayload.state.notificationCenterTimeFilter).toBe('today')
+    expect(persistedPayload.state.notificationCenterAdvancedFiltersOpen).toBe(true)
     expect(persistedPayload.state.notificationCenterSelectedId).toBe(
       'notification-approval-egfr-order',
     )
-    expect(persistedPayload.state.notificationCenterSelectedIds).toEqual([
-      'notification-approval-egfr-order',
-    ])
+    expect(persistedPayload.state).not.toHaveProperty(
+      'notificationCenterSelectedIds',
+    )
     expect(persistedPayload.state.notificationCenterDetailOpen).toBe(true)
 
     useDemoStore.getState().resetDemoState()
@@ -561,8 +587,112 @@ describe('demo store persistence', () => {
     expect(useDemoStore.getState().notificationClearedById).toEqual({})
     expect(useDemoStore.getState().notificationCenterPreset).toBe('all')
     expect(useDemoStore.getState().notificationCenterSearchQuery).toBe('')
+    expect(
+      (
+        useDemoStore.getState() as ReturnType<typeof useDemoStore.getState> &
+          NotificationExtraFilterStore
+      ).notificationCenterReadStatusFilter,
+    ).toBe('all')
     expect(useDemoStore.getState().notificationCenterSelectedId).toBeNull()
     expect(useDemoStore.getState().notificationCenterSelectedIds).toEqual([])
+    expect(useDemoStore.getState().notificationCenterDetailOpen).toBe(false)
+    expect(
+      (
+        useDemoStore.getState() as ReturnType<typeof useDemoStore.getState> &
+          NotificationExtraFilterStore
+      ).notificationCenterAdvancedFiltersOpen,
+    ).toBe(false)
+  })
+
+  it('does not hydrate old persisted notification center batch selection', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        notificationCenterPreset: 'approval',
+        notificationCenterSearchQuery: 'EGFR',
+        notificationCenterStatusFilter: 'actionRequired',
+        notificationCenterBusinessStatusFilter: 'approvalPending',
+        notificationCenterSourceFilter: 'project',
+        notificationCenterTypeFilter: 'agent',
+        notificationCenterTimeFilter: 'today',
+        notificationCenterAdvancedFiltersOpen: true,
+        notificationCenterSelectedId: 'notification-approval-egfr-order',
+        notificationCenterSelectedIds: ['notification-approval-egfr-order'],
+        notificationCenterDetailOpen: true,
+      },
+      version: demoStorePersistVersion,
+    })
+
+    expect(useDemoStore.getState().notificationCenterPreset).toBe('approval')
+    expect(useDemoStore.getState().notificationCenterSearchQuery).toBe('EGFR')
+    expect(useDemoStore.getState().notificationCenterStatusFilter).toBe(
+      'actionRequired',
+    )
+    expect(
+      (
+        useDemoStore.getState() as ReturnType<typeof useDemoStore.getState> &
+          NotificationExtraFilterStore
+      ).notificationCenterReadStatusFilter,
+    ).toBe('all')
+    expect(useDemoStore.getState().notificationCenterBusinessStatusFilter).toBe(
+      'approvalPending',
+    )
+    expect(useDemoStore.getState().notificationCenterSourceFilter).toBe('project')
+    expect(
+      (
+        useDemoStore.getState() as ReturnType<typeof useDemoStore.getState> &
+          NotificationExtraFilterStore
+      ).notificationCenterTypeFilter,
+    ).toBe('agent')
+    expect(useDemoStore.getState().notificationCenterTimeFilter).toBe('today')
+    expect(
+      (
+        useDemoStore.getState() as ReturnType<typeof useDemoStore.getState> &
+          NotificationExtraFilterStore
+      ).notificationCenterAdvancedFiltersOpen,
+    ).toBe(true)
+    expect(useDemoStore.getState().notificationCenterSelectedId).toBe(
+      'notification-approval-egfr-order',
+    )
+    expect(useDemoStore.getState().notificationCenterDetailOpen).toBe(true)
+    expect(useDemoStore.getState().notificationCenterSelectedIds).toEqual([])
+  })
+
+  it('migrates legacy persisted read status filter into the split read filter', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        notificationCenterStatusFilter: 'unread',
+        notificationCenterSelectedIds: ['notification-approval-egfr-order'],
+      },
+      version: demoStorePersistVersion,
+    })
+    const notificationState = useDemoStore.getState() as ReturnType<
+      typeof useDemoStore.getState
+    > &
+      NotificationExtraFilterStore
+
+    expect(notificationState.notificationCenterStatusFilter).toBe('all')
+    expect(notificationState.notificationCenterReadStatusFilter).toBe('unread')
+    expect(notificationState.notificationCenterSelectedIds).toEqual([])
+  })
+
+  it('clears stale persisted notification center detail selection during hydrate', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        activeTopNav: 'NotificationCenter',
+        notificationCenterSelectedId: 'notification-no-longer-seeded',
+        notificationCenterDetailOpen: true,
+      },
+      version: demoStorePersistVersion,
+    })
+
+    expect(useDemoStore.getState().activeTopNav).toBe('NotificationCenter')
+    expect(useDemoStore.getState().notificationCenterSelectedId).toBeNull()
     expect(useDemoStore.getState().notificationCenterDetailOpen).toBe(false)
   })
 
@@ -837,6 +967,19 @@ function createPersistedThread(id: string, title: string, timestamp: number) {
     createdAt: timestamp,
     transcript: [],
   }
+}
+
+type NotificationExtraFilterStore = {
+  notificationCenterTypeFilter?: 'all' | 'approval' | 'agent' | 'asset' | 'system'
+  setNotificationCenterTypeFilter?: (
+    filter: 'all' | 'approval' | 'agent' | 'asset' | 'system',
+  ) => void
+  notificationCenterReadStatusFilter?: 'all' | 'read' | 'unread'
+  setNotificationCenterReadStatusFilter?: (
+    filter: 'all' | 'read' | 'unread',
+  ) => void
+  notificationCenterAdvancedFiltersOpen?: boolean
+  setNotificationCenterAdvancedFiltersOpen?: (open: boolean) => void
 }
 
 function expectCurrentEgfrReplaySeed(projects: DemoProject[]) {

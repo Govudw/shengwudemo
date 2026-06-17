@@ -64,6 +64,7 @@
 .notification-center__resolve-action,
 .notification-page-back,
 .notification-page-tab,
+.notification-page-more-filter,
 .notification-page-primary-action,
 .notification-page-secondary-action,
 .notification-page-row-title,
@@ -670,6 +671,7 @@
 
 .notification-page-back,
 .notification-page-secondary-action,
+.notification-page-more-filter,
 .notification-page-primary-action,
 .notification-page-inspector__close {
   height: 32px;
@@ -681,6 +683,7 @@
 
 .notification-page-back,
 .notification-page-secondary-action,
+.notification-page-more-filter,
 .notification-page-inspector__close {
   border: 1px solid rgba(203, 216, 227, 0.88);
   color: #52687c;
@@ -798,8 +801,33 @@
 
 .notification-page-filters {
   display: grid;
-  grid-template-columns: repeat(4, minmax(112px, 1fr));
+  grid-template-columns: repeat(2, minmax(112px, 1fr)) max-content;
   gap: 8px;
+}
+
+.notification-page-more-filter {
+  min-width: 96px;
+  border-color: rgba(10, 164, 200, 0.24);
+  color: #0b6f94;
+  background: #f5fbfd;
+  white-space: nowrap;
+}
+
+.notification-page-more-filter:hover,
+.notification-page-more-filter:focus-visible {
+  background: #edf8fc;
+  outline: none;
+}
+
+.notification-page-advanced-filters {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(203, 216, 227, 0.76);
+  border-radius: 8px;
+  background: #f8fbfd;
 }
 
 .notification-page-filter span {
@@ -810,8 +838,14 @@
   font-weight: 760;
 }
 
+.notification-page-advanced-filters .notification-page-filter span {
+  display: block;
+  margin-bottom: 4px;
+}
+
 .notification-page-layout {
   display: grid;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
 }
@@ -835,7 +869,7 @@
 
 .notification-page-table {
   width: 100%;
-  min-width: 1060px;
+  min-width: 860px;
   border-collapse: collapse;
   color: #31445a;
   font-size: 12px;
@@ -865,11 +899,6 @@
 
 .notification-page-table__select {
   width: 54px;
-}
-
-.notification-page-table__business-status {
-  width: 92px;
-  white-space: nowrap;
 }
 
 .notification-page-table__time {
@@ -981,6 +1010,7 @@
 }
 
 .notification-page-inspector {
+  height: 100%;
   min-width: 0;
   min-height: 0;
   overflow: auto;
@@ -2402,6 +2432,14 @@
 
   .notification-page-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .notification-page-more-filter {
+    width: 100%;
+  }
+
+  .notification-page-advanced-filters {
+    grid-template-columns: 1fr;
   }
 
   .notification-page-layout {
