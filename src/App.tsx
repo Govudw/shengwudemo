@@ -76,6 +76,15 @@ function App() {
   const xtrimoRecommendationsExpanded = useDemoStore(
     (state) => state.xtrimoRecommendationsExpanded,
   )
+  const approvalActiveSection = useDemoStore(
+    (state) => state.approvalActiveSection,
+  )
+  const approvalInspectorOpen = useDemoStore(
+    (state) => state.approvalInspectorOpen,
+  )
+  const approvalSelectedObjectId = useDemoStore(
+    (state) => state.approvalSelectedObjectId,
+  )
   const notificationDrawerOpen = useDemoStore(
     (state) => state.notificationDrawerOpen,
   )
@@ -149,6 +158,12 @@ function App() {
   const setAssetsOpenFolder = useDemoStore((state) => state.setAssetsOpenFolder)
   const setXtrimoRecommendationsExpanded = useDemoStore(
     (state) => state.setXtrimoRecommendationsExpanded,
+  )
+  const setApprovalCenterSection = useDemoStore(
+    (state) => state.setApprovalCenterSection,
+  )
+  const selectApprovalCenterObject = useDemoStore(
+    (state) => state.selectApprovalCenterObject,
   )
   const openNotificationDrawer = useDemoStore(
     (state) => state.openNotificationDrawer,
@@ -655,7 +670,14 @@ function App() {
           onPrimaryAction={handleNotificationCenterPrimaryAction}
         />
       ) : activeTopNav === 'ApprovalCenter' ? (
-        <ApprovalCenterPage onNotify={showStatus} />
+        <ApprovalCenterPage
+          activeSection={approvalActiveSection}
+          inspectorOpen={approvalInspectorOpen}
+          selectedObjectId={approvalSelectedObjectId}
+          onSectionChange={setApprovalCenterSection}
+          onSelectObject={selectApprovalCenterObject}
+          onNotify={showStatus}
+        />
       ) : activeTopNav === 'Assets' ? (
         <AssetsPage
           activeSection={assetsActiveSection}

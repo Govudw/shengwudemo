@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import {
   approvalAuditEvents,
   approvalCenterSections,
@@ -18,11 +18,25 @@ import {
   type ApprovalCenterSectionId,
   type ApprovalRequest,
   type ApprovalStage,
+  type ExternalApprovalConnector,
 } from '../../data/approvalCenterMockData'
 
 type ApprovalCenterPageProps = {
   onNotify: (message: string) => void
+  activeSection: ApprovalCenterSectionId
+  inspectorOpen: boolean
+  selectedObjectId: string | null
+  onSectionChange: (section: ApprovalCenterSectionId) => void
+  onSelectObject: (objectId: string | null, inspectorOpen?: boolean) => void
 }
+
+type ApprovalSelectionProps = Pick<
+  ApprovalCenterPageProps,
+  'inspectorOpen' | 'selectedObjectId' | 'onSelectObject'
+>
+
+type ApprovalSectionProps = Pick<ApprovalCenterPageProps, 'onNotify'> &
+  ApprovalSelectionProps
 
 type TableColumn<TRecord> = {
   key: string
@@ -32,9 +46,24 @@ type TableColumn<TRecord> = {
 
 const demoActionMessage = '已在 Demo 中记录审批动作'
 
-export default function ApprovalCenterPage({ onNotify }: ApprovalCenterPageProps) {
-  const [activeSection, setActiveSection] =
-    useState<ApprovalCenterSectionId>('overview')
+const approvalNavigationGroups: Array<{
+  label: string
+  sectionIds: ApprovalCenterSectionId[]
+}> = [
+  { label: '审批工作台', sectionIds: ['overview', 'pending', 'initiated'] },
+  { label: '记录', sectionIds: ['records', 'audit'] },
+  { label: '配置', sectionIds: ['rules', 'flows', 'groups'] },
+  { label: '集成', sectionIds: ['external', 'simulator'] },
+]
+
+export default function ApprovalCenterPage({
+  activeSection,
+  inspectorOpen,
+  onNotify,
+  onSectionChange,
+  onSelectObject,
+  selectedObjectId,
+}: ApprovalCenterPageProps) {
   const activeSectionLabel =
     approvalCenterSections.find((section) => section.id === activeSection)?.label ??
     '总览'
@@ -44,19 +73,29 @@ export default function ApprovalCenterPage({ onNotify }: ApprovalCenterPageProps
       <aside className="approval-center__sidebar" aria-label="审批中心导航">
         <div className="approval-center__brand">审批中心</div>
         <nav className="approval-center__menu" aria-label="审批中心菜单">
-          {approvalCenterSections.map((section) => (
-            <button
-              key={section.id}
-              type="button"
-              className={`approval-center__menu-button${
-                activeSection === section.id
-                  ? ' approval-center__menu-button--active'
-                  : ''
-              }`}
-              onClick={() => setActiveSection(section.id)}
-            >
-              {section.label}
-            </button>
+          {approvalNavigationGroups.map((group) => (
+            <div key={group.label} className="approval-center__menu-group">
+              <span className="approval-center__menu-label">{group.label}</span>
+              {group.sectionIds.map((sectionId) => {
+                const section = getApprovalCenterSection(sectionId)
+
+                return (
+                  <button
+                    key={section.id}
+                    type="button"
+                    className={`approval-center__menu-button${
+                      activeSection === section.id
+                        ? ' approval-center__menu-button--active'
+                        : ''
+                    }`}
+                    aria-current={activeSection === section.id ? 'page' : undefined}
+                    onClick={() => onSectionChange(section.id)}
+                  >
+                    {section.label}
+                  </button>
+                )
+              })}
+            </div>
           ))}
         </nav>
       </aside>
@@ -73,16 +112,46 @@ export default function ApprovalCenterPage({ onNotify }: ApprovalCenterPageProps
           <span className="approval-center__scope">Organization / Project</span>
         </header>
 
-        {activeSection === 'overview' ? <OverviewSection /> : null}
-        {activeSection === 'pending' ? (
-          <PendingSection onNotify={onNotify} />
+        {activeSection === 'overview' ? (
+          <OverviewSection
+            inspectorOpen={inspectorOpen}
+            selectedObjectId={selectedObjectId}
+            onSelectObject={onSelectObject}
+          />
         ) : null}
-        {activeSection === 'initiated' ? <InitiatedSection onNotify={onNotify} /> : null}
-        {activeSection === 'records' ? <RecordsSection /> : null}
+        {activeSection === 'pending' ? (
+          <PendingSection
+            inspectorOpen={inspectorOpen}
+            selectedObjectId={selectedObjectId}
+            onNotify={onNotify}
+            onSelectObject={onSelectObject}
+          />
+        ) : null}
+        {activeSection === 'initiated' ? (
+          <InitiatedSection
+            inspectorOpen={inspectorOpen}
+            selectedObjectId={selectedObjectId}
+            onNotify={onNotify}
+            onSelectObject={onSelectObject}
+          />
+        ) : null}
+        {activeSection === 'records' ? (
+          <RecordsSection
+            inspectorOpen={inspectorOpen}
+            selectedObjectId={selectedObjectId}
+            onSelectObject={onSelectObject}
+          />
+        ) : null}
         {activeSection === 'rules' ? <RulesSection onNotify={onNotify} /> : null}
         {activeSection === 'flows' ? <FlowsSection /> : null}
         {activeSection === 'groups' ? <GroupsSection /> : null}
-        {activeSection === 'external' ? <ExternalSection /> : null}
+        {activeSection === 'external' ? (
+          <ExternalSection
+            inspectorOpen={inspectorOpen}
+            selectedObjectId={selectedObjectId}
+            onSelectObject={onSelectObject}
+          />
+        ) : null}
         {activeSection === 'audit' ? <AuditSection /> : null}
         {activeSection === 'simulator' ? <SimulatorSection /> : null}
       </section>
@@ -90,7 +159,11 @@ export default function ApprovalCenterPage({ onNotify }: ApprovalCenterPageProps
   )
 }
 
-function OverviewSection() {
+function OverviewSection({
+  inspectorOpen,
+  onSelectObject,
+  selectedObjectId,
+}: ApprovalSelectionProps) {
   const metrics = useMemo(() => getApprovalOverviewMetrics(), [])
   const recentRecords = approvalRecords.slice(0, 5)
   const attentionRules = approvalRules.filter((rule) => rule.route === 'external')
@@ -115,7 +188,12 @@ function OverviewSection() {
           <h2>最近审批记录</h2>
           <span>{recentRecords.length} 条</span>
         </div>
-        <ApprovalRecordsTable records={recentRecords} />
+        <ApprovalRecordsTable
+          records={recentRecords}
+          inspectorOpen={inspectorOpen}
+          selectedObjectId={selectedObjectId}
+          onSelectObject={onSelectObject}
+        />
       </section>
 
       <div className="approval-center__split">
@@ -142,7 +220,8 @@ function OverviewSection() {
               <article key={connector.id} className="approval-center__list-item">
                 <strong>{connector.name}</strong>
                 <span>
-                  {connector.status} · {approvalSyncStatusLabels[connector.lastSyncStatus]}
+                  {connectorStatusLabels[connector.status]} ·{' '}
+                  {approvalSyncStatusLabels[connector.lastSyncStatus]}
                 </span>
               </article>
             ))}
@@ -153,8 +232,16 @@ function OverviewSection() {
   )
 }
 
-function PendingSection({ onNotify }: ApprovalCenterPageProps) {
+function PendingSection({
+  inspectorOpen,
+  onNotify,
+  onSelectObject,
+  selectedObjectId,
+}: ApprovalSectionProps) {
   const records = getApprovalRecordsBySection('pending')
+  const selectedRecord = inspectorOpen
+    ? records.find((record) => record.id === selectedObjectId)
+    : undefined
 
   return (
     <section className="approval-center__section" aria-label="待处理审批">
@@ -162,135 +249,132 @@ function PendingSection({ onNotify }: ApprovalCenterPageProps) {
         <h2>待处理审批</h2>
         <span>当前用户可处理的审批队列</span>
       </div>
-      <DataTable
-        minWidth={1120}
-        columns={[
-          {
-            key: 'title',
-            header: '审批标题',
-            render: (record) => <strong>{record.title}</strong>,
-          },
-          {
-            key: 'operationType',
-            header: '操作类型',
-            render: (record) => operationTypeLabels[record.operationType],
-          },
-          { key: 'projectName', header: '项目', render: (record) => record.projectName },
-          { key: 'initiator', header: '发起人', render: (record) => record.initiator },
-          {
-            key: 'currentNode',
-            header: '当前节点',
-            render: (record) => record.currentNode,
-          },
-          { key: 'dueAt', header: '截止时间', render: (record) => formatDate(record.dueAt) },
-          {
-            key: 'riskLevel',
-            header: '风险等级',
-            render: (record) => (
-              <StatusPill tone={getRiskTone(record.riskLevel)}>
-                {riskLevelLabels[record.riskLevel]}
-              </StatusPill>
-            ),
-          },
-          {
-            key: 'status',
-            header: '状态',
-            render: (record) => approvalStatusLabels[record.status],
-          },
-          {
-            key: 'actions',
-            header: '操作',
-            render: (record) => (
-              <div className="approval-center__actions">
-                {getPendingActionLabels(record).map((label) => (
-                  <button
-                    key={label}
-                    type="button"
-                    className="approval-center__action"
-                    onClick={() => onNotify(demoActionMessage)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            ),
-          },
-        ]}
-        records={records}
-      />
+      <div className={getDetailLayoutClass(Boolean(selectedRecord))}>
+        <ApprovalRequestsTable
+          records={records}
+          progressHeader="当前节点"
+          renderProgress={(record) => record.currentNode}
+          renderActions={(record) => (
+            <div className="approval-center__actions">
+              <button
+                type="button"
+                className="approval-center__action"
+                aria-label={getApprovalActionAriaLabel('查看详情', record)}
+                onClick={() => onSelectObject(record.id, true)}
+              >
+                查看详情
+              </button>
+              {getPendingActionLabels(record).map((label) => (
+                <button
+                  key={label}
+                  type="button"
+                  className="approval-center__action"
+                  aria-label={getApprovalActionAriaLabel(label, record)}
+                  onClick={() => onNotify(demoActionMessage)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        />
+        {selectedRecord ? (
+          <ApprovalRequestInspector
+            record={selectedRecord}
+            onClose={() => onSelectObject(null, false)}
+          />
+        ) : null}
+      </div>
     </section>
   )
 }
 
-function InitiatedSection({ onNotify }: ApprovalCenterPageProps) {
+function InitiatedSection({
+  inspectorOpen,
+  onNotify,
+  onSelectObject,
+  selectedObjectId,
+}: ApprovalSectionProps) {
+  const records = getApprovalRecordsBySection('initiated')
+  const selectedRecord = inspectorOpen
+    ? records.find((record) => record.id === selectedObjectId)
+    : undefined
+
   return (
     <section className="approval-center__section" aria-label="我发起的审批">
       <div className="approval-center__section-heading">
         <h2>我发起的</h2>
         <span>由 zhengjun 或 Agent 代发起的审批</span>
       </div>
-      <DataTable
-        minWidth={980}
-        columns={[
-          { key: 'title', header: '审批标题', render: (record) => <strong>{record.title}</strong> },
-          {
-            key: 'operationType',
-            header: '操作类型',
-            render: (record) => operationTypeLabels[record.operationType],
-          },
-          {
-            key: 'status',
-            header: '当前状态',
-            render: (record) => approvalStatusLabels[record.status],
-          },
-          {
-            key: 'handler',
-            header: '当前处理人或外部系统状态',
-            render: (record) =>
-              record.route === 'external'
-                ? approvalSyncStatusLabels[record.syncStatus]
-                : record.currentAssigneeLabel,
-          },
-          { key: 'createdAt', header: '发起时间', render: (record) => formatDate(record.createdAt) },
-          { key: 'updatedAt', header: '最近更新', render: (record) => formatDate(record.updatedAt) },
-          {
-            key: 'actions',
-            header: '操作',
-            render: () => (
-              <div className="approval-center__actions">
-                {['查看详情', '撤回', '复制资料包'].map((label) => (
-                  <button
-                    key={label}
-                    type="button"
-                    className="approval-center__action"
-                    onClick={() => onNotify(demoActionMessage)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            ),
-          },
-        ]}
-        records={getApprovalRecordsBySection('initiated')}
-      />
+      <div className={getDetailLayoutClass(Boolean(selectedRecord))}>
+        <ApprovalRequestsTable
+          records={records}
+          progressHeader="当前节点"
+          renderProgress={(record) =>
+            record.route === 'external'
+              ? approvalSyncStatusLabels[record.syncStatus]
+              : record.currentNode
+          }
+          renderActions={(record) => (
+            <div className="approval-center__actions">
+              <button
+                type="button"
+                className="approval-center__action"
+                aria-label={getApprovalActionAriaLabel('查看详情', record)}
+                onClick={() => onSelectObject(record.id, true)}
+              >
+                查看详情
+              </button>
+              {(record.route === 'external'
+                ? ['撤回通知', '复制资料包']
+                : ['撤回', '复制资料包']
+              ).map((label) => (
+                <button
+                  key={label}
+                  type="button"
+                  className="approval-center__action"
+                  aria-label={getApprovalActionAriaLabel(label, record)}
+                  onClick={() => onNotify(demoActionMessage)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        />
+        {selectedRecord ? (
+          <ApprovalRequestInspector
+            record={selectedRecord}
+            onClose={() => onSelectObject(null, false)}
+          />
+        ) : null}
+      </div>
     </section>
   )
 }
 
-function RecordsSection() {
+function RecordsSection({
+  inspectorOpen,
+  onSelectObject,
+  selectedObjectId,
+}: ApprovalSelectionProps) {
   return (
     <section className="approval-center__section" aria-label="审批记录">
       <div className="approval-center__section-heading">
         <h2>审批记录</h2>
         <span>已完成决策不可编辑；变更需新建审批或作废旧记录</span>
       </div>
-      <ApprovalRecordsTable records={getApprovalRecordsBySection('records')} />
+      <ApprovalRecordsTable
+        records={getApprovalRecordsBySection('records')}
+        inspectorOpen={inspectorOpen}
+        selectedObjectId={selectedObjectId}
+        onSelectObject={onSelectObject}
+      />
     </section>
   )
 }
 
-function RulesSection({ onNotify }: ApprovalCenterPageProps) {
+function RulesSection({ onNotify }: Pick<ApprovalCenterPageProps, 'onNotify'>) {
   return (
     <section className="approval-center__section" aria-label="操作规则">
       <div className="approval-center__section-heading">
@@ -324,13 +408,14 @@ function RulesSection({ onNotify }: ApprovalCenterPageProps) {
           {
             key: 'actions',
             header: '操作',
-            render: () => (
+            render: (rule) => (
               <div className="approval-center__actions">
                 {['查看版本', '复制规则'].map((label) => (
                   <button
                     key={label}
                     type="button"
                     className="approval-center__action"
+                    aria-label={`${label} ${rule.name}`}
                     onClick={() => onNotify(demoActionMessage)}
                   >
                     {label}
@@ -438,7 +523,17 @@ function GroupsSection() {
   )
 }
 
-function ExternalSection() {
+function ExternalSection({
+  inspectorOpen,
+  onSelectObject,
+  selectedObjectId,
+}: ApprovalSelectionProps) {
+  const selectedConnector = inspectorOpen
+    ? externalApprovalConnectors.find(
+        (connector) => connector.id === selectedObjectId,
+      )
+    : undefined
+
   return (
     <section className="approval-center__section" aria-label="外部审批">
       <div className="approval-center__section-heading">
@@ -448,67 +543,74 @@ function ExternalSection() {
       <p className="approval-center__notice">
         外部系统拥有自己的流程、节点和处理人，BioMap 只记录提交/回调/撤回元数据和审计完整度。
       </p>
-      <DataTable
-        minWidth={1080}
-        columns={[
-          { key: 'name', header: '连接器', render: (connector) => <strong>{connector.name}</strong> },
-          {
-            key: 'provider',
-            header: 'Provider / 状态',
-            render: (connector) => (
-              <span className="approval-center__cell-stack">
-                <strong>{connector.provider}</strong>
-                <StatusPill tone={connector.status === 'healthy' ? 'success' : 'warning'}>
-                  {connector.status}
+      <div className={getDetailLayoutClass(Boolean(selectedConnector))}>
+        <DataTable
+          minWidth={900}
+          columns={[
+            { key: 'name', header: '连接器', render: (connector) => <strong>{connector.name}</strong> },
+            {
+              key: 'provider',
+              header: '来源',
+              render: (connector) => connectorProviderLabels[connector.provider],
+            },
+            {
+              key: 'status',
+              header: '状态',
+              render: (connector) => (
+                <StatusPill tone={getConnectorStatusTone(connector.status)}>
+                  {connectorStatusLabels[connector.status]}
                 </StatusPill>
-              </span>
-            ),
-          },
-          {
-            key: 'externalFlowKey',
-            header: '外部流程',
-            render: (connector) => (
-              <span className="approval-center__cell-stack">
-                <strong>{connector.externalFlowKey}</strong>
-                <small>认证：{connector.authenticationLabel}</small>
-              </span>
-            ),
-          },
-          {
-            key: 'endpoints',
-            header: '提交 / 回调 / 撤回',
-            render: (connector) => (
-              <span className="approval-center__cell-stack">
-                <small>提交端点：{connector.submissionEndpoint}</small>
-                <small>回调端点：{connector.callbackEndpoint}</small>
-                <small>撤回端点：{connector.withdrawEndpoint}</small>
-              </span>
-            ),
-          },
-          {
-            key: 'syncPolicy',
-            header: '同步策略',
-            render: (connector) => (
-              <span className="approval-center__cell-stack">
-                <strong>{approvalSyncStatusLabels[connector.lastSyncStatus]}</strong>
-                <small>最近同步时间：{formatDate(connector.lastSyncAt)}</small>
-                <small>{connector.retryPolicy}</small>
-              </span>
-            ),
-          },
-          {
-            key: 'auditCompleteness',
-            header: '审计',
-            render: (connector) => (
-              <span className="approval-center__cell-stack">
-                <strong>{connector.auditCompleteness}</strong>
-                <small>只记录元数据与回调结果</small>
-              </span>
-            ),
-          },
-        ]}
-        records={externalApprovalConnectors}
-      />
+              ),
+            },
+            {
+              key: 'externalFlowKey',
+              header: '外部流程',
+              render: (connector) => (
+                <span className="approval-center__cell-stack">
+                  <strong>{connector.externalFlowKey}</strong>
+                  <small>已配置 3 个端点</small>
+                </span>
+              ),
+            },
+            {
+              key: 'syncPolicy',
+              header: '同步策略',
+              render: (connector) => (
+                <span className="approval-center__cell-stack">
+                  <strong>{approvalSyncStatusLabels[connector.lastSyncStatus]}</strong>
+                  <small>{connector.retryPolicy}</small>
+                </span>
+              ),
+            },
+            {
+              key: 'auditCompleteness',
+              header: '审计',
+              render: (connector) => auditCompletenessLabels[connector.auditCompleteness],
+            },
+            {
+              key: 'actions',
+              header: '更多',
+              render: (connector) => (
+                <button
+                  type="button"
+                  className="approval-center__action"
+                  aria-label={`查看 ${connector.name} 详情`}
+                  onClick={() => onSelectObject(connector.id, true)}
+                >
+                  查看详情
+                </button>
+              ),
+            },
+          ]}
+          records={externalApprovalConnectors}
+        />
+        {selectedConnector ? (
+          <ExternalConnectorInspector
+            connector={selectedConnector}
+            onClose={() => onSelectObject(null, false)}
+          />
+        ) : null}
+      </div>
     </section>
   )
 }
@@ -596,31 +698,260 @@ function SimulatorSection() {
   )
 }
 
-function ApprovalRecordsTable({ records }: { records: ApprovalRequest[] }) {
+function ApprovalRecordsTable({
+  inspectorOpen,
+  onSelectObject,
+  records,
+  selectedObjectId,
+}: {
+  records: ApprovalRequest[]
+} & ApprovalSelectionProps) {
+  const selectedRecord = inspectorOpen
+    ? records.find((record) => record.id === selectedObjectId)
+    : undefined
+
+  return (
+    <div className={getDetailLayoutClass(Boolean(selectedRecord))}>
+      <ApprovalRequestsTable
+        records={records}
+        progressHeader="结果"
+        renderProgress={(record) => record.resultLabel}
+        renderActions={(record) => (
+          <button
+            type="button"
+            className="approval-center__action"
+            aria-label={getApprovalActionAriaLabel('查看详情', record)}
+            onClick={() => onSelectObject(record.id, true)}
+          >
+            查看详情
+          </button>
+        )}
+      />
+      {selectedRecord ? (
+        <ApprovalRequestInspector
+          record={selectedRecord}
+          onClose={() => onSelectObject(null, false)}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function ApprovalRequestsTable({
+  records,
+  progressHeader,
+  renderProgress,
+  renderActions,
+}: {
+  records: ApprovalRequest[]
+  progressHeader: string
+  renderProgress: (record: ApprovalRequest) => ReactNode
+  renderActions: (record: ApprovalRequest) => ReactNode
+}) {
   return (
     <DataTable
-      minWidth={1040}
+      minWidth={820}
       columns={[
-        { key: 'id', header: '审批编号', render: (record) => record.id },
-        { key: 'title', header: '审批标题', render: (record) => <strong>{record.title}</strong> },
+        { key: 'title', header: '标题', render: (record) => <strong>{record.title}</strong> },
         {
           key: 'operationType',
-          header: '操作类型',
+          header: '类型',
           render: (record) => operationTypeLabels[record.operationType],
         },
-        { key: 'projectName', header: '项目', render: (record) => record.projectName },
-        { key: 'route', header: '审批路线', render: (record) => routeLabels[record.route] },
-        { key: 'resultLabel', header: '结果', render: (record) => record.resultLabel },
-        { key: 'initiator', header: '发起人', render: (record) => record.initiator },
-        { key: 'completedAt', header: '完成时间', render: (record) => formatDate(record.completedAt) },
         {
-          key: 'auditCompleteness',
-          header: '审计完整度',
-          render: (record) => record.auditCompleteness,
+          key: 'status',
+          header: '状态',
+          render: (record) => (
+            <StatusPill tone={getApprovalStatusTone(record.status)}>
+              {approvalStatusLabels[record.status]}
+            </StatusPill>
+          ),
         },
+        { key: 'progress', header: progressHeader, render: renderProgress },
+        { key: 'updatedAt', header: '更新时间', render: (record) => formatDate(record.updatedAt) },
+        { key: 'actions', header: '更多', render: renderActions },
       ]}
       records={records}
     />
+  )
+}
+
+function ApprovalRequestInspector({
+  record,
+  onClose,
+}: {
+  record: ApprovalRequest
+  onClose: () => void
+}) {
+  const connector = record.connectorId
+    ? externalApprovalConnectors.find((item) => item.id === record.connectorId)
+    : undefined
+  const rule = approvalRules.find(
+    (item) => record.ruleVersion === `${item.name} ${item.version}`,
+  )
+
+  return (
+    <aside className="approval-center__inspector" aria-label={`${record.title} 详情`}>
+      <div className="approval-center__inspector-head">
+        <div>
+          <h3>审批详情</h3>
+          <p>{record.title}</p>
+        </div>
+        <button
+          type="button"
+          className="approval-center__action"
+          aria-label={`关闭 ${record.title} 详情`}
+          onClick={onClose}
+        >
+          关闭
+        </button>
+      </div>
+      <dl>
+        <div>
+          <dt>审批编号</dt>
+          <dd>{record.id}</dd>
+        </div>
+        <div>
+          <dt>项目</dt>
+          <dd>{record.projectName}</dd>
+        </div>
+        <div>
+          <dt>发起人</dt>
+          <dd>{record.initiator}</dd>
+        </div>
+        <div>
+          <dt>审批路线</dt>
+          <dd>{routeLabels[record.route]}</dd>
+        </div>
+        <div>
+          <dt>风险等级</dt>
+          <dd>
+            <StatusPill tone={getRiskTone(record.riskLevel)}>
+              {riskLevelLabels[record.riskLevel]}
+            </StatusPill>
+          </dd>
+        </div>
+        <div>
+          <dt>资料包模板</dt>
+          <dd>{rule?.evidenceTemplateId ?? '-'}</dd>
+        </div>
+        <div>
+          <dt>资料包编号</dt>
+          <dd>{record.evidencePackageId}</dd>
+        </div>
+        <div>
+          <dt>审计完整度</dt>
+          <dd>{auditCompletenessLabels[record.auditCompleteness]}</dd>
+        </div>
+        <div>
+          <dt>规则版本</dt>
+          <dd>{record.ruleVersion}</dd>
+        </div>
+        <div>
+          <dt>{record.route === 'external' ? '外部流程编号' : '流程版本'}</dt>
+          <dd>
+            {record.route === 'external'
+              ? connector?.externalFlowKey ?? record.connectorName ?? '-'
+              : record.flowVersion ?? '-'}
+          </dd>
+        </div>
+      </dl>
+      <section className="approval-center__inspector-block" aria-label="时间状态">
+        <h4>时间状态</h4>
+        <dl>
+          <div>
+            <dt>当前状态</dt>
+            <dd>
+              <StatusPill tone={getApprovalStatusTone(record.status)}>
+                {approvalStatusLabels[record.status]}
+              </StatusPill>
+            </dd>
+          </div>
+          <div>
+            <dt>同步状态</dt>
+            <dd>{approvalSyncStatusLabels[record.syncStatus]}</dd>
+          </div>
+          <div>
+            <dt>创建时间</dt>
+            <dd>{formatDate(record.createdAt)}</dd>
+          </div>
+          <div>
+            <dt>更新时间</dt>
+            <dd>{formatDate(record.updatedAt)}</dd>
+          </div>
+          <div>
+            <dt>截止时间</dt>
+            <dd>{formatDate(record.dueAt)}</dd>
+          </div>
+          <div>
+            <dt>完成时间</dt>
+            <dd>{formatDate(record.completedAt)}</dd>
+          </div>
+        </dl>
+      </section>
+    </aside>
+  )
+}
+
+function ExternalConnectorInspector({
+  connector,
+  onClose,
+}: {
+  connector: ExternalApprovalConnector
+  onClose: () => void
+}) {
+  return (
+    <aside className="approval-center__inspector" aria-label={`${connector.name} 详情`}>
+      <div className="approval-center__inspector-head">
+        <div>
+          <h3>连接器详情</h3>
+          <p>{connector.name}</p>
+        </div>
+        <button
+          type="button"
+          className="approval-center__action"
+          aria-label={`关闭 ${connector.name} 详情`}
+          onClick={onClose}
+        >
+          关闭
+        </button>
+      </div>
+      <p>{connector.blackBoxDescription}</p>
+      <dl>
+        <div>
+          <dt>提交端点</dt>
+          <dd>{connector.submissionEndpoint}</dd>
+        </div>
+        <div>
+          <dt>回调端点</dt>
+          <dd>{connector.callbackEndpoint}</dd>
+        </div>
+        <div>
+          <dt>撤回端点</dt>
+          <dd>{connector.withdrawEndpoint}</dd>
+        </div>
+        <div>
+          <dt>最近同步时间</dt>
+          <dd>{formatDate(connector.lastSyncAt)}</dd>
+        </div>
+        <div>
+          <dt>错误策略</dt>
+          <dd>{connector.retryPolicy}</dd>
+        </div>
+        <div>
+          <dt>认证</dt>
+          <dd>{connector.authenticationLabel}</dd>
+        </div>
+        <div>
+          <dt>审计策略</dt>
+          <dd>{auditCompletenessLabels[connector.auditCompleteness]}</dd>
+        </div>
+        <div>
+          <dt>撤回说明</dt>
+          <dd>BioMap 向外部系统发送撤回通知并记录结果，不建模为内部 Approval Flow。</dd>
+        </div>
+      </dl>
+    </aside>
   )
 }
 
@@ -683,6 +1014,50 @@ function getRecordKey(record: unknown, index: number): string {
   return String(index)
 }
 
+function getDetailLayoutClass(inspectorOpen: boolean) {
+  return `approval-center__detail-layout${
+    inspectorOpen ? ' approval-center__detail-layout--inspector-open' : ''
+  }`
+}
+
+function getApprovalActionAriaLabel(label: string, record: ApprovalRequest) {
+  if (label === '查看详情') {
+    return `查看 ${record.title} 详情`
+  }
+
+  if (label === '查看资料包') {
+    return `查看 ${record.title} 资料包`
+  }
+
+  return `${label} ${record.title}`
+}
+
+function getApprovalCenterSection(sectionId: ApprovalCenterSectionId) {
+  const section = approvalCenterSections.find((item) => item.id === sectionId)
+
+  if (!section) {
+    throw new Error(`Unknown approval center section: ${sectionId}`)
+  }
+
+  return section
+}
+
+function getApprovalStatusTone(status: ApprovalRequest['status']) {
+  if (status === 'approved') {
+    return 'success'
+  }
+
+  if (status === 'rejected' || status === 'expired' || status === 'voided') {
+    return 'danger'
+  }
+
+  if (status === 'pending') {
+    return 'warning'
+  }
+
+  return 'neutral'
+}
+
 function getRiskTone(riskLevel: ApprovalRequest['riskLevel']) {
   if (riskLevel === 'critical') {
     return 'danger'
@@ -693,6 +1068,38 @@ function getRiskTone(riskLevel: ApprovalRequest['riskLevel']) {
   }
 
   return 'success'
+}
+
+function getConnectorStatusTone(status: ExternalApprovalConnector['status']) {
+  if (status === 'healthy') {
+    return 'success'
+  }
+
+  if (status === 'warning') {
+    return 'warning'
+  }
+
+  return 'neutral'
+}
+
+const connectorProviderLabels: Record<ExternalApprovalConnector['provider'], string> = {
+  wecom: '企业微信',
+  feishu: '飞书',
+  dingtalk: '钉钉',
+  webhook: 'Webhook',
+  custom: '自定义',
+}
+
+const connectorStatusLabels: Record<ExternalApprovalConnector['status'], string> = {
+  healthy: '正常',
+  warning: '异常',
+  disabled: '停用',
+}
+
+const auditCompletenessLabels: Record<ApprovalRequest['auditCompleteness'], string> = {
+  complete: '完整审计',
+  'node-level': '节点级',
+  'result-level': '结果级',
 }
 
 const approverSourceLabels: Record<ApprovalStage['approverSource'], string> = {

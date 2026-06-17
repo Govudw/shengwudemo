@@ -513,6 +513,68 @@ describe('demo store persistence', () => {
     expect(useDemoStore.getState().activeTopNav).toBe('Workspace')
   })
 
+  it('persists Approval Center inspector state and resets it with demo state', async () => {
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: createOldEgfrPersistedState(),
+      version: 3,
+    })
+    const approvalStore = useDemoStore.getState() as ReturnType<
+      typeof useDemoStore.getState
+    > &
+      ApprovalCenterStore
+
+    expect(typeof approvalStore.setApprovalCenterSection).toBe('function')
+    expect(typeof approvalStore.selectApprovalCenterObject).toBe('function')
+
+    approvalStore.setApprovalCenterSection?.('pending')
+    approvalStore.selectApprovalCenterObject?.('BM-APR-20260615-002')
+
+    expect(useDemoStore.getState().approvalActiveSection).toBe('pending')
+    expect(useDemoStore.getState().approvalInspectorOpen).toBe(true)
+    expect(useDemoStore.getState().approvalSelectedObjectId).toBe(
+      'BM-APR-20260615-002',
+    )
+
+    const { demoStorePersistKey } = await import('./useDemoStore')
+    const persistedPayload = JSON.parse(localStorage.getItem(demoStorePersistKey) ?? '{}')
+
+    expect(persistedPayload.state.approvalActiveSection).toBe('pending')
+    expect(persistedPayload.state.approvalInspectorOpen).toBe(true)
+    expect(persistedPayload.state.approvalSelectedObjectId).toBe(
+      'BM-APR-20260615-002',
+    )
+
+    approvalStore.setApprovalCenterSection?.('rules')
+
+    expect(useDemoStore.getState().approvalActiveSection).toBe('rules')
+    expect(useDemoStore.getState().approvalInspectorOpen).toBe(false)
+    expect(useDemoStore.getState().approvalSelectedObjectId).toBeNull()
+
+    useDemoStore.getState().resetDemoState()
+    expect(useDemoStore.getState().approvalActiveSection).toBe('overview')
+    expect(useDemoStore.getState().approvalInspectorOpen).toBe(false)
+    expect(useDemoStore.getState().approvalSelectedObjectId).toBeNull()
+  })
+
+  it('sanitizes invalid persisted Approval Center inspector selection during hydrate', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        activeTopNav: 'ApprovalCenter',
+        approvalActiveSection: 'pending',
+        approvalInspectorOpen: true,
+        approvalSelectedObjectId: 'not-a-seeded-approval-object',
+      },
+      version: demoStorePersistVersion,
+    })
+
+    expect(useDemoStore.getState().activeTopNav).toBe('ApprovalCenter')
+    expect(useDemoStore.getState().approvalActiveSection).toBe('pending')
+    expect(useDemoStore.getState().approvalInspectorOpen).toBe(false)
+    expect(useDemoStore.getState().approvalSelectedObjectId).toBeNull()
+  })
+
   it('persists notification drawer, full-page filters, detail, read, and cleared demo state without batch selection', async () => {
     const { demoStorePersistVersion } = await import('./useDemoStore')
     const { useDemoStore } = await loadStoreWithPersistedState({
@@ -1027,6 +1089,17 @@ type NotificationExtraFilterStore = {
   ) => void
   notificationCenterAdvancedFiltersOpen?: boolean
   setNotificationCenterAdvancedFiltersOpen?: (open: boolean) => void
+}
+
+type ApprovalCenterStore = {
+  approvalActiveSection?: 'overview' | 'pending' | 'rules'
+  approvalInspectorOpen?: boolean
+  approvalSelectedObjectId?: string | null
+  setApprovalCenterSection?: (section: 'overview' | 'pending' | 'rules') => void
+  selectApprovalCenterObject?: (
+    objectId: string | null,
+    inspectorOpen?: boolean,
+  ) => void
 }
 
 function expectCurrentEgfrReplaySeed(projects: DemoProject[]) {

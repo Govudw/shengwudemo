@@ -171,6 +171,9 @@ describe('demo store logic', () => {
     expect(state.assetsFileViewMode).toBe('list')
     expect(state.assetsExperimentViewMode).toBe('grid')
     expect(state.assetsOpenFolderId).toBeNull()
+    expect(state.approvalActiveSection).toBe('overview')
+    expect(state.approvalInspectorOpen).toBe(false)
+    expect(state.approvalSelectedObjectId).toBeNull()
     expect(state.expandedProjectIds).toEqual(seedProjects.map((project) => project.id))
     expect(egfrThread).toMatchObject({
       id: 'egfr-affinity',
@@ -291,6 +294,20 @@ describe('demo store logic', () => {
 
     expect(sanitized.assetsActiveSection).toBe('knowledge')
     expect(sanitized.assetsActiveItem).toBe('all-knowledge')
+  })
+
+  it('sanitizes invalid persisted Approval Center inspector state', () => {
+    const state = createInitialDemoState(seedProjects, now)
+    const sanitized = sanitizeDemoState({
+      ...state,
+      approvalActiveSection: 'pending',
+      approvalInspectorOpen: true,
+      approvalSelectedObjectId: 'not-a-seeded-approval-object',
+    })
+
+    expect(sanitized.approvalActiveSection).toBe('pending')
+    expect(sanitized.approvalInspectorOpen).toBe(false)
+    expect(sanitized.approvalSelectedObjectId).toBeNull()
   })
 
   it('toggles the persisted sidebar collapsed state without changing Thread selection', () => {

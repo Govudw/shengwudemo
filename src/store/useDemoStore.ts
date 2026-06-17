@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { projects as seedProjects } from '../data/mockData'
+import type { ApprovalCenterSectionId } from '../data/approvalCenterMockData'
 import {
   archiveThreadSnapshot,
   createProjectSnapshot,
@@ -20,6 +21,8 @@ import {
   setAssetsExperimentViewModeSnapshot,
   setAssetsFileViewModeSnapshot,
   setAssetsOpenFolderSnapshot,
+  selectApprovalCenterObjectSnapshot,
+  setApprovalCenterSectionSnapshot,
   setAssetsSelectionSnapshot,
   setXtrimoRecommendationsExpandedSnapshot,
   setNotificationDrawerOpenSnapshot,
@@ -98,6 +101,11 @@ type DemoStoreState = DemoStateSnapshot & {
   setAssetsExperimentViewMode: (mode: AssetsExperimentViewMode) => void
   setAssetsOpenFolder: (folderId: string | null) => void
   setXtrimoRecommendationsExpanded: (expanded: boolean) => void
+  setApprovalCenterSection: (section: ApprovalCenterSectionId) => void
+  selectApprovalCenterObject: (
+    objectId: string | null,
+    inspectorOpen?: boolean,
+  ) => void
   openNotificationDrawer: () => void
   closeNotificationDrawer: () => void
   setNotificationFilter: (filter: NotificationFilter) => void
@@ -195,6 +203,12 @@ export const useDemoStore = create<DemoStoreState>()(
         set((state) =>
           setXtrimoRecommendationsExpandedSnapshot(state, expanded),
         ),
+      setApprovalCenterSection: (section) =>
+        set((state) => setApprovalCenterSectionSnapshot(state, section)),
+      selectApprovalCenterObject: (objectId, inspectorOpen) =>
+        set((state) =>
+          selectApprovalCenterObjectSnapshot(state, objectId, inspectorOpen),
+        ),
       openNotificationDrawer: () =>
         set((state) => setNotificationDrawerOpenSnapshot(state, true)),
       closeNotificationDrawer: () =>
@@ -287,6 +301,9 @@ export const useDemoStore = create<DemoStoreState>()(
         assetsExperimentViewMode: state.assetsExperimentViewMode,
         assetsOpenFolderId: state.assetsOpenFolderId,
         xtrimoRecommendationsExpanded: state.xtrimoRecommendationsExpanded,
+        approvalActiveSection: state.approvalActiveSection,
+        approvalInspectorOpen: state.approvalInspectorOpen,
+        approvalSelectedObjectId: state.approvalSelectedObjectId,
         notificationDrawerOpen: state.notificationDrawerOpen,
         notificationFilter: state.notificationFilter,
         notificationReadById: state.notificationReadById,
@@ -380,6 +397,16 @@ export const useDemoStore = create<DemoStoreState>()(
             typeof restoredState.xtrimoRecommendationsExpanded === 'boolean'
               ? restoredState.xtrimoRecommendationsExpanded
               : currentState.xtrimoRecommendationsExpanded,
+          approvalActiveSection:
+            restoredState.approvalActiveSection ??
+            currentState.approvalActiveSection,
+          approvalInspectorOpen:
+            typeof restoredState.approvalInspectorOpen === 'boolean'
+              ? restoredState.approvalInspectorOpen
+              : currentState.approvalInspectorOpen,
+          approvalSelectedObjectId:
+            restoredState.approvalSelectedObjectId ??
+            currentState.approvalSelectedObjectId,
           notificationDrawerOpen:
             restoredState.notificationDrawerOpen ??
             currentState.notificationDrawerOpen,

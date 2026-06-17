@@ -1,4 +1,11 @@
 import type { ConversationTurn, RunInspectorData } from '../data/conversationTypes'
+import {
+  approvalCenterSections,
+  approvalRecords,
+  externalApprovalConnectors,
+  getApprovalRecordsBySection,
+  type ApprovalCenterSectionId,
+} from '../data/approvalCenterMockData'
 import type { Project } from '../data/mockData'
 import { notificationCenterSeedItems } from '../data/notificationCenterMockData'
 import type {
@@ -47,6 +54,9 @@ export type DemoStateSnapshot = {
   assetsExperimentViewMode: AssetsExperimentViewMode
   assetsOpenFolderId: string | null
   xtrimoRecommendationsExpanded: boolean
+  approvalActiveSection: ApprovalCenterSectionId
+  approvalInspectorOpen: boolean
+  approvalSelectedObjectId: string | null
   notificationDrawerOpen: boolean
   notificationFilter: NotificationFilter
   notificationReadById: Record<string, boolean>
@@ -146,6 +156,9 @@ const activeTopNavItems = [
   'ApprovalCenter',
   'NotificationCenter',
 ] as const
+const approvalCenterSectionIds = approvalCenterSections.map(
+  (section) => section.id,
+)
 const assetsSections = ['file', 'knowledge', 'data', 'experiment', 'model'] as const
 const assetsFileViewModes = ['list', 'grid'] as const
 const assetsExperimentViewModes = ['grid', 'table'] as const
@@ -239,6 +252,9 @@ export function createInitialDemoState(
     assetsExperimentViewMode: 'grid',
     assetsOpenFolderId: null,
     xtrimoRecommendationsExpanded: false,
+    approvalActiveSection: 'overview',
+    approvalInspectorOpen: false,
+    approvalSelectedObjectId: null,
     notificationDrawerOpen: false,
     notificationFilter: 'all',
     notificationReadById: {},
@@ -563,6 +579,7 @@ export function sanitizeDemoState(state: DemoStateSnapshot): DemoStateSnapshot {
     selectedEntry && !selectedEntry.thread.archived,
   )
   const sanitizedAssets = sanitizeAssetsStateFields(state)
+  const sanitizedApproval = sanitizeApprovalCenterStateFields(state)
 
   if (hasValidSelectedThread && selectedEntry) {
     return {
@@ -583,6 +600,7 @@ export function sanitizeDemoState(state: DemoStateSnapshot): DemoStateSnapshot {
         projects,
       ),
       ...sanitizedAssets,
+      ...sanitizedApproval,
       ...sanitizeNotificationStateFields(state),
       statusMessage: '',
     }
@@ -606,6 +624,7 @@ export function sanitizeDemoState(state: DemoStateSnapshot): DemoStateSnapshot {
       projects,
     ),
     ...sanitizedAssets,
+    ...sanitizedApproval,
     ...sanitizeNotificationStateFields(state),
     statusMessage: '',
   }
@@ -707,6 +726,52 @@ export function setXtrimoRecommendationsExpandedSnapshot(
   return {
     ...state,
     xtrimoRecommendationsExpanded,
+  }
+}
+
+export function setApprovalCenterSectionSnapshot(
+  state: DemoStateSnapshot,
+  approvalActiveSection: ApprovalCenterSectionId,
+): DemoStateSnapshot {
+  if (!isApprovalCenterSection(approvalActiveSection)) {
+    return state
+  }
+
+  const approvalSelectedObjectId =
+    approvalActiveSection === state.approvalActiveSection &&
+    isApprovalSelectableObjectId(
+      approvalActiveSection,
+      state.approvalSelectedObjectId,
+    )
+    ? state.approvalSelectedObjectId
+    : null
+
+  return {
+    ...state,
+    approvalActiveSection,
+    approvalSelectedObjectId,
+    approvalInspectorOpen:
+      Boolean(approvalSelectedObjectId) && state.approvalInspectorOpen,
+  }
+}
+
+export function selectApprovalCenterObjectSnapshot(
+  state: DemoStateSnapshot,
+  approvalSelectedObjectId: string | null,
+  approvalInspectorOpen = approvalSelectedObjectId !== null,
+): DemoStateSnapshot {
+  const validSelectedObjectId = isApprovalSelectableObjectId(
+    state.approvalActiveSection,
+    approvalSelectedObjectId,
+  )
+    ? approvalSelectedObjectId
+    : null
+
+  return {
+    ...state,
+    approvalSelectedObjectId: validSelectedObjectId,
+    approvalInspectorOpen:
+      Boolean(validSelectedObjectId) && approvalInspectorOpen,
   }
 }
 
@@ -1473,6 +1538,35 @@ function sanitizeAssetsStateFields(
   }
 }
 
+function sanitizeApprovalCenterStateFields(
+  state: DemoStateSnapshot,
+): Pick<
+  DemoStateSnapshot,
+  'approvalActiveSection' | 'approvalInspectorOpen' | 'approvalSelectedObjectId'
+> {
+  const approvalActiveSection = isApprovalCenterSection(
+    state.approvalActiveSection,
+  )
+    ? state.approvalActiveSection
+    : 'overview'
+  const approvalSelectedObjectId = isApprovalSelectableObjectId(
+    approvalActiveSection,
+    state.approvalSelectedObjectId,
+  )
+    ? state.approvalSelectedObjectId
+    : null
+
+  return {
+    approvalActiveSection,
+    approvalInspectorOpen:
+      Boolean(approvalSelectedObjectId) &&
+      typeof state.approvalInspectorOpen === 'boolean'
+        ? state.approvalInspectorOpen
+        : false,
+    approvalSelectedObjectId,
+  }
+}
+
 function sanitizeNotificationStateFields(
   state: DemoStateSnapshot,
 ): Pick<
@@ -1583,6 +1677,43 @@ function sanitizeNotificationStateFields(
 
 function isActiveTopNav(value: unknown): value is ActiveTopNav {
   return activeTopNavItems.includes(value as ActiveTopNav)
+}
+
+function isApprovalCenterSection(
+  value: unknown,
+): value is ApprovalCenterSectionId {
+  return approvalCenterSectionIds.includes(value as ApprovalCenterSectionId)
+}
+
+function isApprovalSelectableObjectId(
+  sectionId: ApprovalCenterSectionId,
+  objectId: unknown,
+): objectId is string {
+  if (typeof objectId !== 'string') {
+    return false
+  }
+
+  if (sectionId === 'external') {
+    return externalApprovalConnectors.some(
+      (connector) => connector.id === objectId,
+    )
+  }
+
+  if (sectionId === 'overview') {
+    return approvalRecords.slice(0, 5).some((record) => record.id === objectId)
+  }
+
+  if (
+    sectionId === 'pending' ||
+    sectionId === 'initiated' ||
+    sectionId === 'records'
+  ) {
+    return getApprovalRecordsBySection(sectionId).some(
+      (record) => record.id === objectId,
+    )
+  }
+
+  return false
 }
 
 function isNotificationFilter(value: unknown): value is NotificationFilter {
