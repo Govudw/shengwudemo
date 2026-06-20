@@ -18,6 +18,18 @@ import type {
   NotificationCenterTypeFilter,
   NotificationFilter,
 } from '../data/notificationCenterMockData'
+import {
+  billingCenterBudgetRules,
+  billingCenterMonthlyBills,
+  billingCenterServiceInstances,
+  type BillingCenterRole,
+  type BillingCenterTab,
+} from '../components/billing-center/billingCenterMockData'
+import type {
+  DirectionFilterValue,
+  ScopeFilterValue,
+  TypeFilterValue,
+} from '../data/homeTemplates/types'
 
 export type DemoThread = {
   id: string
@@ -74,8 +86,26 @@ export type DemoStateSnapshot = {
   notificationCenterSelectedId: string | null
   notificationCenterSelectedIds: string[]
   notificationCenterDetailOpen: boolean
+  homeMode: HomeMode
+  homeTemplateScopeFilter: ScopeFilterValue
+  homeTemplateDirectionFilter: DirectionFilterValue
+  homeTemplateTypeFilter: TypeFilterValue
+  homeTemplateSearchQuery: string
+  homeTemplateAdvancedFiltersOpen: boolean
+  billingCenterActiveTab: BillingCenterTab
+  billingCenterRole: BillingCenterRole
+  billingCenterSelectedServiceId: string | null
+  billingCenterSelectedBillLineId: string | null
+  billingCenterSelectedBudgetId: string | null
+  billingCenterInspectorOpen: boolean
+  billingCenterServiceSearch: string
+  billingCenterBillSearch: string
+  billingCenterUsageSearch: string
+  billingCenterBudgetSearch: string
   statusMessage: string
 }
+
+export type HomeMode = 'recommendations' | 'templates'
 
 export type ActiveTopNav =
   | 'Workspace'
@@ -84,6 +114,9 @@ export type ActiveTopNav =
   | 'Capabilities'
   | 'ApprovalCenter'
   | 'NotificationCenter'
+  | 'BillingCenter'
+
+export type BillingCenterSearchScope = 'services' | 'bills' | 'usage' | 'budgets'
 
 export type AssetsSection = 'file' | 'knowledge' | 'data' | 'experiment' | 'model'
 
@@ -155,7 +188,36 @@ const activeTopNavItems = [
   'Capabilities',
   'ApprovalCenter',
   'NotificationCenter',
+  'BillingCenter',
 ] as const
+const billingCenterTabs = [
+  'overview',
+  'services',
+  'bills',
+  'usage',
+  'budgets',
+] as const satisfies readonly BillingCenterTab[]
+const billingCenterRoles = [
+  'admin',
+  'viewer',
+] as const satisfies readonly BillingCenterRole[]
+const billingCenterSearchScopes = [
+  'services',
+  'bills',
+  'usage',
+  'budgets',
+] as const satisfies readonly BillingCenterSearchScope[]
+const billingCenterServiceIds = new Set(
+  billingCenterServiceInstances.map((service) => service.id),
+)
+const billingCenterBillLineIds = new Set(
+  billingCenterMonthlyBills.flatMap((bill) =>
+    bill.lineItems.map((lineItem) => lineItem.id),
+  ),
+)
+const billingCenterBudgetIds = new Set(
+  billingCenterBudgetRules.map((budgetRule) => budgetRule.id),
+)
 const approvalCenterSectionIds = approvalCenterSections.map(
   (section) => section.id,
 )
@@ -221,6 +283,30 @@ const notificationCenterTimeFilters = [
 const notificationCenterSeedItemIds = new Set(
   notificationCenterSeedItems.map((item) => item.id),
 )
+const homeModes = ['recommendations', 'templates'] as const
+const homeTemplateScopeFilters = [
+  '全部类别',
+  '日常',
+  '生物',
+  '飞书',
+  '其他',
+] as const satisfies readonly ScopeFilterValue[]
+const homeTemplateDirectionFilters = [
+  '全部方向',
+  '蛋白药物',
+  '虚拟细胞',
+  '合成生物学',
+  '农业育种',
+  '其他',
+] as const satisfies readonly DirectionFilterValue[]
+const homeTemplateTypeFilters = [
+  '全部类型',
+  '完整工作流',
+  '研究设计',
+  '实验',
+  '结果分析',
+  '模型优化',
+] as const satisfies readonly TypeFilterValue[]
 const assetMenuItemsBySection = {
   file: ['public-files', 'project-files', 'recent-uploads', 'archived-files'],
   knowledge: ['all-knowledge', 'rag', 'knowledge-graph', 'graph-rag'],
@@ -272,6 +358,22 @@ export function createInitialDemoState(
     notificationCenterSelectedId: null,
     notificationCenterSelectedIds: [],
     notificationCenterDetailOpen: false,
+    homeMode: 'recommendations',
+    homeTemplateScopeFilter: '全部类别',
+    homeTemplateDirectionFilter: '全部方向',
+    homeTemplateTypeFilter: '全部类型',
+    homeTemplateSearchQuery: '',
+    homeTemplateAdvancedFiltersOpen: false,
+    billingCenterActiveTab: 'overview',
+    billingCenterRole: 'admin',
+    billingCenterSelectedServiceId: null,
+    billingCenterSelectedBillLineId: null,
+    billingCenterSelectedBudgetId: null,
+    billingCenterInspectorOpen: false,
+    billingCenterServiceSearch: '',
+    billingCenterBillSearch: '',
+    billingCenterUsageSearch: '',
+    billingCenterBudgetSearch: '',
     statusMessage: '',
   }
 }
@@ -580,6 +682,8 @@ export function sanitizeDemoState(state: DemoStateSnapshot): DemoStateSnapshot {
   )
   const sanitizedAssets = sanitizeAssetsStateFields(state)
   const sanitizedApproval = sanitizeApprovalCenterStateFields(state)
+  const sanitizedHomeWorkbench = sanitizeHomeWorkbenchStateFields(state)
+  const sanitizedBillingCenter = sanitizeBillingCenterStateFields(state)
 
   if (hasValidSelectedThread && selectedEntry) {
     return {
@@ -601,6 +705,8 @@ export function sanitizeDemoState(state: DemoStateSnapshot): DemoStateSnapshot {
       ),
       ...sanitizedAssets,
       ...sanitizedApproval,
+      ...sanitizedHomeWorkbench,
+      ...sanitizedBillingCenter,
       ...sanitizeNotificationStateFields(state),
       statusMessage: '',
     }
@@ -625,6 +731,8 @@ export function sanitizeDemoState(state: DemoStateSnapshot): DemoStateSnapshot {
     ),
     ...sanitizedAssets,
     ...sanitizedApproval,
+    ...sanitizedHomeWorkbench,
+    ...sanitizedBillingCenter,
     ...sanitizeNotificationStateFields(state),
     statusMessage: '',
   }
@@ -648,6 +756,94 @@ export function selectTopNavSnapshot(
     notificationCenterSelectedIds: isLeavingNotificationCenter
       ? []
       : state.notificationCenterSelectedIds,
+  }
+}
+
+export function setHomeModeSnapshot(
+  state: DemoStateSnapshot,
+  homeMode: HomeMode,
+): DemoStateSnapshot {
+  if (!isHomeMode(homeMode)) {
+    return state
+  }
+
+  return {
+    ...state,
+    homeMode,
+  }
+}
+
+export function setHomeTemplateScopeFilterSnapshot(
+  state: DemoStateSnapshot,
+  homeTemplateScopeFilter: ScopeFilterValue,
+): DemoStateSnapshot {
+  if (!isHomeTemplateScopeFilter(homeTemplateScopeFilter)) {
+    return state
+  }
+
+  return {
+    ...state,
+    homeTemplateScopeFilter,
+  }
+}
+
+export function setHomeTemplateDirectionFilterSnapshot(
+  state: DemoStateSnapshot,
+  homeTemplateDirectionFilter: DirectionFilterValue,
+): DemoStateSnapshot {
+  if (!isHomeTemplateDirectionFilter(homeTemplateDirectionFilter)) {
+    return state
+  }
+
+  return {
+    ...state,
+    homeTemplateDirectionFilter,
+  }
+}
+
+export function setHomeTemplateTypeFilterSnapshot(
+  state: DemoStateSnapshot,
+  homeTemplateTypeFilter: TypeFilterValue,
+): DemoStateSnapshot {
+  if (!isHomeTemplateTypeFilter(homeTemplateTypeFilter)) {
+    return state
+  }
+
+  return {
+    ...state,
+    homeTemplateTypeFilter,
+  }
+}
+
+export function setHomeTemplateSearchQuerySnapshot(
+  state: DemoStateSnapshot,
+  homeTemplateSearchQuery: string,
+): DemoStateSnapshot {
+  return {
+    ...state,
+    homeTemplateSearchQuery,
+  }
+}
+
+export function setHomeTemplateAdvancedFiltersOpenSnapshot(
+  state: DemoStateSnapshot,
+  homeTemplateAdvancedFiltersOpen: boolean,
+): DemoStateSnapshot {
+  return {
+    ...state,
+    homeTemplateAdvancedFiltersOpen,
+  }
+}
+
+export function resetHomeTemplateFiltersSnapshot(
+  state: DemoStateSnapshot,
+): DemoStateSnapshot {
+  return {
+    ...state,
+    homeTemplateScopeFilter: '全部类别',
+    homeTemplateDirectionFilter: '全部方向',
+    homeTemplateTypeFilter: '全部类型',
+    homeTemplateSearchQuery: '',
   }
 }
 
@@ -773,6 +969,107 @@ export function selectApprovalCenterObjectSnapshot(
     approvalInspectorOpen:
       Boolean(validSelectedObjectId) && approvalInspectorOpen,
   }
+}
+
+export function setBillingCenterTabSnapshot(
+  state: DemoStateSnapshot,
+  billingCenterActiveTab: BillingCenterTab,
+): DemoStateSnapshot {
+  if (!isBillingCenterTab(billingCenterActiveTab)) {
+    return state
+  }
+
+  return {
+    ...state,
+    billingCenterActiveTab,
+  }
+}
+
+export function setBillingCenterRoleSnapshot(
+  state: DemoStateSnapshot,
+  billingCenterRole: BillingCenterRole,
+): DemoStateSnapshot {
+  if (!isBillingCenterRole(billingCenterRole)) {
+    return state
+  }
+
+  return {
+    ...state,
+    billingCenterRole,
+  }
+}
+
+export function selectBillingCenterServiceSnapshot(
+  state: DemoStateSnapshot,
+  billingCenterSelectedServiceId: string | null,
+  billingCenterInspectorOpen = billingCenterSelectedServiceId !== null,
+): DemoStateSnapshot {
+  const validServiceId = isBillingCenterServiceId(billingCenterSelectedServiceId)
+    ? billingCenterSelectedServiceId
+    : null
+
+  return {
+    ...state,
+    billingCenterSelectedServiceId: validServiceId,
+    billingCenterInspectorOpen: Boolean(validServiceId) && billingCenterInspectorOpen,
+  }
+}
+
+export function selectBillingCenterBillLineSnapshot(
+  state: DemoStateSnapshot,
+  billingCenterSelectedBillLineId: string | null,
+  billingCenterInspectorOpen = billingCenterSelectedBillLineId !== null,
+): DemoStateSnapshot {
+  const validBillLineId = isBillingCenterBillLineId(billingCenterSelectedBillLineId)
+    ? billingCenterSelectedBillLineId
+    : null
+
+  return {
+    ...state,
+    billingCenterSelectedBillLineId: validBillLineId,
+    billingCenterInspectorOpen:
+      Boolean(validBillLineId) && billingCenterInspectorOpen,
+  }
+}
+
+export function selectBillingCenterBudgetSnapshot(
+  state: DemoStateSnapshot,
+  billingCenterSelectedBudgetId: string | null,
+  billingCenterInspectorOpen = billingCenterSelectedBudgetId !== null,
+): DemoStateSnapshot {
+  const validBudgetId = isBillingCenterBudgetId(billingCenterSelectedBudgetId)
+    ? billingCenterSelectedBudgetId
+    : null
+
+  return {
+    ...state,
+    billingCenterSelectedBudgetId: validBudgetId,
+    billingCenterInspectorOpen: Boolean(validBudgetId) && billingCenterInspectorOpen,
+  }
+}
+
+export function setBillingCenterSearchSnapshot(
+  state: DemoStateSnapshot,
+  scope: BillingCenterSearchScope,
+  value: string,
+): DemoStateSnapshot {
+  if (!isBillingCenterSearchScope(scope) || typeof value !== 'string') {
+    return state
+  }
+
+  if (scope === 'services') {
+    return { ...state, billingCenterServiceSearch: value }
+  }
+
+  if (scope === 'bills') {
+    return { ...state, billingCenterBillSearch: value }
+  }
+
+  if (scope === 'usage') {
+    return { ...state, billingCenterUsageSearch: value }
+  }
+
+  return { ...state, billingCenterBudgetSearch: value }
 }
 
 export function setNotificationDrawerOpenSnapshot(
@@ -1567,6 +1864,123 @@ function sanitizeApprovalCenterStateFields(
   }
 }
 
+function sanitizeHomeWorkbenchStateFields(
+  state: DemoStateSnapshot,
+): Pick<
+  DemoStateSnapshot,
+  | 'homeMode'
+  | 'homeTemplateScopeFilter'
+  | 'homeTemplateDirectionFilter'
+  | 'homeTemplateTypeFilter'
+  | 'homeTemplateSearchQuery'
+  | 'homeTemplateAdvancedFiltersOpen'
+> {
+  return {
+    homeMode: isHomeMode(state.homeMode) ? state.homeMode : 'recommendations',
+    homeTemplateScopeFilter: isHomeTemplateScopeFilter(
+      state.homeTemplateScopeFilter,
+    )
+      ? state.homeTemplateScopeFilter
+      : '全部类别',
+    homeTemplateDirectionFilter: isHomeTemplateDirectionFilter(
+      state.homeTemplateDirectionFilter,
+    )
+      ? state.homeTemplateDirectionFilter
+      : '全部方向',
+    homeTemplateTypeFilter: isHomeTemplateTypeFilter(
+      state.homeTemplateTypeFilter,
+    )
+      ? state.homeTemplateTypeFilter
+      : '全部类型',
+    homeTemplateSearchQuery:
+      typeof state.homeTemplateSearchQuery === 'string'
+        ? state.homeTemplateSearchQuery
+        : '',
+    homeTemplateAdvancedFiltersOpen:
+      typeof state.homeTemplateAdvancedFiltersOpen === 'boolean'
+        ? state.homeTemplateAdvancedFiltersOpen
+        : false,
+  }
+}
+
+function sanitizeBillingCenterStateFields(
+  state: DemoStateSnapshot,
+): Pick<
+  DemoStateSnapshot,
+  | 'billingCenterActiveTab'
+  | 'billingCenterRole'
+  | 'billingCenterSelectedServiceId'
+  | 'billingCenterSelectedBillLineId'
+  | 'billingCenterSelectedBudgetId'
+  | 'billingCenterInspectorOpen'
+  | 'billingCenterServiceSearch'
+  | 'billingCenterBillSearch'
+  | 'billingCenterUsageSearch'
+  | 'billingCenterBudgetSearch'
+> {
+  const billingCenterSelectedServiceId = isBillingCenterServiceId(
+    state.billingCenterSelectedServiceId,
+  )
+    ? state.billingCenterSelectedServiceId
+    : null
+  const billingCenterSelectedBillLineId = isBillingCenterBillLineId(
+    state.billingCenterSelectedBillLineId,
+  )
+    ? state.billingCenterSelectedBillLineId
+    : null
+  const billingCenterSelectedBudgetId = isBillingCenterBudgetId(
+    state.billingCenterSelectedBudgetId,
+  )
+    ? state.billingCenterSelectedBudgetId
+    : null
+  const hadInvalidSelection =
+    (state.billingCenterSelectedServiceId !== null &&
+      !billingCenterSelectedServiceId) ||
+    (state.billingCenterSelectedBillLineId !== null &&
+      !billingCenterSelectedBillLineId) ||
+    (state.billingCenterSelectedBudgetId !== null &&
+      !billingCenterSelectedBudgetId)
+  const hasValidSelection = Boolean(
+    billingCenterSelectedServiceId ||
+      billingCenterSelectedBillLineId ||
+      billingCenterSelectedBudgetId,
+  )
+
+  return {
+    billingCenterActiveTab: isBillingCenterTab(state.billingCenterActiveTab)
+      ? state.billingCenterActiveTab
+      : 'overview',
+    billingCenterRole: isBillingCenterRole(state.billingCenterRole)
+      ? state.billingCenterRole
+      : 'admin',
+    billingCenterSelectedServiceId,
+    billingCenterSelectedBillLineId,
+    billingCenterSelectedBudgetId,
+    billingCenterInspectorOpen:
+      !hadInvalidSelection &&
+      hasValidSelection &&
+      typeof state.billingCenterInspectorOpen === 'boolean'
+        ? state.billingCenterInspectorOpen
+        : false,
+    billingCenterServiceSearch:
+      typeof state.billingCenterServiceSearch === 'string'
+        ? state.billingCenterServiceSearch
+        : '',
+    billingCenterBillSearch:
+      typeof state.billingCenterBillSearch === 'string'
+        ? state.billingCenterBillSearch
+        : '',
+    billingCenterUsageSearch:
+      typeof state.billingCenterUsageSearch === 'string'
+        ? state.billingCenterUsageSearch
+        : '',
+    billingCenterBudgetSearch:
+      typeof state.billingCenterBudgetSearch === 'string'
+        ? state.billingCenterBudgetSearch
+        : '',
+  }
+}
+
 function sanitizeNotificationStateFields(
   state: DemoStateSnapshot,
 ): Pick<
@@ -1677,6 +2091,52 @@ function sanitizeNotificationStateFields(
 
 function isActiveTopNav(value: unknown): value is ActiveTopNav {
   return activeTopNavItems.includes(value as ActiveTopNav)
+}
+
+function isHomeMode(value: unknown): value is HomeMode {
+  return homeModes.includes(value as HomeMode)
+}
+
+function isHomeTemplateScopeFilter(
+  value: unknown,
+): value is ScopeFilterValue {
+  return homeTemplateScopeFilters.includes(value as ScopeFilterValue)
+}
+
+function isHomeTemplateDirectionFilter(
+  value: unknown,
+): value is DirectionFilterValue {
+  return homeTemplateDirectionFilters.includes(value as DirectionFilterValue)
+}
+
+function isHomeTemplateTypeFilter(value: unknown): value is TypeFilterValue {
+  return homeTemplateTypeFilters.includes(value as TypeFilterValue)
+}
+
+function isBillingCenterTab(value: unknown): value is BillingCenterTab {
+  return billingCenterTabs.includes(value as BillingCenterTab)
+}
+
+function isBillingCenterRole(value: unknown): value is BillingCenterRole {
+  return billingCenterRoles.includes(value as BillingCenterRole)
+}
+
+function isBillingCenterSearchScope(
+  value: unknown,
+): value is BillingCenterSearchScope {
+  return billingCenterSearchScopes.includes(value as BillingCenterSearchScope)
+}
+
+function isBillingCenterServiceId(value: unknown): value is string {
+  return typeof value === 'string' && billingCenterServiceIds.has(value)
+}
+
+function isBillingCenterBillLineId(value: unknown): value is string {
+  return typeof value === 'string' && billingCenterBillLineIds.has(value)
+}
+
+function isBillingCenterBudgetId(value: unknown): value is string {
+  return typeof value === 'string' && billingCenterBudgetIds.has(value)
 }
 
 function isApprovalCenterSection(

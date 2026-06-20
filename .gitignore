@@ -24,19 +24,6 @@ worktrees/
 *.docx
 docs/
 
-# Project glossary is versioned.
-!CONTEXT.md
-
-# Project specs are versioned with implementation work.
-!docs/
-!docs/adr/
-!docs/adr/*.md
-!docs/superpowers/
-!docs/superpowers/plans/
-!docs/superpowers/plans/*.md
-!docs/superpowers/specs/
-!docs/superpowers/specs/*.md
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

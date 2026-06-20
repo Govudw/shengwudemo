@@ -80,16 +80,19 @@ describe('TopNav', () => {
       accountButton?.click()
     })
 
-    expect(getButton(container, '通知中心')).not.toBeNull()
-    expect(getButton(container, '审批中心')).not.toBeNull()
-    expect(getButton(container, '管理后台')).not.toBeNull()
+    const menuLabels = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'),
+      (button) => button.textContent?.trim(),
+    )
+
+    expect(menuLabels).toEqual(['通知中心', '审批中心', '费用中心', '管理后台'])
 
     act(() => {
-      getButton(container, '审批中心').click()
+      getButton(container, '费用中心').click()
     })
 
-    expect(onAccountMenuSelect).toHaveBeenCalledWith('approval-center')
-    expect(container.textContent).not.toContain('审批中心')
+    expect(onAccountMenuSelect).toHaveBeenCalledWith('billing-center')
+    expect(container.textContent).not.toContain('费用中心')
 
     root.unmount()
   })

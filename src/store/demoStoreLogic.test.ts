@@ -191,7 +191,7 @@ describe('demo store logic', () => {
     expect(egfrThread?.transcript).not.toBe(egfrSeedThread?.transcript)
   })
 
-  it('switches between Workspace, Projects, Assets and Approval Center without changing conversation state', () => {
+  it('switches between Workspace, Projects, Assets, Approval Center and Billing Center without changing conversation state', () => {
     const selected = selectThreadSnapshot(
       createInitialDemoState(seedProjects, now),
       'antibody-optimization',
@@ -201,7 +201,8 @@ describe('demo store logic', () => {
     const projects = selectTopNavSnapshot(selected, 'Projects')
     const assets = selectTopNavSnapshot(projects, 'Assets')
     const approvalCenter = selectTopNavSnapshot(assets, 'ApprovalCenter')
-    const workspace = selectTopNavSnapshot(approvalCenter, 'Workspace')
+    const billingCenter = selectTopNavSnapshot(approvalCenter, 'BillingCenter')
+    const workspace = selectTopNavSnapshot(billingCenter, 'Workspace')
 
     expect(projects.activeTopNav).toBe('Projects')
     expect(projects.selectedThreadId).toBe('egfr-affinity')
@@ -212,6 +213,9 @@ describe('demo store logic', () => {
     expect(approvalCenter.activeTopNav).toBe('ApprovalCenter')
     expect(approvalCenter.selectedThreadId).toBe('egfr-affinity')
     expect(approvalCenter.isDraftingNewThread).toBe(false)
+    expect(billingCenter.activeTopNav).toBe('BillingCenter')
+    expect(billingCenter.selectedThreadId).toBe('egfr-affinity')
+    expect(billingCenter.isDraftingNewThread).toBe(false)
     expect(workspace.activeTopNav).toBe('Workspace')
     expect(workspace.selectedThreadId).toBe('egfr-affinity')
   })

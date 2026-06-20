@@ -7,12 +7,15 @@ import {
 } from './appRouting'
 import ApprovalCenterPage from './components/approval/ApprovalCenterPage'
 import AssetsPage from './components/assets/AssetsPage'
+import BillingCenterPage from './components/billing-center/BillingCenterPage'
 import Composer from './components/Composer'
 import CapabilitiesPage from './components/CapabilitiesPage'
+import HomeControlBar from './components/HomeControlBar'
 import NotificationCenterDrawer from './components/notifications/NotificationCenterDrawer'
 import NotificationCenterPage from './components/notifications/NotificationCenterPage'
 import ProductManagementPlatformPage from './components/product-management/ProductManagementPlatformPage'
 import ProjectsPage from './components/projects/ProjectsPage'
+import RecommendationWorkbench from './components/RecommendationWorkbench'
 import Sidebar from './components/Sidebar'
 import TemplateSection from './components/TemplateSection'
 import ThreadWorkspace from './components/ThreadWorkspace'
@@ -20,6 +23,11 @@ import TopNav from './components/TopNav'
 import type { AccountMenuItem, TopNavItem } from './components/TopNav'
 import { homeTemplates } from './data/homeTemplates'
 import type { HomeTemplate } from './data/homeTemplates'
+import {
+  homeRecommendationSections,
+  starterRecommendationGroups,
+} from './data/homeRecommendations'
+import type { HomeRecommendationItem } from './data/homeRecommendations'
 import {
   applyNotificationOverrides,
   countActionRequiredNotifications,
@@ -56,6 +64,7 @@ function App() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [projectMenuOpen, setProjectMenuOpen] = useState(false)
+  const [homeTemplatePage, setHomeTemplatePage] = useState(1)
   const composerTextAreaRef = useRef<HTMLTextAreaElement>(null)
   const skipNextRootRouteSyncRef = useRef(false)
   const projects = useDemoStore((state) => state.projects)
@@ -131,6 +140,50 @@ function App() {
   )
   const notificationCenterDetailOpen = useDemoStore(
     (state) => state.notificationCenterDetailOpen,
+  )
+  const billingCenterActiveTab = useDemoStore(
+    (state) => state.billingCenterActiveTab,
+  )
+  const billingCenterRole = useDemoStore((state) => state.billingCenterRole)
+  const billingCenterSelectedServiceId = useDemoStore(
+    (state) => state.billingCenterSelectedServiceId,
+  )
+  const billingCenterSelectedBillLineId = useDemoStore(
+    (state) => state.billingCenterSelectedBillLineId,
+  )
+  const billingCenterSelectedBudgetId = useDemoStore(
+    (state) => state.billingCenterSelectedBudgetId,
+  )
+  const billingCenterInspectorOpen = useDemoStore(
+    (state) => state.billingCenterInspectorOpen,
+  )
+  const billingCenterServiceSearch = useDemoStore(
+    (state) => state.billingCenterServiceSearch,
+  )
+  const billingCenterBillSearch = useDemoStore(
+    (state) => state.billingCenterBillSearch,
+  )
+  const billingCenterUsageSearch = useDemoStore(
+    (state) => state.billingCenterUsageSearch,
+  )
+  const billingCenterBudgetSearch = useDemoStore(
+    (state) => state.billingCenterBudgetSearch,
+  )
+  const homeMode = useDemoStore((state) => state.homeMode)
+  const homeTemplateScopeFilter = useDemoStore(
+    (state) => state.homeTemplateScopeFilter,
+  )
+  const homeTemplateDirectionFilter = useDemoStore(
+    (state) => state.homeTemplateDirectionFilter,
+  )
+  const homeTemplateTypeFilter = useDemoStore(
+    (state) => state.homeTemplateTypeFilter,
+  )
+  const homeTemplateSearchQuery = useDemoStore(
+    (state) => state.homeTemplateSearchQuery,
+  )
+  const homeTemplateAdvancedFiltersOpen = useDemoStore(
+    (state) => state.homeTemplateAdvancedFiltersOpen,
   )
   const statusMessage = useDemoStore((state) => state.statusMessage)
   const startNewThread = useDemoStore((state) => state.startNewThread)
@@ -222,6 +275,39 @@ function App() {
   const clearNotificationCenterSelection = useDemoStore(
     (state) => state.clearNotificationCenterSelection,
   )
+  const setBillingCenterTab = useDemoStore((state) => state.setBillingCenterTab)
+  const setBillingCenterRole = useDemoStore((state) => state.setBillingCenterRole)
+  const selectBillingCenterService = useDemoStore(
+    (state) => state.selectBillingCenterService,
+  )
+  const selectBillingCenterBillLine = useDemoStore(
+    (state) => state.selectBillingCenterBillLine,
+  )
+  const selectBillingCenterBudget = useDemoStore(
+    (state) => state.selectBillingCenterBudget,
+  )
+  const setBillingCenterSearch = useDemoStore(
+    (state) => state.setBillingCenterSearch,
+  )
+  const setHomeMode = useDemoStore((state) => state.setHomeMode)
+  const setHomeTemplateScopeFilter = useDemoStore(
+    (state) => state.setHomeTemplateScopeFilter,
+  )
+  const setHomeTemplateDirectionFilter = useDemoStore(
+    (state) => state.setHomeTemplateDirectionFilter,
+  )
+  const setHomeTemplateTypeFilter = useDemoStore(
+    (state) => state.setHomeTemplateTypeFilter,
+  )
+  const setHomeTemplateSearchQuery = useDemoStore(
+    (state) => state.setHomeTemplateSearchQuery,
+  )
+  const setHomeTemplateAdvancedFiltersOpen = useDemoStore(
+    (state) => state.setHomeTemplateAdvancedFiltersOpen,
+  )
+  const resetHomeTemplateFilters = useDemoStore(
+    (state) => state.resetHomeTemplateFilters,
+  )
   const showStatus = useDemoStore((state) => state.showStatus)
   const clearStatus = useDemoStore((state) => state.clearStatus)
 
@@ -289,7 +375,8 @@ function App() {
 
       if (
         currentTopNav === 'ApprovalCenter' ||
-        currentTopNav === 'NotificationCenter'
+        currentTopNav === 'NotificationCenter' ||
+        currentTopNav === 'BillingCenter'
       ) {
         return
       }
@@ -354,6 +441,59 @@ function App() {
       textarea.setSelectionRange(template.prompt.length, template.prompt.length)
       textarea.scrollIntoView?.({ block: 'nearest' })
     })
+  }
+
+  function handleRecommendationPromptFill(item: HomeRecommendationItem) {
+    const currentDraft = useDemoStore.getState().draft
+    const nextDraft = currentDraft.trim()
+      ? `${currentDraft}\n\n${item.prompt}`
+      : item.prompt
+
+    setDraft(nextDraft)
+    showStatus('已填入指令，可直接发送')
+
+    window.requestAnimationFrame(() => {
+      const textarea = composerTextAreaRef.current
+
+      if (!textarea) {
+        return
+      }
+
+      textarea.focus()
+      textarea.setSelectionRange(nextDraft.length, nextDraft.length)
+      textarea.scrollIntoView?.({ block: 'nearest' })
+    })
+  }
+
+  function handleHomeTemplateScopeFilterChange(
+    filter: typeof homeTemplateScopeFilter,
+  ) {
+    setHomeTemplateScopeFilter(filter)
+    setHomeTemplatePage(1)
+  }
+
+  function handleHomeTemplateDirectionFilterChange(
+    filter: typeof homeTemplateDirectionFilter,
+  ) {
+    setHomeTemplateDirectionFilter(filter)
+    setHomeTemplatePage(1)
+  }
+
+  function handleHomeTemplateTypeFilterChange(
+    filter: typeof homeTemplateTypeFilter,
+  ) {
+    setHomeTemplateTypeFilter(filter)
+    setHomeTemplatePage(1)
+  }
+
+  function handleHomeTemplateSearchQueryChange(query: string) {
+    setHomeTemplateSearchQuery(query)
+    setHomeTemplatePage(1)
+  }
+
+  function handleResetHomeTemplateFilters() {
+    resetHomeTemplateFilters()
+    setHomeTemplatePage(1)
   }
 
   function handleSubmit() {
@@ -479,6 +619,15 @@ function App() {
       return
     }
 
+    if (item === 'billing-center') {
+      if (getInternalPathname(window.location.pathname, appBasePath) !== '/') {
+        navigateToPathWithoutRootSync('/')
+      }
+      closeNotificationDrawer()
+      selectTopNav('BillingCenter')
+      return
+    }
+
     if (item === 'product-management-platform') {
       clearNotificationCenterSelection()
       navigateToPath(productManagementPlatformPath)
@@ -569,6 +718,33 @@ function App() {
   function handleNotificationCenterPrimaryAction(notification: NotificationItem) {
     markNotificationRead(notification.id)
     handleNotificationPrimaryAction(notification)
+  }
+
+  function handleSelectBillingCenterService(
+    serviceId: string | null,
+    inspectorOpen?: boolean,
+  ) {
+    selectBillingCenterBillLine(null, false)
+    selectBillingCenterBudget(null, false)
+    selectBillingCenterService(serviceId, inspectorOpen)
+  }
+
+  function handleSelectBillingCenterBillLine(
+    lineId: string | null,
+    inspectorOpen?: boolean,
+  ) {
+    selectBillingCenterService(null, false)
+    selectBillingCenterBudget(null, false)
+    selectBillingCenterBillLine(lineId, inspectorOpen)
+  }
+
+  function handleSelectBillingCenterBudget(
+    budgetId: string | null,
+    inspectorOpen?: boolean,
+  ) {
+    selectBillingCenterService(null, false)
+    selectBillingCenterBillLine(null, false)
+    selectBillingCenterBudget(budgetId, inspectorOpen)
   }
 
   const isProductManagementCommodityListRoute =
@@ -678,6 +854,26 @@ function App() {
           onSelectObject={selectApprovalCenterObject}
           onNotify={showStatus}
         />
+      ) : activeTopNav === 'BillingCenter' ? (
+        <BillingCenterPage
+          activeTab={billingCenterActiveTab}
+          role={billingCenterRole}
+          selectedServiceId={billingCenterSelectedServiceId}
+          selectedBillLineId={billingCenterSelectedBillLineId}
+          selectedBudgetId={billingCenterSelectedBudgetId}
+          inspectorOpen={billingCenterInspectorOpen}
+          serviceSearch={billingCenterServiceSearch}
+          billSearch={billingCenterBillSearch}
+          usageSearch={billingCenterUsageSearch}
+          budgetSearch={billingCenterBudgetSearch}
+          onTabChange={setBillingCenterTab}
+          onRoleChange={setBillingCenterRole}
+          onSelectService={handleSelectBillingCenterService}
+          onSelectBillLine={handleSelectBillingCenterBillLine}
+          onSelectBudget={handleSelectBillingCenterBudget}
+          onSearchChange={setBillingCenterSearch}
+          onNotify={showStatus}
+        />
       ) : activeTopNav === 'Assets' ? (
         <AssetsPage
           activeSection={assetsActiveSection}
@@ -773,10 +969,47 @@ function App() {
                   onSubmit={handleSubmit}
                   onNotify={showStatus}
                 />
-                <TemplateSection
-                  templates={homeTemplates}
-                  onTemplateSelect={handleTemplateSelect}
-                />
+                <section className="home-surface" aria-label="首页工作区">
+                  <HomeControlBar
+                    homeMode={homeMode}
+                    scope={homeTemplateScopeFilter}
+                    direction={homeTemplateDirectionFilter}
+                    type={homeTemplateTypeFilter}
+                    query={homeTemplateSearchQuery}
+                    advancedFiltersOpen={homeTemplateAdvancedFiltersOpen}
+                    onHomeModeChange={setHomeMode}
+                    onScopeChange={handleHomeTemplateScopeFilterChange}
+                    onDirectionChange={handleHomeTemplateDirectionFilterChange}
+                    onTypeChange={handleHomeTemplateTypeFilterChange}
+                    onQueryChange={handleHomeTemplateSearchQueryChange}
+                    onAdvancedFiltersOpenChange={
+                      setHomeTemplateAdvancedFiltersOpen
+                    }
+                    onResetFilters={handleResetHomeTemplateFilters}
+                  />
+
+                  {homeMode === 'recommendations' ? (
+                    <RecommendationWorkbench
+                      sections={homeRecommendationSections}
+                      starterGroups={starterRecommendationGroups}
+                      onPromptFill={handleRecommendationPromptFill}
+                      onViewAllTemplates={() => setHomeMode('templates')}
+                    />
+                  ) : (
+                    <TemplateSection
+                      templates={homeTemplates}
+                      filters={{
+                        scope: homeTemplateScopeFilter,
+                        direction: homeTemplateDirectionFilter,
+                        type: homeTemplateTypeFilter,
+                      }}
+                      query={homeTemplateSearchQuery}
+                      page={homeTemplatePage}
+                      onPageChange={setHomeTemplatePage}
+                      onTemplateSelect={handleTemplateSelect}
+                    />
+                  )}
+                </section>
               </section>
             )}
           </main>

@@ -104,7 +104,7 @@ describe('home template filtering', () => {
     })
   })
 
-  it('places the homepage entry templates first in all templates and recommendations', () => {
+  it('places the homepage entry templates first in the all-template library', () => {
     const expectedHomepageEntries = [
       '靶点竞品研究',
       '抗体研发设计',
@@ -117,12 +117,9 @@ describe('home template filtering', () => {
     expect(getFilteredTemplates(homeTemplates, {}, '').slice(0, 6).map((template) => template.title)).toEqual(
       expectedHomepageEntries,
     )
-    expect(
-      getFilteredTemplates(homeTemplates, { scope: '推荐' }, '').slice(0, 6).map((template) => template.title),
-    ).toEqual(expectedHomepageEntries)
   })
 
-  it('adds Feishu-connected templates and promotes three of them into recommendation slots seven through nine', () => {
+  it('adds Feishu-connected templates while keeping featured metadata internal', () => {
     const feishuTemplateTitles = [
       '飞书文档写作',
       '飞书会议纪要整理',
@@ -134,9 +131,9 @@ describe('home template filtering', () => {
     expect(homeTemplates.filter((template) => template.displayTags.includes('飞书')).map((template) => template.title)).toEqual(
       feishuTemplateTitles,
     )
-    expect(
-      getFilteredTemplates(homeTemplates, { scope: '推荐' }, '').slice(6, 9).map((template) => template.title),
-    ).toEqual(['飞书文档写作', '飞书会议纪要整理', '飞书多维表格项目台账'])
+    expect(homeTemplates.filter((template) => template.featured).map((template) => template.title)).toEqual(
+      expect.arrayContaining(['飞书文档写作', '飞书会议纪要整理', '飞书多维表格项目台账']),
+    )
   })
 
   it('classifies Feishu and other templates as first-level scope filters', () => {
@@ -161,7 +158,6 @@ describe('home template filtering', () => {
   it('defines the exact filter option labels', () => {
     expect(scopeFilterOptions.map((option) => option.label)).toEqual([
       '全部类别',
-      '推荐',
       '日常',
       '生物',
       '飞书',
@@ -186,7 +182,6 @@ describe('home template filtering', () => {
   })
 
   it('ensures every filter option value has at least one matching template', () => {
-    expect(filterTemplates(homeTemplates, { scope: '推荐' }).length).toBeGreaterThan(0)
     expect(filterTemplates(homeTemplates, { scope: '日常' }).length).toBeGreaterThan(0)
     expect(filterTemplates(homeTemplates, { scope: '生物' }).length).toBeGreaterThan(0)
     expect(filterTemplates(homeTemplates, { scope: '飞书' }).length).toBeGreaterThan(0)
@@ -251,12 +246,13 @@ describe('home template filtering', () => {
     ])
   })
 
-  it('uses featured state for the 推荐 scope filter', () => {
-    expect(
-      filterTemplates(templates, {
-        scope: '推荐',
-      }).map((template) => template.id),
-    ).toEqual(['featured-workflow', 'cell-design'])
+  it('keeps featured state available for internal sorting without a 推荐 scope filter', () => {
+    expect(scopeFilterOptions.map((option) => option.value)).not.toContain('推荐')
+    expect(sortTemplates(templates).map((template) => template.id)).toEqual([
+      'cell-design',
+      'featured-workflow',
+      'daily-analysis',
+    ])
   })
 
   it('intersects scope direction and type filters', () => {

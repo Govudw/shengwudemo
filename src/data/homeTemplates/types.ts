@@ -28,7 +28,7 @@ export type TemplateCardIcon =
 
 export type HomeTemplateTone = 'cyan' | 'blue' | 'teal' | 'violet' | 'amber'
 
-export type ScopeFilterValue = '全部类别' | '推荐' | TemplateScopeTag
+export type ScopeFilterValue = '全部类别' | TemplateScopeTag
 export type DirectionFilterValue = '全部方向' | TemplateDirectionTag
 export type TypeFilterValue = '全部类型' | TemplateTypeTag
 
@@ -70,7 +70,6 @@ export interface TemplatePage<TItem> {
 
 export const scopeFilterOptions: TemplateFilterOption<ScopeFilterValue>[] = [
   { label: '全部类别', value: '全部类别' },
-  { label: '推荐', value: '推荐' },
   { label: '日常', value: '日常' },
   { label: '生物', value: '生物' },
   { label: '飞书', value: '飞书' },

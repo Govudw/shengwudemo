@@ -15,15 +15,28 @@ import {
   openNotificationCenterFromDrawerSnapshot,
   renameThreadSnapshot,
   sanitizeDemoState,
+  selectBillingCenterBillLineSnapshot,
+  selectBillingCenterBudgetSnapshot,
+  selectBillingCenterServiceSnapshot,
   selectNotificationCenterItemSnapshot,
   selectTopNavSnapshot,
   selectThreadSnapshot,
+  resetHomeTemplateFiltersSnapshot,
   setAssetsExperimentViewModeSnapshot,
   setAssetsFileViewModeSnapshot,
   setAssetsOpenFolderSnapshot,
   selectApprovalCenterObjectSnapshot,
   setApprovalCenterSectionSnapshot,
   setAssetsSelectionSnapshot,
+  setBillingCenterRoleSnapshot,
+  setBillingCenterSearchSnapshot,
+  setBillingCenterTabSnapshot,
+  setHomeModeSnapshot,
+  setHomeTemplateAdvancedFiltersOpenSnapshot,
+  setHomeTemplateDirectionFilterSnapshot,
+  setHomeTemplateScopeFilterSnapshot,
+  setHomeTemplateSearchQuerySnapshot,
+  setHomeTemplateTypeFilterSnapshot,
   setXtrimoRecommendationsExpandedSnapshot,
   setNotificationDrawerOpenSnapshot,
   setNotificationFilterSnapshot,
@@ -53,11 +66,22 @@ import type {
   AssetsExperimentViewMode,
   AssetsFileViewMode,
   AssetsSection,
+  BillingCenterSearchScope,
   CreateThreadRouteId,
   DemoProject,
   DemoStateSnapshot,
   DemoThread,
+  HomeMode,
 } from './demoStoreLogic'
+import type {
+  DirectionFilterValue,
+  ScopeFilterValue,
+  TypeFilterValue,
+} from '../data/homeTemplates'
+import type {
+  BillingCenterRole,
+  BillingCenterTab,
+} from '../components/billing-center/billingCenterMockData'
 import { notificationCenterSeedItems } from '../data/notificationCenterMockData'
 import type {
   NotificationCenterBusinessStatusFilter,
@@ -106,6 +130,31 @@ type DemoStoreState = DemoStateSnapshot & {
     objectId: string | null,
     inspectorOpen?: boolean,
   ) => void
+  setBillingCenterTab: (tab: BillingCenterTab) => void
+  setBillingCenterRole: (role: BillingCenterRole) => void
+  selectBillingCenterService: (
+    serviceId: string | null,
+    inspectorOpen?: boolean,
+  ) => void
+  selectBillingCenterBillLine: (
+    lineId: string | null,
+    inspectorOpen?: boolean,
+  ) => void
+  selectBillingCenterBudget: (
+    budgetId: string | null,
+    inspectorOpen?: boolean,
+  ) => void
+  setBillingCenterSearch: (
+    scope: BillingCenterSearchScope,
+    value: string,
+  ) => void
+  setHomeMode: (mode: HomeMode) => void
+  setHomeTemplateScopeFilter: (scope: ScopeFilterValue) => void
+  setHomeTemplateDirectionFilter: (direction: DirectionFilterValue) => void
+  setHomeTemplateTypeFilter: (type: TypeFilterValue) => void
+  setHomeTemplateSearchQuery: (query: string) => void
+  setHomeTemplateAdvancedFiltersOpen: (open: boolean) => void
+  resetHomeTemplateFilters: () => void
   openNotificationDrawer: () => void
   closeNotificationDrawer: () => void
   setNotificationFilter: (filter: NotificationFilter) => void
@@ -209,6 +258,40 @@ export const useDemoStore = create<DemoStoreState>()(
         set((state) =>
           selectApprovalCenterObjectSnapshot(state, objectId, inspectorOpen),
         ),
+      setBillingCenterTab: (tab) =>
+        set((state) => setBillingCenterTabSnapshot(state, tab)),
+      setBillingCenterRole: (role) =>
+        set((state) => setBillingCenterRoleSnapshot(state, role)),
+      selectBillingCenterService: (serviceId, inspectorOpen) =>
+        set((state) =>
+          selectBillingCenterServiceSnapshot(state, serviceId, inspectorOpen),
+        ),
+      selectBillingCenterBillLine: (lineId, inspectorOpen) =>
+        set((state) =>
+          selectBillingCenterBillLineSnapshot(state, lineId, inspectorOpen),
+        ),
+      selectBillingCenterBudget: (budgetId, inspectorOpen) =>
+        set((state) =>
+          selectBillingCenterBudgetSnapshot(state, budgetId, inspectorOpen),
+        ),
+      setBillingCenterSearch: (scope, value) =>
+        set((state) => setBillingCenterSearchSnapshot(state, scope, value)),
+      setHomeMode: (mode) =>
+        set((state) => setHomeModeSnapshot(state, mode)),
+      setHomeTemplateScopeFilter: (scope) =>
+        set((state) => setHomeTemplateScopeFilterSnapshot(state, scope)),
+      setHomeTemplateDirectionFilter: (direction) =>
+        set((state) =>
+          setHomeTemplateDirectionFilterSnapshot(state, direction),
+        ),
+      setHomeTemplateTypeFilter: (type) =>
+        set((state) => setHomeTemplateTypeFilterSnapshot(state, type)),
+      setHomeTemplateSearchQuery: (query) =>
+        set((state) => setHomeTemplateSearchQuerySnapshot(state, query)),
+      setHomeTemplateAdvancedFiltersOpen: (open) =>
+        set((state) => setHomeTemplateAdvancedFiltersOpenSnapshot(state, open)),
+      resetHomeTemplateFilters: () =>
+        set((state) => resetHomeTemplateFiltersSnapshot(state)),
       openNotificationDrawer: () =>
         set((state) => setNotificationDrawerOpenSnapshot(state, true)),
       closeNotificationDrawer: () =>
@@ -323,6 +406,22 @@ export const useDemoStore = create<DemoStoreState>()(
           state.notificationCenterAdvancedFiltersOpen,
         notificationCenterSelectedId: state.notificationCenterSelectedId,
         notificationCenterDetailOpen: state.notificationCenterDetailOpen,
+        homeMode: state.homeMode,
+        homeTemplateScopeFilter: state.homeTemplateScopeFilter,
+        homeTemplateDirectionFilter: state.homeTemplateDirectionFilter,
+        homeTemplateTypeFilter: state.homeTemplateTypeFilter,
+        homeTemplateSearchQuery: state.homeTemplateSearchQuery,
+        homeTemplateAdvancedFiltersOpen: state.homeTemplateAdvancedFiltersOpen,
+        billingCenterActiveTab: state.billingCenterActiveTab,
+        billingCenterRole: state.billingCenterRole,
+        billingCenterSelectedServiceId: state.billingCenterSelectedServiceId,
+        billingCenterSelectedBillLineId: state.billingCenterSelectedBillLineId,
+        billingCenterSelectedBudgetId: state.billingCenterSelectedBudgetId,
+        billingCenterInspectorOpen: state.billingCenterInspectorOpen,
+        billingCenterServiceSearch: state.billingCenterServiceSearch,
+        billingCenterBillSearch: state.billingCenterBillSearch,
+        billingCenterUsageSearch: state.billingCenterUsageSearch,
+        billingCenterBudgetSearch: state.billingCenterBudgetSearch,
       }),
       merge: (persistedState, currentState) => {
         const restoredState = (persistedState ?? {}) as Partial<DemoStateSnapshot> & {

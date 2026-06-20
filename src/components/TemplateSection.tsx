@@ -1,19 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, type WheelEvent } from 'react'
 import {
-  directionFilterOptions,
   getFilteredTemplates,
   getTemplatePage,
-  scopeFilterOptions,
-  typeFilterOptions,
 } from '../data/homeTemplates'
 import type {
-  DirectionFilterValue,
   HomeTemplate,
-  ScopeFilterValue,
-  TemplateFilterOption,
-  TypeFilterValue,
+  HomeTemplateFilters,
 } from '../data/homeTemplates'
-import { CardIcon, ChevronDownIcon, SearchIcon } from './icons'
+import { CardIcon } from './icons'
 
 const templatesPerPage = 30
 const tagToneKeywords = [
@@ -28,108 +22,83 @@ type TagTone = (typeof tagToneKeywords)[number]['tone']
 
 type TemplateSectionProps = {
   templates: HomeTemplate[]
+  filters: HomeTemplateFilters
+  query: string
+  page: number
+  onPageChange: (page: number) => void
   onTemplateSelect: (template: HomeTemplate) => void
 }
 
-function TemplateSection({ templates, onTemplateSelect }: TemplateSectionProps) {
-  const [scope, setScope] = useState<ScopeFilterValue>('全部类别')
-  const [direction, setDirection] =
-    useState<DirectionFilterValue>('全部方向')
-  const [type, setType] = useState<TypeFilterValue>('全部类型')
-  const [query, setQuery] = useState('')
-  const [page, setPage] = useState(1)
-  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false)
-  const advancedFiltersActive = type !== '全部类型'
+function TemplateSection({
+  templates,
+  filters,
+  query,
+  page,
+  onPageChange,
+  onTemplateSelect,
+}: TemplateSectionProps) {
+  const sectionRef = useRef<HTMLElement>(null)
   const filteredTemplates = useMemo(
-    () => getFilteredTemplates(templates, { scope, direction, type }, query),
-    [direction, query, scope, templates, type],
+    () => getFilteredTemplates(templates, filters, query),
+    [filters, query, templates],
   )
   const templatePage = getTemplatePage(filteredTemplates, page, templatesPerPage)
   const showPagination = templatePage.totalItems > templatesPerPage
 
-  function updateFilter<TValue extends string>(
-    setter: (value: TValue) => void,
-    value: TValue,
-  ) {
-    setter(value)
-    setPage(1)
-  }
+  function handleResultsWheel(event: WheelEvent<HTMLDivElement>) {
+    if (event.deltaY <= 0) {
+      return
+    }
 
-  function updateQuery(value: string) {
-    setQuery(value)
-    setPage(1)
+    const section = sectionRef.current
+    const scrollContainer = section?.closest<HTMLElement>('.workspace-main')
+    const controlBar =
+      section?.parentElement?.querySelector<HTMLElement>('.home-control-bar')
+
+    if (!section || !scrollContainer || !controlBar) {
+      return
+    }
+
+    const remainingOuterScroll =
+      scrollContainer.scrollHeight -
+      scrollContainer.clientHeight -
+      scrollContainer.scrollTop
+
+    if (remainingOuterScroll <= 0) {
+      return
+    }
+
+    const controlBarRect = controlBar.getBoundingClientRect()
+    const scrollContainerRect = scrollContainer.getBoundingClientRect()
+    const distanceToPinned =
+      controlBarRect.top - scrollContainerRect.top - stickyControlBarOffset
+
+    if (distanceToPinned <= 1) {
+      return
+    }
+
+    const outerScrollStep = Math.min(
+      remainingOuterScroll,
+      distanceToPinned,
+      event.deltaY,
+      maxOuterWheelStep,
+    )
+
+    if (outerScrollStep <= 0) {
+      return
+    }
+
+    event.preventDefault()
+    scrollContainer.scrollBy({
+      top: outerScrollStep,
+      left: 0,
+      behavior: 'auto',
+    })
   }
 
   return (
-    <section className="template-section" aria-label="模板区">
-      <div
-        className={`template-section__toolbar${
-          advancedFiltersOpen ? ' template-section__toolbar--expanded' : ''
-        }`}
-      >
-        <div className="template-section__primary-controls">
-          <FilterGroup
-            ariaLabel="模板类别"
-            options={scopeFilterOptions}
-            value={scope}
-            onChange={(value) => updateFilter(setScope, value)}
-          />
-          <FilterGroup
-            ariaLabel="模板方向"
-            options={directionFilterOptions}
-            value={direction}
-            onChange={(value) => updateFilter(setDirection, value)}
-          />
-
-          <div className="template-section__advanced-control">
-            <button
-              type="button"
-              className={`template-section__advanced-toggle${
-                advancedFiltersActive && !advancedFiltersOpen
-                  ? ' template-section__advanced-toggle--active'
-                  : ''
-              }`}
-              aria-label={advancedFiltersOpen ? '收起更多筛选' : '展开更多筛选'}
-              aria-expanded={advancedFiltersOpen}
-              aria-controls="template-advanced-filters"
-              onClick={() => setAdvancedFiltersOpen((open) => !open)}
-            >
-              <ChevronDownIcon className="template-section__advanced-icon" />
-              {advancedFiltersActive && !advancedFiltersOpen ? (
-                <span className="template-section__advanced-dot" aria-hidden="true" />
-              ) : null}
-            </button>
-          </div>
-        </div>
-
-        <label className="template-section__search">
-          <SearchIcon className="template-section__search-icon" />
-          <input
-            type="search"
-            aria-label="搜索模板"
-            value={query}
-            placeholder="搜索模板"
-            onChange={(event) => updateQuery(event.target.value)}
-          />
-        </label>
-
-        {advancedFiltersOpen ? (
-          <div
-            id="template-advanced-filters"
-            className="template-section__advanced-panel"
-          >
-            <span className="template-section__advanced-label">类型</span>
-            <FilterGroup
-              ariaLabel="模板类型"
-              options={typeFilterOptions}
-              value={type}
-              onChange={(value) => updateFilter(setType, value)}
-            />
-          </div>
-        ) : null}
-      </div>
-
-      <div className="template-section__results">
+    <section ref={sectionRef} className="template-section" aria-label="模板区">
+      <div className="template-section__results" onWheel={handleResultsWheel}>
         {templatePage.items.length > 0 ? (
           <div className="template-section__grid">
             {templatePage.items.map((template) => (
@@ -189,7 +158,7 @@ function TemplateSection({ templates, onTemplateSelect }: TemplateSectionProps) 
                 className="template-section__page"
                 aria-label={`第 ${pageNumber} 页`}
                 aria-current={templatePage.page === pageNumber ? 'page' : undefined}
-                onClick={() => setPage(pageNumber)}
+                onClick={() => onPageChange(pageNumber)}
               >
                 {pageNumber}
               </button>
@@ -201,45 +170,8 @@ function TemplateSection({ templates, onTemplateSelect }: TemplateSectionProps) 
   )
 }
 
-type FilterGroupProps<TValue extends string> = {
-  ariaLabel: string
-  options: TemplateFilterOption<TValue>[]
-  value: TValue
-  onChange: (value: TValue) => void
-}
-
-function FilterGroup<TValue extends string>({
-  ariaLabel,
-  options,
-  value,
-  onChange,
-}: FilterGroupProps<TValue>) {
-  return (
-    <div
-      className="template-section__filter-group"
-      role="group"
-      aria-label={ariaLabel}
-    >
-      {options.map((option) => {
-        const isSelected = option.value === value
-
-        return (
-          <button
-            key={option.value}
-            type="button"
-            className={`template-section__filter${
-              isSelected ? ' template-section__filter--selected' : ''
-            }`}
-            aria-pressed={isSelected}
-            onClick={() => onChange(option.value)}
-          >
-            {option.label}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
+const stickyControlBarOffset = 8
+const maxOuterWheelStep = 96
 
 function getTagTone(tag: string): TagTone {
   return (

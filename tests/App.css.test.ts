@@ -157,6 +157,23 @@ describe('Notification Center CSS', () => {
   })
 })
 
+describe('Billing Center CSS', () => {
+  it('prevents the service tables from creating page-level horizontal scroll', () => {
+    const pageRule = getRule('.billing-center-page')
+    const mainPanelRule = getRule('.billing-center-main-panel')
+    const tableWrapRule = getRule('.billing-center-table-wrap')
+    const tableRule = getRule('.billing-center-table')
+    const actionsRule = getRule('.billing-center-actions')
+
+    expect(pageRule).toContain('overflow-x: clip;')
+    expect(mainPanelRule).toContain('overflow-x: hidden;')
+    expect(tableWrapRule).toContain('overflow-x: hidden;')
+    expect(tableRule).toContain('min-width: 0;')
+    expect(tableRule).toContain('table-layout: fixed;')
+    expect(actionsRule).toContain('min-width: 0;')
+  })
+})
+
 describe('Commodity detail CSS', () => {
   it('allows the cost and discount table to scroll horizontally', () => {
     const wideTableWrapRule = getRule('.commodity-detail__wide-table-wrap')
@@ -168,17 +185,19 @@ describe('Commodity detail CSS', () => {
 })
 
 describe('Home template section CSS', () => {
-  it('keeps the template toolbar sticky and results independently scrollable on desktop', () => {
+  it('keeps the Home control bar sticky and results independently scrollable on desktop', () => {
     const sectionRule = getRule('.template-section')
-    const toolbarRule = getRule('.template-section__toolbar')
+    const controlBarRule = getRule('.home-control-bar')
     const resultsRule = getRule('.template-section__results')
     const paginationRule = getRule('.template-section__pagination')
 
     expect(sectionRule).toContain('height: min(980px, calc(100svh - 96px));')
     expect(sectionRule).toContain('overflow: visible;')
-    expect(toolbarRule).toContain('position: sticky;')
-    expect(toolbarRule).toContain('top: 8px;')
-    expect(toolbarRule).toContain('z-index: 2;')
+    expect(sectionRule).toContain('margin-top: 6px;')
+    expect(controlBarRule).toContain('position: sticky;')
+    expect(controlBarRule).toContain('top: 8px;')
+    expect(controlBarRule).toContain('z-index: 4;')
+    expect(controlBarRule).toContain('margin-bottom: 0;')
     expect(resultsRule).toContain('flex: 1 1 auto;')
     expect(resultsRule).toContain('overflow-y: auto;')
     expect(resultsRule).toContain('min-height: 0;')
@@ -197,13 +216,20 @@ describe('Home template section CSS', () => {
   it('uses compact cards and compact filter controls', () => {
     const gridRule = getRule('.template-section__grid')
     const cardRule = getLastRule('.template-card')
-    const toolbarRule = getRule('.template-section__toolbar')
-    const primaryRule = getRule('.template-section__primary-controls')
-    const filterGroupRule = getRule('.template-section__filter-group')
-    const advancedControlRule = getRule('.template-section__advanced-control')
-    const advancedToggleRule = getRule('.template-section__advanced-toggle')
-    const advancedPanelRule = getRule('.template-section__advanced-panel')
-    const advancedLabelRule = getRule('.template-section__advanced-label')
+    const controlBarRule = getRule('.home-control-bar')
+    const templateControlsRule = getRule('.home-template-controls')
+    const filterStripRule = getRule('.home-template-controls__filter-strip')
+    const nowrapFilterGroupRule = getRule(
+      '.home-template-controls__filter-strip > .template-section__filter-group',
+    )
+    const filterGroupRule = getRule('\n.template-section__filter-group')
+    const advancedControlRule = getRule('.home-template-controls__advanced')
+    const advancedToggleRule = getRule(
+      '.home-template-controls__advanced-toggle',
+    )
+    const advancedPanelRule = getRule('.home-template-controls__popover')
+    const advancedLabelRule = getRule('.home-template-controls__popover-label')
+    const searchRule = getRule('.home-template-controls__search')
     const filterRule = getRule('.template-section__filter')
     const selectedFilterRule = getRule('.template-section__filter--selected')
     const tagRule = getRule('.template-card__tag')
@@ -214,20 +240,30 @@ describe('Home template section CSS', () => {
     expect(gridRule).toContain('gap: 10px;')
     expect(cardRule).toContain('min-height: 154px;')
     expect(cardRule).toContain('padding: 12px;')
-    expect(toolbarRule).toContain('grid-template-columns: minmax(0, 1fr) minmax(180px, 220px);')
-    expect(toolbarRule).toContain('box-shadow: 0 8px 22px rgba(16, 35, 63, 0.045);')
-    expect(primaryRule).toContain('display: flex;')
-    expect(primaryRule).toContain('flex-wrap: nowrap;')
-    expect(filterGroupRule).toContain('padding: 3px;')
+    expect(controlBarRule).toContain('display: flex;')
+    expect(controlBarRule).toContain('padding: 0;')
+    expect(controlBarRule).toContain('border: 0;')
+    expect(controlBarRule).toContain('background: transparent;')
+    expect(controlBarRule).toContain('box-shadow: none;')
+    expect(templateControlsRule).toContain('flex: 1 1 auto;')
+    expect(templateControlsRule).toContain('padding: 3px 4px;')
+    expect(templateControlsRule).toContain('border: 1px solid rgba(203, 216, 227, 0.62);')
+    expect(templateControlsRule).toContain('border-radius: 8px;')
+    expect(filterStripRule).toContain('overflow-x: auto;')
+    expect(nowrapFilterGroupRule).toContain('flex-wrap: nowrap;')
+    expect(filterGroupRule).toContain('padding: 2px;')
+    expect(filterGroupRule).toContain('border: 1px solid rgba(203, 216, 227, 0.62);')
     expect(filterGroupRule).toContain('background: #f6f9fb;')
     expect(advancedControlRule).toContain('position: relative;')
-    expect(advancedToggleRule).toContain('width: 30px;')
-    expect(advancedToggleRule).toContain('height: 30px;')
-    expect(advancedPanelRule).toContain('grid-column: 1 / -1;')
-    expect(advancedPanelRule).toContain('display: flex;')
-    expect(advancedPanelRule).not.toContain('position: absolute;')
+    expect(advancedToggleRule).toContain('height: 28px;')
+    expect(advancedToggleRule).toContain('white-space: nowrap;')
+    expect(advancedPanelRule).toContain('position: absolute;')
+    expect(advancedPanelRule).toContain('display: grid;')
     expect(advancedLabelRule).toContain('font-size: 12px;')
-    expect(filterRule).toContain('min-height: 26px;')
+    expect(searchRule).toContain('flex: 0 0 108px;')
+    expect(searchRule).toContain('min-width: 108px;')
+    expect(searchRule).toContain('max-width: 126px;')
+    expect(filterRule).toContain('min-height: 24px;')
     expect(filterRule).toContain('border: 0;')
     expect(filterRule).toContain('border-radius: 6px;')
     expect(filterRule).toContain('font-size: 12px;')
@@ -245,9 +281,9 @@ describe('Home template section CSS', () => {
       '@media (max-width: 760px)',
       '.template-section',
     )
-    const mobileToolbarRule = getMediaRule(
+    const mobileControlBarRule = getMediaRule(
       '@media (max-width: 760px)',
-      '.template-section__toolbar',
+      '.home-control-bar',
     )
     const mobileResultsRule = getMediaRule(
       '@media (max-width: 760px)',
@@ -257,7 +293,7 @@ describe('Home template section CSS', () => {
     expect(mobileSectionRule).toContain('max-height: none;')
     expect(mobileSectionRule).toContain('height: auto;')
     expect(mobileSectionRule).toContain('overflow: visible;')
-    expect(mobileToolbarRule).toContain('position: static;')
+    expect(mobileControlBarRule).toContain('position: static;')
     expect(mobileResultsRule).toContain('overflow-y: visible;')
   })
 })

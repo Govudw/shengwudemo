@@ -17,6 +17,7 @@ export type PrimaryNavItem = TopNavItem
 export type AccountMenuItem =
   | 'notification-center'
   | 'approval-center'
+  | 'billing-center'
   | 'product-management-platform'
 
 const navItemLabels: Record<TopNavItem, string> = {
@@ -29,6 +30,7 @@ const navItemLabels: Record<TopNavItem, string> = {
 const accountMenuOptions: { id: AccountMenuItem; label: string }[] = [
   { id: 'notification-center', label: '通知中心' },
   { id: 'approval-center', label: '审批中心' },
+  { id: 'billing-center', label: '费用中心' },
   { id: 'product-management-platform', label: '管理后台' },
 ]
 

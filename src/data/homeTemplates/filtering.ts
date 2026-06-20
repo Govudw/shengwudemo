@@ -91,10 +91,6 @@ function matchesScope(template: HomeTemplate, scope: ScopeFilterValue | undefine
     return true
   }
 
-  if (scope === '推荐') {
-    return template.featured === true
-  }
-
   return template.scopeTags.includes(scope)
 }
 

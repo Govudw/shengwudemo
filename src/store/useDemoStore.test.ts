@@ -556,6 +556,117 @@ describe('demo store persistence', () => {
     expect(useDemoStore.getState().approvalSelectedObjectId).toBeNull()
   })
 
+  it('persists Billing Center UI state and resets it with demo state', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        activeTopNav: 'BillingCenter',
+      },
+      version: demoStorePersistVersion,
+    })
+    const billingStore = useDemoStore.getState() as ReturnType<
+      typeof useDemoStore.getState
+    > &
+      BillingCenterStore
+
+    expect(useDemoStore.getState().activeTopNav).toBe('BillingCenter')
+    expect(billingStore.billingCenterActiveTab).toBe('overview')
+    expect(billingStore.billingCenterRole).toBe('admin')
+    expect(typeof billingStore.setBillingCenterTab).toBe('function')
+    expect(typeof billingStore.setBillingCenterRole).toBe('function')
+    expect(typeof billingStore.selectBillingCenterService).toBe('function')
+    expect(typeof billingStore.selectBillingCenterBillLine).toBe('function')
+    expect(typeof billingStore.selectBillingCenterBudget).toBe('function')
+    expect(typeof billingStore.setBillingCenterSearch).toBe('function')
+
+    billingStore.setBillingCenterTab?.('services')
+    billingStore.setBillingCenterRole?.('viewer')
+    billingStore.selectBillingCenterService?.('svc-agent-workflow-pack', true)
+    billingStore.selectBillingCenterBillLine?.('bill-2026-06-line-001', true)
+    billingStore.selectBillingCenterBudget?.('budget-enterprise-monthly', true)
+    billingStore.setBillingCenterSearch?.('services', 'Agent')
+    billingStore.setBillingCenterSearch?.('bills', '2026-06')
+    billingStore.setBillingCenterSearch?.('usage', 'CoreHour')
+    billingStore.setBillingCenterSearch?.('budgets', '企业')
+
+    const { demoStorePersistKey } = await import('./useDemoStore')
+    const persistedPayload = JSON.parse(localStorage.getItem(demoStorePersistKey) ?? '{}')
+
+    expect(persistedPayload.state.billingCenterActiveTab).toBe('services')
+    expect(persistedPayload.state.billingCenterRole).toBe('viewer')
+    expect(persistedPayload.state.billingCenterSelectedServiceId).toBe(
+      'svc-agent-workflow-pack',
+    )
+    expect(persistedPayload.state.billingCenterSelectedBillLineId).toBe(
+      'bill-2026-06-line-001',
+    )
+    expect(persistedPayload.state.billingCenterSelectedBudgetId).toBe(
+      'budget-enterprise-monthly',
+    )
+    expect(persistedPayload.state.billingCenterInspectorOpen).toBe(true)
+    expect(persistedPayload.state.billingCenterServiceSearch).toBe('Agent')
+    expect(persistedPayload.state.billingCenterBillSearch).toBe('2026-06')
+    expect(persistedPayload.state.billingCenterUsageSearch).toBe('CoreHour')
+    expect(persistedPayload.state.billingCenterBudgetSearch).toBe('企业')
+
+    useDemoStore.getState().resetDemoState()
+
+    const resetBillingStore = useDemoStore.getState() as ReturnType<
+      typeof useDemoStore.getState
+    > &
+      BillingCenterStore
+
+    expect(useDemoStore.getState().activeTopNav).toBe('Workspace')
+    expect(resetBillingStore.billingCenterActiveTab).toBe('overview')
+    expect(resetBillingStore.billingCenterRole).toBe('admin')
+    expect(resetBillingStore.billingCenterSelectedServiceId).toBeNull()
+    expect(resetBillingStore.billingCenterSelectedBillLineId).toBeNull()
+    expect(resetBillingStore.billingCenterSelectedBudgetId).toBeNull()
+    expect(resetBillingStore.billingCenterInspectorOpen).toBe(false)
+    expect(resetBillingStore.billingCenterServiceSearch).toBe('')
+    expect(resetBillingStore.billingCenterBillSearch).toBe('')
+    expect(resetBillingStore.billingCenterUsageSearch).toBe('')
+    expect(resetBillingStore.billingCenterBudgetSearch).toBe('')
+  })
+
+  it('sanitizes invalid persisted Billing Center selections during hydrate', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        activeTopNav: 'BillingCenter',
+        billingCenterActiveTab: 'ledger',
+        billingCenterRole: 'owner',
+        billingCenterSelectedServiceId: 'missing-service',
+        billingCenterSelectedBillLineId: 'missing-line',
+        billingCenterSelectedBudgetId: 'missing-budget',
+        billingCenterInspectorOpen: true,
+        billingCenterServiceSearch: 123,
+        billingCenterBillSearch: null,
+        billingCenterUsageSearch: {},
+        billingCenterBudgetSearch: [],
+      },
+      version: demoStorePersistVersion,
+    })
+    const billingStore = useDemoStore.getState() as ReturnType<
+      typeof useDemoStore.getState
+    > &
+      BillingCenterStore
+
+    expect(useDemoStore.getState().activeTopNav).toBe('BillingCenter')
+    expect(billingStore.billingCenterActiveTab).toBe('overview')
+    expect(billingStore.billingCenterRole).toBe('admin')
+    expect(billingStore.billingCenterSelectedServiceId).toBeNull()
+    expect(billingStore.billingCenterSelectedBillLineId).toBeNull()
+    expect(billingStore.billingCenterSelectedBudgetId).toBeNull()
+    expect(billingStore.billingCenterInspectorOpen).toBe(false)
+    expect(billingStore.billingCenterServiceSearch).toBe('')
+    expect(billingStore.billingCenterBillSearch).toBe('')
+    expect(billingStore.billingCenterUsageSearch).toBe('')
+    expect(billingStore.billingCenterBudgetSearch).toBe('')
+  })
+
   it('sanitizes invalid persisted Approval Center inspector selection during hydrate', async () => {
     const { demoStorePersistVersion } = await import('./useDemoStore')
     const { useDemoStore } = await loadStoreWithPersistedState({
@@ -803,6 +914,79 @@ describe('demo store persistence', () => {
     expect(useDemoStore.getState().activeTopNav).toBe('NotificationCenter')
     expect(useDemoStore.getState().notificationCenterSelectedId).toBeNull()
     expect(useDemoStore.getState().notificationCenterDetailOpen).toBe(false)
+  })
+
+  it('persists and resets Home template workbench UI state', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: createOldEgfrPersistedState(),
+      version: demoStorePersistVersion,
+    })
+    const homeStore = useDemoStore.getState() as ReturnType<
+      typeof useDemoStore.getState
+    > &
+      HomeWorkbenchStore
+
+    expect(homeStore.homeMode).toBe('recommendations')
+    expect(typeof homeStore.setHomeMode).toBe('function')
+    expect(typeof homeStore.resetHomeTemplateFilters).toBe('function')
+
+    homeStore.setHomeMode('templates')
+    homeStore.setHomeTemplateScopeFilter('飞书')
+    homeStore.setHomeTemplateDirectionFilter('蛋白药物')
+    homeStore.setHomeTemplateTypeFilter('研究设计')
+    homeStore.setHomeTemplateSearchQuery('CDR')
+    homeStore.setHomeTemplateAdvancedFiltersOpen(true)
+
+    const { demoStorePersistKey } = await import('./useDemoStore')
+    const persistedPayload = JSON.parse(localStorage.getItem(demoStorePersistKey) ?? '{}')
+
+    expect(persistedPayload.state.homeMode).toBe('templates')
+    expect(persistedPayload.state.homeTemplateScopeFilter).toBe('飞书')
+    expect(persistedPayload.state.homeTemplateDirectionFilter).toBe('蛋白药物')
+    expect(persistedPayload.state.homeTemplateTypeFilter).toBe('研究设计')
+    expect(persistedPayload.state.homeTemplateSearchQuery).toBe('CDR')
+    expect(persistedPayload.state.homeTemplateAdvancedFiltersOpen).toBe(true)
+    expect(persistedPayload.state).not.toHaveProperty('homeTemplatePage')
+
+    homeStore.resetHomeTemplateFilters()
+    expect(useDemoStore.getState().homeMode).toBe('templates')
+    expect(useDemoStore.getState().homeTemplateScopeFilter).toBe('全部类别')
+    expect(useDemoStore.getState().homeTemplateDirectionFilter).toBe('全部方向')
+    expect(useDemoStore.getState().homeTemplateTypeFilter).toBe('全部类型')
+    expect(useDemoStore.getState().homeTemplateSearchQuery).toBe('')
+    expect(useDemoStore.getState().homeTemplateAdvancedFiltersOpen).toBe(true)
+
+    useDemoStore.getState().resetDemoState()
+    expect(useDemoStore.getState().homeMode).toBe('recommendations')
+    expect(useDemoStore.getState().homeTemplateScopeFilter).toBe('全部类别')
+    expect(useDemoStore.getState().homeTemplateDirectionFilter).toBe('全部方向')
+    expect(useDemoStore.getState().homeTemplateTypeFilter).toBe('全部类型')
+    expect(useDemoStore.getState().homeTemplateSearchQuery).toBe('')
+    expect(useDemoStore.getState().homeTemplateAdvancedFiltersOpen).toBe(false)
+  })
+
+  it('sanitizes invalid persisted Home template workbench UI state', async () => {
+    const { demoStorePersistVersion } = await import('./useDemoStore')
+    const { useDemoStore } = await loadStoreWithPersistedState({
+      state: {
+        ...createOldEgfrPersistedState(),
+        homeMode: 'dashboard',
+        homeTemplateScopeFilter: '推荐',
+        homeTemplateDirectionFilter: '抗体',
+        homeTemplateTypeFilter: '审批',
+        homeTemplateSearchQuery: 42,
+        homeTemplateAdvancedFiltersOpen: 'yes',
+      },
+      version: demoStorePersistVersion,
+    })
+
+    expect(useDemoStore.getState().homeMode).toBe('recommendations')
+    expect(useDemoStore.getState().homeTemplateScopeFilter).toBe('全部类别')
+    expect(useDemoStore.getState().homeTemplateDirectionFilter).toBe('全部方向')
+    expect(useDemoStore.getState().homeTemplateTypeFilter).toBe('全部类型')
+    expect(useDemoStore.getState().homeTemplateSearchQuery).toBe('')
+    expect(useDemoStore.getState().homeTemplateAdvancedFiltersOpen).toBe(false)
   })
 
   it('sanitizes invalid persisted Assets state', async () => {
@@ -1091,6 +1275,40 @@ type NotificationExtraFilterStore = {
   setNotificationCenterAdvancedFiltersOpen?: (open: boolean) => void
 }
 
+type HomeWorkbenchStore = {
+  homeMode: 'recommendations' | 'templates'
+  homeTemplateScopeFilter: '全部类别' | '日常' | '生物' | '飞书' | '其他'
+  homeTemplateDirectionFilter:
+    | '全部方向'
+    | '蛋白药物'
+    | '虚拟细胞'
+    | '合成生物学'
+    | '农业育种'
+    | '其他'
+  homeTemplateTypeFilter:
+    | '全部类型'
+    | '完整工作流'
+    | '研究设计'
+    | '实验'
+    | '结果分析'
+    | '模型优化'
+  homeTemplateSearchQuery: string
+  homeTemplateAdvancedFiltersOpen: boolean
+  setHomeMode: (mode: 'recommendations' | 'templates') => void
+  setHomeTemplateScopeFilter: (
+    filter: HomeWorkbenchStore['homeTemplateScopeFilter'],
+  ) => void
+  setHomeTemplateDirectionFilter: (
+    filter: HomeWorkbenchStore['homeTemplateDirectionFilter'],
+  ) => void
+  setHomeTemplateTypeFilter: (
+    filter: HomeWorkbenchStore['homeTemplateTypeFilter'],
+  ) => void
+  setHomeTemplateSearchQuery: (query: string) => void
+  setHomeTemplateAdvancedFiltersOpen: (open: boolean) => void
+  resetHomeTemplateFilters: () => void
+}
+
 type ApprovalCenterStore = {
   approvalActiveSection?: 'overview' | 'pending' | 'rules'
   approvalInspectorOpen?: boolean
@@ -1099,6 +1317,39 @@ type ApprovalCenterStore = {
   selectApprovalCenterObject?: (
     objectId: string | null,
     inspectorOpen?: boolean,
+  ) => void
+}
+
+type BillingCenterStore = {
+  billingCenterActiveTab?: 'overview' | 'services' | 'bills' | 'usage' | 'budgets'
+  billingCenterRole?: 'admin' | 'viewer'
+  billingCenterSelectedServiceId?: string | null
+  billingCenterSelectedBillLineId?: string | null
+  billingCenterSelectedBudgetId?: string | null
+  billingCenterInspectorOpen?: boolean
+  billingCenterServiceSearch?: string
+  billingCenterBillSearch?: string
+  billingCenterUsageSearch?: string
+  billingCenterBudgetSearch?: string
+  setBillingCenterTab?: (
+    tab: 'overview' | 'services' | 'bills' | 'usage' | 'budgets',
+  ) => void
+  setBillingCenterRole?: (role: 'admin' | 'viewer') => void
+  selectBillingCenterService?: (
+    serviceId: string | null,
+    inspectorOpen?: boolean,
+  ) => void
+  selectBillingCenterBillLine?: (
+    lineId: string | null,
+    inspectorOpen?: boolean,
+  ) => void
+  selectBillingCenterBudget?: (
+    budgetId: string | null,
+    inspectorOpen?: boolean,
+  ) => void
+  setBillingCenterSearch?: (
+    scope: 'services' | 'bills' | 'usage' | 'budgets',
+    value: string,
   ) => void
 }
 

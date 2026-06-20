@@ -997,10 +997,63 @@ describe('App composer attachment menu', () => {
 })
 
 describe('App home templates', () => {
-  it('shows the first 30 home templates with a one-line toolbar and four pagination buttons', () => {
+  it('defaults to the compact recommendation workbench below the composer', () => {
     const { container, root } = renderApp()
+
+    expect(container.querySelector('.composer')).not.toBeNull()
+    expect(container.querySelector('.home-control-bar')).not.toBeNull()
+    expect(container.querySelector('.home-template-controls')).toBeNull()
+    expect(getButton(container, '推荐').getAttribute('aria-pressed')).toBe('true')
+    expect(getButton(container, '推荐').closest('.home-mode-switch')).not.toBeNull()
+    expect(getButton(container, '模板').closest('.home-mode-switch')).not.toBeNull()
+    expect(container.textContent).not.toContain(
+      '推荐：根据当前工作上下文给出待关注事项和下一步建议。',
+    )
+    expect(container.textContent).not.toContain('全部模板')
+    expect(container.textContent).not.toContain('工作建议')
+    expect(container.textContent).not.toContain('今日工作台')
+    expect(container.textContent).toContain('今日需要关注')
+    expect(container.textContent).toContain('继续推进')
+    expect(container.textContent).toContain('智能建议')
+    expect(container.textContent).toContain('开始新工作')
+    expect(container.querySelector('[aria-label="模板类别"]')).toBeNull()
+    expect(container.querySelector('input[aria-label="搜索模板"]')).toBeNull()
+    expect(container.querySelector('.template-section')).toBeNull()
+    expect(container.querySelectorAll('.recommendation-card--attention')).toHaveLength(4)
+
+    root.unmount()
+  })
+
+  it('switches to all templates mode and removes the old 推荐 scope filter', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, '模板').click()
+    })
+
     const templateSection = getTemplateSection(container)
 
+    expect(getButton(container, '模板').getAttribute('aria-pressed')).toBe('true')
+    expect(container.querySelector('.home-control-bar')).not.toBeNull()
+    expect(container.querySelector('.home-template-controls')).not.toBeNull()
+    expect(getButton(container, '推荐').closest('.home-mode-switch')).not.toBeNull()
+    expect(getButton(container, '模板').closest('.home-mode-switch')).not.toBeNull()
+    expect(getTemplateScopeGroup(container).closest('.home-template-controls')).not.toBeNull()
+    expect(getButton(container, '模板').closest('.home-template-controls')).toBeNull()
+    expect(
+      container
+        .querySelector('.home-template-controls__advanced')
+        ?.closest('.home-template-controls__filter-strip'),
+    ).toBeNull()
+    expect(
+      container.querySelector('.home-template-controls__advanced')?.parentElement,
+    ).toBe(container.querySelector('.home-template-controls'))
+    expect(
+      container
+        .querySelector<HTMLInputElement>('input[aria-label="搜索模板"]')
+        ?.closest('.home-control-bar'),
+    ).not.toBeNull()
+    expect(templateSection.querySelector('.template-section__toolbar')).toBeNull()
     expect(getTemplateCards(container)).toHaveLength(30)
     expect(templateSection.textContent).not.toContain('100 个模板')
     expect(templateSection.textContent).not.toContain('类型筛选')
@@ -1012,7 +1065,7 @@ describe('App home templates', () => {
       Array.from(getTemplateScopeGroup(container).querySelectorAll('button')).map(
         (button) => button.textContent?.trim(),
       ),
-    ).toEqual(['全部类别', '推荐', '日常', '生物', '飞书', '其他'])
+    ).toEqual(['全部类别', '日常', '生物', '飞书', '其他'])
     expect(getButton(container, '蛋白药物')).not.toBeNull()
     expect(getButton(container, '虚拟细胞')).not.toBeNull()
     expect(getButton(container, '合成生物学')).not.toBeNull()
@@ -1035,8 +1088,100 @@ describe('App home templates', () => {
     root.unmount()
   })
 
+  it('passes wheel scrolling to the outer workspace until the template region is pinned', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, '模板').click()
+    })
+
+    const workspaceMain = container.querySelector<HTMLElement>('.workspace-main')
+    const controlBar = container.querySelector<HTMLElement>('.home-control-bar')
+    const results = container.querySelector<HTMLElement>(
+      '.template-section__results',
+    )
+
+    if (!workspaceMain || !controlBar || !results) {
+      throw new Error('Template scroll test elements not found')
+    }
+
+    Object.defineProperties(workspaceMain, {
+      clientHeight: { configurable: true, value: 800 },
+      scrollHeight: { configurable: true, value: 2200 },
+      scrollTop: { configurable: true, value: 0, writable: true },
+    })
+
+    const scrollBy = vi.fn((options: ScrollToOptions) => {
+      workspaceMain.scrollTop += Number(options.top ?? 0)
+    })
+    workspaceMain.scrollBy = scrollBy as unknown as typeof workspaceMain.scrollBy
+    vi.spyOn(workspaceMain, 'getBoundingClientRect').mockReturnValue(
+      createDomRect(48, 800),
+    )
+    const controlBarRect = vi
+      .spyOn(controlBar, 'getBoundingClientRect')
+      .mockReturnValue(createDomRect(300, 34))
+
+    const wheelBeforePinned = new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaY: 80,
+    })
+
+    act(() => {
+      results.dispatchEvent(wheelBeforePinned)
+    })
+
+    expect(wheelBeforePinned.defaultPrevented).toBe(true)
+    expect(scrollBy).toHaveBeenCalledWith({
+      top: 80,
+      left: 0,
+      behavior: 'auto',
+    })
+
+    scrollBy.mockClear()
+    const largeWheelBeforePinned = new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaY: 500,
+    })
+
+    act(() => {
+      results.dispatchEvent(largeWheelBeforePinned)
+    })
+
+    expect(largeWheelBeforePinned.defaultPrevented).toBe(true)
+    expect(scrollBy).toHaveBeenCalledWith({
+      top: 96,
+      left: 0,
+      behavior: 'auto',
+    })
+
+    scrollBy.mockClear()
+    controlBarRect.mockReturnValue(createDomRect(56, 34))
+    const wheelAfterPinned = new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaY: 80,
+    })
+
+    act(() => {
+      results.dispatchEvent(wheelAfterPinned)
+    })
+
+    expect(wheelAfterPinned.defaultPrevented).toBe(false)
+    expect(scrollBy).not.toHaveBeenCalled()
+
+    root.unmount()
+  })
+
   it('filters templates by first-level Feishu and other categories', () => {
     const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, '模板').click()
+    })
+
     const scopeGroup = getTemplateScopeGroup(container)
 
     act(() => {
@@ -1073,6 +1218,10 @@ describe('App home templates', () => {
   it('expands the toolbar to show advanced template type filters without auto-collapsing', () => {
     const { container, root } = renderApp()
 
+    act(() => {
+      getButton(container, '模板').click()
+    })
+
     expect(findButton(container, '完整工作流')).toBeUndefined()
 
     act(() => {
@@ -1080,8 +1229,8 @@ describe('App home templates', () => {
     })
 
     expect(getButton(container, '收起更多筛选').getAttribute('aria-expanded')).toBe('true')
-    expect(container.querySelector('.template-section__toolbar--expanded')).not.toBeNull()
-    const advancedPanel = container.querySelector('.template-section__advanced-panel')
+    expect(container.querySelector('.home-template-controls__popover')).not.toBeNull()
+    const advancedPanel = container.querySelector('.home-template-controls__popover')
     expect(advancedPanel).not.toBeNull()
     expect(advancedPanel?.textContent).toContain('类型')
 
@@ -1095,8 +1244,11 @@ describe('App home templates', () => {
       30,
     )
     expect(getButton(container, '收起更多筛选').getAttribute('aria-expanded')).toBe('true')
-    expect(container.querySelector('.template-section__advanced-panel')).not.toBeNull()
+    expect(container.querySelector('.home-template-controls__popover')).not.toBeNull()
     expect(getButton(container, '研究设计').getAttribute('aria-pressed')).toBe('true')
+    expect(getButton(container, '收起更多筛选').textContent).toContain(
+      '更多筛选 1',
+    )
     expect(getTemplateCards(container)).toHaveLength(
       Math.min(30, researchDesignFirstPage.totalItems),
     )
@@ -1108,16 +1260,66 @@ describe('App home templates', () => {
       getButton(container, '收起更多筛选').click()
     })
 
-    expect(container.querySelector('.template-section__advanced-panel')).toBeNull()
-    expect(getButton(container, '展开更多筛选').className).toContain(
-      'template-section__advanced-toggle--active',
+    expect(container.querySelector('.home-template-controls__popover')).toBeNull()
+    expect(getButton(container, '展开更多筛选').textContent).toContain(
+      '更多筛选 1',
     )
 
     root.unmount()
   })
 
-  it('refreshes results and returns to page one when filtering by direction and featured templates', () => {
+  it('resets template filters from the more-filters popover while staying in all templates mode', () => {
     const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, '模板').click()
+    })
+    act(() => {
+      getGroupButton(getTemplateScopeGroup(container), '飞书').click()
+    })
+    act(() => {
+      getButton(container, '蛋白药物').click()
+    })
+    setSearchInput(container, '搜索模板', 'CDR')
+    act(() => {
+      getButton(container, '展开更多筛选').click()
+    })
+    act(() => {
+      getButton(container, '研究设计').click()
+    })
+
+    expect(getButton(container, '收起更多筛选').textContent).toContain(
+      '更多筛选 1',
+    )
+    expect(getTemplateCards(container)).toHaveLength(0)
+
+    act(() => {
+      getButton(container, '重置筛选').click()
+    })
+
+    expect(getButton(container, '模板').getAttribute('aria-pressed')).toBe('true')
+    expect(getButton(container, '全部类别').getAttribute('aria-pressed')).toBe('true')
+    expect(getButton(container, '全部方向').getAttribute('aria-pressed')).toBe('true')
+    expect(getButton(container, '全部类型').getAttribute('aria-pressed')).toBe('true')
+    expect(getButton(container, '收起更多筛选').textContent).toContain('更多筛选')
+    expect(getButton(container, '收起更多筛选').textContent).not.toContain('1')
+    expect(
+      container.querySelector<HTMLInputElement>('input[aria-label="搜索模板"]')?.value,
+    ).toBe('')
+    expect(getTemplateCards(container)).toHaveLength(30)
+    expect(getTemplatePageButton(container, '1').getAttribute('aria-current')).toBe(
+      'page',
+    )
+
+    root.unmount()
+  })
+
+  it('refreshes results and returns to page one when filtering by direction', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, '模板').click()
+    })
 
     act(() => {
       getTemplatePageButton(container, '2').click()
@@ -1153,35 +1355,15 @@ describe('App home templates', () => {
       'page',
     )
 
-    act(() => {
-      getButton(container, '推荐').click()
-    })
-
-    const featuredProteinDrugFirstPage = getTemplatePage(
-      getFilteredTemplates(
-        homeTemplates,
-        { scope: '推荐', direction: '蛋白药物' },
-        '',
-      ),
-      1,
-      30,
-    )
-    expect(getTemplateCards(container)).toHaveLength(
-      Math.min(30, featuredProteinDrugFirstPage.totalItems),
-    )
-    expect(getTemplateCards(container)[0].textContent).toContain(
-      featuredProteinDrugFirstPage.items[0].title,
-    )
-    expect(featuredProteinDrugFirstPage.totalItems).toBeLessThanOrEqual(30)
-    expect(
-      getTemplateSection(container).querySelector('.template-section__pagination'),
-    ).toBeNull()
-
     root.unmount()
   })
 
   it('searches visible template fields immediately, can clear, and does not match hidden prompt text', () => {
     const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, '模板').click()
+    })
 
     setSearchInput(container, '搜索模板', 'CDR')
     expect(getTemplateCards(container)).toHaveLength(1)
@@ -1200,6 +1382,10 @@ describe('App home templates', () => {
   it('fills the composer with a user-authored prompt without sending or adding a capability tag', async () => {
     const { container, root } = renderApp()
 
+    act(() => {
+      getButton(container, '模板').click()
+    })
+
     const card = getTemplateCard(container, '靶点竞品研究')
 
     expect(card.querySelector('.template-card__header')).not.toBeNull()
@@ -1216,11 +1402,7 @@ describe('App home templates', () => {
     act(() => {
       card.click()
     })
-    await act(async () => {
-      await new Promise<void>((resolve) => {
-        window.requestAnimationFrame(() => resolve())
-      })
-    })
+    await waitForAnimationFrame()
 
     const textarea = getTextarea(container, '研发目标或对话内容')
 
@@ -1236,16 +1418,72 @@ describe('App home templates', () => {
     root.unmount()
   })
 
+  it('fills, appends, focuses, scrolls, and confirms recommendation prompts', async () => {
+    const { container, root } = renderApp()
+    const scrollIntoView = vi.fn()
+    const textarea = getTextarea(container, '研发目标或对话内容')
+
+    textarea.scrollIntoView = scrollIntoView
+
+    act(() => {
+      getButton(container, '生成复核摘要').click()
+    })
+    await waitForAnimationFrame()
+
+    expect(textarea.value).toContain('HER2')
+    expect(document.activeElement).toBe(textarea)
+    expect(textarea.selectionStart).toBe(textarea.value.length)
+    expect(scrollIntoView).toHaveBeenCalled()
+    expect(container.textContent).toContain('已填入指令，可直接发送')
+
+    const firstPrompt = textarea.value
+    setTextareaValue(textarea, `${firstPrompt}\n\n我已有一段手写输入。`)
+
+    act(() => {
+      getButton(container, '整理数据集缺口').click()
+    })
+    await waitForAnimationFrame()
+
+    expect(textarea.value).toContain('我已有一段手写输入。')
+    expect(textarea.value).toContain('\n\n请')
+    expect(textarea.value).not.toBe(firstPrompt)
+    expect(useDemoStore.getState().notificationClearedById).toEqual({})
+    expect(useDemoStore.getState().notificationResolvedById).toEqual({})
+
+    root.unmount()
+  })
+
+  it('uses non-navigation action labels and the starter shortcut opens all templates', () => {
+    const { container, root } = renderApp()
+    const forbiddenActionPattern = /(查看|打开|进入|处理审批|完成任务)/
+    const actionLabels = Array.from(
+      container.querySelectorAll<HTMLElement>('.recommendation-card__action'),
+    ).map((button) => button.textContent?.trim() ?? '')
+
+    expect(actionLabels.length).toBeGreaterThan(0)
+    actionLabels.forEach((label) => {
+      expect(label).not.toMatch(forbiddenActionPattern)
+    })
+
+    act(() => {
+      getButton(container, '查看模板').click()
+    })
+
+    expect(getButton(container, '模板').getAttribute('aria-pressed')).toBe('true')
+    expect(getTemplateSection(container)).not.toBeNull()
+
+    root.unmount()
+  })
+
   it('does not render the old home capability buttons or use case cards', () => {
     const { container, root } = renderApp()
-    const templateSection = getTemplateSection(container)
 
     expect(findButton(container, '知识调研')).toBeUndefined()
     expect(findButton(container, '实验设计')).toBeUndefined()
     expect(findButton(container, '更多')).toBeUndefined()
-    expect(templateSection.querySelector('[class*="use-case-"]')).toBeNull()
-    expect(templateSection.querySelector('.capability-row')).toBeNull()
-    expect(templateSection.querySelector('.selected')).toBeNull()
+    expect(container.querySelector('[class*="use-case-"]')).toBeNull()
+    expect(container.querySelector('.capability-row')).toBeNull()
+    expect(container.querySelector('.selected')).toBeNull()
 
     root.unmount()
   })
@@ -2215,7 +2453,7 @@ function getTemplateSection(container: HTMLElement) {
 }
 
 function getTemplateScopeGroup(container: HTMLElement) {
-  const group = getTemplateSection(container).querySelector<HTMLElement>(
+  const group = container.querySelector<HTMLElement>(
     '[aria-label="模板类别"]',
   )
 
@@ -2284,6 +2522,45 @@ function getTextarea(container: HTMLElement, label: string) {
   }
 
   return textarea
+}
+
+function createDomRect(top: number, height: number) {
+  return {
+    x: 0,
+    y: top,
+    top,
+    right: 100,
+    bottom: top + height,
+    left: 0,
+    width: 100,
+    height,
+    toJSON: () => ({}),
+  } as DOMRect
+}
+
+async function waitForAnimationFrame() {
+  await act(async () => {
+    await new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => resolve())
+    })
+  })
+}
+
+function setTextareaValue(textarea: HTMLTextAreaElement, value: string) {
+  act(() => {
+    const valueSetter = Object.getOwnPropertyDescriptor(
+      HTMLTextAreaElement.prototype,
+      'value',
+    )?.set
+    valueSetter?.call(textarea, value)
+    textarea.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: value,
+        inputType: 'insertText',
+      }),
+    )
+  })
 }
 
 function getSidebarProjectNames(container: HTMLElement) {
