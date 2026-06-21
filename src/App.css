@@ -2969,6 +2969,15 @@
   white-space: nowrap;
 }
 
+.billing-center-services-table th:last-child,
+.billing-center-services-table td:last-child {
+  width: 116px;
+}
+
+.billing-center-services-table td:last-child {
+  overflow: visible;
+}
+
 .billing-center-table tr:last-child td {
   border-bottom: 0;
 }
@@ -3034,6 +3043,7 @@
 }
 
 .billing-center-actions {
+  position: relative;
   flex-wrap: wrap;
   gap: 6px;
   min-width: 0;
@@ -3049,6 +3059,77 @@
   font-size: 11px;
   font-weight: 720;
   white-space: nowrap;
+}
+
+.billing-center-link-action--primary {
+  min-width: 44px;
+}
+
+.billing-center-more-action {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 24px;
+  border: 1px solid rgba(203, 216, 227, 0.78);
+  border-radius: 6px;
+  cursor: pointer;
+  color: #52687c;
+  background: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.billing-center-more-action:hover,
+.billing-center-more-action:focus-visible,
+.billing-center-more-action[aria-expanded='true'] {
+  color: #0b6f94;
+  background: #edf8fc;
+  border-color: rgba(10, 164, 200, 0.34);
+  outline: none;
+}
+
+.billing-center-action-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  display: grid;
+  width: 126px;
+  padding: 6px;
+  border: 1px solid rgba(203, 216, 227, 0.86);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(27, 43, 62, 0.14);
+}
+
+.billing-center-action-menu__item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #31445a;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 720;
+  text-align: left;
+}
+
+.billing-center-action-menu__item:hover,
+.billing-center-action-menu__item:focus-visible {
+  color: #0b6f94;
+  background: #edf8fc;
+  outline: none;
+}
+
+.billing-center-action-menu__item:disabled {
+  cursor: not-allowed;
+  color: #9aa6b2;
+  background: transparent;
 }
 
 .billing-center-status {

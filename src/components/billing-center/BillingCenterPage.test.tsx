@@ -107,14 +107,24 @@ describe('BillingCenterPage', () => {
 
     expect(container.textContent).not.toContain('服务实例详情')
 
+    expect(getButton(container, '查看 Agent 企业版年度订阅')).not.toBeNull()
+    expect(() => getButton(container, '申请退订 Agent 企业版年度订阅')).toThrow()
+
     act(() => {
-      getButton(container, '查看详情 Agent 企业版年度订阅').click()
+      getButton(container, '更多操作 Agent 企业版年度订阅').click()
+    })
+
+    expect(getButton(container, '查看账单 Agent 企业版年度订阅')).not.toBeNull()
+    expect(getButton(container, '查看用量 Agent 企业版年度订阅')).not.toBeNull()
+    expect(getButton(container, '申请退订 Agent 企业版年度订阅')).not.toBeNull()
+
+    act(() => {
+      getButton(container, '查看 Agent 企业版年度订阅').click()
     })
 
     expect(container.textContent).toContain('服务实例详情')
     expect(container.textContent).toContain('bi-2026-agent-ent-001')
     expect(container.textContent).toContain('计费项编码')
-    expect(getButton(container, '申请退订 Agent 企业版年度订阅')).not.toBeNull()
 
     root.unmount()
   })

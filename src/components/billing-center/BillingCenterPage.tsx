@@ -1,8 +1,9 @@
-import type {
-  ChangeEvent,
-  CSSProperties,
-  KeyboardEvent,
-  ReactNode,
+import {
+  useState,
+  type ChangeEvent,
+  type CSSProperties,
+  type KeyboardEvent,
+  type ReactNode,
 } from 'react'
 import {
   billingCenterBudgetRules,
@@ -477,6 +478,7 @@ function ServicesTab({
 }: ServicesTabProps) {
   const rows = filterServices(search)
   const canManage = role !== 'viewer'
+  const [openMenuServiceId, setOpenMenuServiceId] = useState<string | null>(null)
 
   return (
     <div className="billing-center-tab-panel">
@@ -550,58 +552,102 @@ function ServicesTab({
                     <div className="billing-center-actions">
                       <button
                         type="button"
-                        className="billing-center-link-action"
-                        aria-label={`查看详情 ${service.name}`}
-                        onClick={() => onSelectService(service.id, true)}
+                        className="billing-center-link-action billing-center-link-action--primary"
+                        aria-label={`查看 ${service.name}`}
+                        onClick={() => {
+                          setOpenMenuServiceId(null)
+                          onSelectService(service.id, true)
+                        }}
                       >
-                        查看详情
+                        查看
                       </button>
                       <button
                         type="button"
-                        className="billing-center-link-action"
-                        aria-label={`查看账单 ${service.name}`}
-                        onClick={() => onOpenBills(service.id)}
+                        className="billing-center-more-action"
+                        aria-label={`更多操作 ${service.name}`}
+                        aria-expanded={openMenuServiceId === service.id}
+                        onClick={() =>
+                          setOpenMenuServiceId((currentServiceId) =>
+                            currentServiceId === service.id ? null : service.id,
+                          )
+                        }
                       >
-                        查看账单
+                        ...
                       </button>
-                      <button
-                        type="button"
-                        className="billing-center-link-action"
-                        aria-label={`查看用量 ${service.name}`}
-                        onClick={() => onOpenUsage(service.id)}
-                      >
-                        查看用量
-                      </button>
-                      <button
-                        type="button"
-                        className="billing-center-link-action"
-                        disabled={!canManage}
-                        title={canManage ? undefined : '费用查看用户无管理权限'}
-                        aria-label={`续费 ${service.name}`}
-                        onClick={() => onNotify('该操作将进入续费订单流程')}
-                      >
-                        续费
-                      </button>
-                      <button
-                        type="button"
-                        className="billing-center-link-action"
-                        disabled={!canManage}
-                        title={canManage ? undefined : '费用查看用户无管理权限'}
-                        aria-label={`扩容 ${service.name}`}
-                        onClick={() => onNotify('该操作将进入扩容订单流程')}
-                      >
-                        扩容
-                      </button>
-                      <button
-                        type="button"
-                        className="billing-center-link-action"
-                        disabled={!canManage}
-                        title={canManage ? undefined : '费用查看用户无管理权限'}
-                        aria-label={`申请退订 ${service.name}`}
-                        onClick={() => onNotify('申请退订将进入服务退订审批流程')}
-                      >
-                        申请退订
-                      </button>
+                      {openMenuServiceId === service.id ? (
+                        <div
+                          className="billing-center-action-menu"
+                          role="menu"
+                          aria-label={`${service.name} 更多操作`}
+                        >
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="billing-center-action-menu__item"
+                            aria-label={`查看账单 ${service.name}`}
+                            onClick={() => {
+                              setOpenMenuServiceId(null)
+                              onOpenBills(service.id)
+                            }}
+                          >
+                            查看账单
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="billing-center-action-menu__item"
+                            aria-label={`查看用量 ${service.name}`}
+                            onClick={() => {
+                              setOpenMenuServiceId(null)
+                              onOpenUsage(service.id)
+                            }}
+                          >
+                            查看用量
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="billing-center-action-menu__item"
+                            disabled={!canManage}
+                            title={canManage ? undefined : '费用查看用户无管理权限'}
+                            aria-label={`续费 ${service.name}`}
+                            onClick={() => {
+                              setOpenMenuServiceId(null)
+                              onNotify('该操作将进入续费订单流程')
+                            }}
+                          >
+                            续费
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="billing-center-action-menu__item"
+                            disabled={!canManage}
+                            title={canManage ? undefined : '费用查看用户无管理权限'}
+                            aria-label={`扩容 ${service.name}`}
+                            onClick={() => {
+                              setOpenMenuServiceId(null)
+                              onNotify('该操作将进入扩容订单流程')
+                            }}
+                          >
+                            扩容
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="billing-center-action-menu__item"
+                            disabled={!canManage}
+                            title={canManage ? undefined : '费用查看用户无管理权限'}
+                            aria-label={`申请退订 ${service.name}`}
+                            onClick={() => {
+                              setOpenMenuServiceId(null)
+                              onNotify('申请退订将进入服务退订审批流程')
+                            }}
+                          >
+                            申请退订
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
