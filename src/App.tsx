@@ -14,6 +14,8 @@ import HomeControlBar from './components/HomeControlBar'
 import NotificationCenterDrawer from './components/notifications/NotificationCenterDrawer'
 import NotificationCenterPage from './components/notifications/NotificationCenterPage'
 import ProductManagementPlatformPage from './components/product-management/ProductManagementPlatformPage'
+import RecommendationAssetDetailPage from './components/RecommendationAssetDetailPage'
+import RecommendationSkillDetailPage from './components/RecommendationSkillDetailPage'
 import ProjectsPage from './components/projects/ProjectsPage'
 import RecommendationWorkbench from './components/RecommendationWorkbench'
 import Sidebar from './components/Sidebar'
@@ -24,10 +26,17 @@ import type { AccountMenuItem, TopNavItem } from './components/TopNav'
 import { homeTemplates } from './data/homeTemplates'
 import type { HomeTemplate } from './data/homeTemplates'
 import {
-  homeRecommendationSections,
-  starterRecommendationGroups,
+  getHomeRecommendationAssetDetail,
+  getHomeRecommendationFeedCards,
+  getHomeRecommendationSkillDetail,
+  HOME_RECOMMENDATION_FEED_MAX_COUNT,
+  homeRecommendationInsights,
+  homeRecommendationSignals,
 } from './data/homeRecommendations'
-import type { HomeRecommendationItem } from './data/homeRecommendations'
+import type {
+  HomeRecommendationFeedCard,
+  HomeInsightWidget,
+} from './data/homeRecommendations'
 import {
   applyNotificationOverrides,
   countActionRequiredNotifications,
@@ -55,7 +64,12 @@ const productManagementCommodityListPath = `${productManagementPlatformPath}/com
 const productManagementCommodityPathPrefix = `${productManagementCommodityListPath}/`
 const threadPathPattern = /^\/c\/([a-z0-9]{16})\/?$/
 const legacyThreadPathPattern = /^\/([a-z0-9]{16})\/?$/
+const assetDetailPathPattern = /^\/assets\/([a-z0-9-]+)\/?$/
+const skillDetailPathPattern = /^\/capabilities\/([a-z0-9-]+)\/?$/
 const appBasePath = normalizeAppBasePath(import.meta.env.BASE_URL)
+const homeRecommendationFeedCards = getHomeRecommendationFeedCards(
+  HOME_RECOMMENDATION_FEED_MAX_COUNT,
+)
 
 function App() {
   const [pathname, setPathname] = useState(() =>
@@ -65,7 +79,10 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [projectMenuOpen, setProjectMenuOpen] = useState(false)
   const [homeTemplatePage, setHomeTemplatePage] = useState(1)
+  const [highlightedRecommendationTargetId, setHighlightedRecommendationTargetId] =
+    useState<string | null>(null)
   const composerTextAreaRef = useRef<HTMLTextAreaElement>(null)
+  const recommendationHighlightTimeoutRef = useRef<number | null>(null)
   const skipNextRootRouteSyncRef = useRef(false)
   const projects = useDemoStore((state) => state.projects)
   const selectedProjectId = useDemoStore((state) => state.selectedProjectId)
@@ -361,7 +378,25 @@ function App() {
   }, [clearStatus, statusMessage])
 
   useEffect(() => {
+    return () => {
+      if (recommendationHighlightTimeoutRef.current !== null) {
+        window.clearTimeout(recommendationHighlightTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     if (isProductManagementRoute(pathname)) {
+      return
+    }
+
+    if (getAssetDetailId(pathname)) {
+      selectTopNav('Assets')
+      return
+    }
+
+    if (getSkillDetailId(pathname)) {
+      selectTopNav('Capabilities')
       return
     }
 
@@ -443,11 +478,28 @@ function App() {
     })
   }
 
-  function handleRecommendationPromptFill(item: HomeRecommendationItem) {
+  function fillComposerWithPrompt(prompt: string, message = '已填入指令，可直接发送') {
+    setDraft(prompt)
+    showStatus(message)
+
+    window.requestAnimationFrame(() => {
+      const textarea = composerTextAreaRef.current
+
+      if (!textarea) {
+        return
+      }
+
+      textarea.focus()
+      textarea.setSelectionRange(prompt.length, prompt.length)
+      textarea.scrollIntoView?.({ block: 'nearest' })
+    })
+  }
+
+  function appendComposerPrompt(prompt: string) {
     const currentDraft = useDemoStore.getState().draft
     const nextDraft = currentDraft.trim()
-      ? `${currentDraft}\n\n${item.prompt}`
-      : item.prompt
+      ? `${currentDraft}\n\n${prompt}`
+      : prompt
 
     setDraft(nextDraft)
     showStatus('已填入指令，可直接发送')
@@ -463,6 +515,88 @@ function App() {
       textarea.setSelectionRange(nextDraft.length, nextDraft.length)
       textarea.scrollIntoView?.({ block: 'nearest' })
     })
+  }
+
+  function handleRecommendationPromptFill(item: HomeInsightWidget) {
+    appendComposerPrompt(item.prompt)
+  }
+
+  function handleRecommendationFeedCardSelect(card: HomeRecommendationFeedCard) {
+    if (card.kind === 'new-task') {
+      fillComposerWithPrompt(card.prompt)
+      return
+    }
+
+    if (card.kind === 'new-asset') {
+      const assetId = card.target.assetId ?? card.target.relatedIds?.[0]
+
+      if (!assetId) {
+        fillComposerWithPrompt(card.prompt)
+        return
+      }
+
+      selectTopNav('Assets')
+      navigateToPath(`/assets/${assetId}`)
+      showStatus('已打开资产详情')
+      return
+    }
+
+    if (card.kind === 'new-skill') {
+      const skillId = card.target.skillId ?? card.target.relatedIds?.find((id) =>
+        id.startsWith('skill-'),
+      )
+
+      if (!skillId) {
+        fillComposerWithPrompt(card.prompt)
+        return
+      }
+
+      selectTopNav('Capabilities')
+      navigateToPath(`/capabilities/${skillId}`)
+      showStatus('已打开 Skill 详情')
+      return
+    }
+
+    const threadId = card.target.threadId
+    const entry = threadId
+      ? findThreadById(projects, threadId) ?? findThreadByRouteId(projects, threadId)
+      : null
+
+    if (entry && (!card.target.projectId || entry.project.id === card.target.projectId)) {
+      selectThread(entry.project.id, entry.thread.id)
+      selectTopNav('Workspace')
+      navigateToPath(getThreadPath(entry.thread.routeId))
+      return
+    }
+
+    fillComposerWithPrompt(card.prompt, '相关对话不存在，已改为新任务草稿')
+  }
+
+  function handleRecommendationTargetFocus(targetId: string) {
+    if (recommendationHighlightTimeoutRef.current !== null) {
+      window.clearTimeout(recommendationHighlightTimeoutRef.current)
+    }
+
+    setHighlightedRecommendationTargetId(targetId)
+
+    window.requestAnimationFrame(() => {
+      const escapedTargetId =
+        typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+          ? CSS.escape(targetId)
+          : targetId.replace(/["\\]/g, '\\$&')
+      const target = document.querySelector<HTMLElement>(
+        `[data-recommendation-target="${escapedTargetId}"]`,
+      )
+
+      target?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+    })
+
+    recommendationHighlightTimeoutRef.current = window.setTimeout(() => {
+      setHighlightedRecommendationTargetId((currentTargetId) =>
+        currentTargetId === targetId ? null : currentTargetId,
+      )
+      recommendationHighlightTimeoutRef.current = null
+    }, 1600)
   }
 
   function handleHomeTemplateScopeFilterChange(
@@ -751,6 +885,14 @@ function App() {
     pathname === productManagementCommodityListPath
   const productManagementProductId = getProductManagementProductId(pathname)
   const productManagementCommodityId = getProductManagementCommodityId(pathname)
+  const recommendationAssetDetailId = getAssetDetailId(pathname)
+  const recommendationSkillDetailId = getSkillDetailId(pathname)
+  const recommendationAssetDetail = recommendationAssetDetailId
+    ? getHomeRecommendationAssetDetail(recommendationAssetDetailId)
+    : undefined
+  const recommendationSkillDetail = recommendationSkillDetailId
+    ? getHomeRecommendationSkillDetail(recommendationSkillDetailId)
+    : undefined
   const isProductManagementPlatformRoute =
     pathname === productManagementPlatformPath ||
     productManagementProductId !== null ||
@@ -810,7 +952,43 @@ function App() {
           {statusMessage}
         </div>
       ) : null}
-      {activeTopNav === 'NotificationCenter' ? (
+      {recommendationAssetDetailId ? (
+        recommendationAssetDetail ? (
+          <RecommendationAssetDetailPage
+            asset={recommendationAssetDetail}
+            onBack={() => {
+              selectTopNav('Assets')
+              navigateToPathWithoutRootSync('/')
+            }}
+          />
+        ) : (
+          <RecommendationMissingDetailPage
+            label="资产"
+            onBack={() => {
+              selectTopNav('Assets')
+              navigateToPathWithoutRootSync('/')
+            }}
+          />
+        )
+      ) : recommendationSkillDetailId ? (
+        recommendationSkillDetail ? (
+          <RecommendationSkillDetailPage
+            skill={recommendationSkillDetail}
+            onBack={() => {
+              selectTopNav('Capabilities')
+              navigateToPathWithoutRootSync('/')
+            }}
+          />
+        ) : (
+          <RecommendationMissingDetailPage
+            label="Skill"
+            onBack={() => {
+              selectTopNav('Capabilities')
+              navigateToPathWithoutRootSync('/')
+            }}
+          />
+        )
+      ) : activeTopNav === 'NotificationCenter' ? (
         <NotificationCenterPage
           notifications={notifications}
           preset={notificationCenterPreset}
@@ -972,12 +1150,14 @@ function App() {
                 <section className="home-surface" aria-label="首页工作区">
                   <HomeControlBar
                     homeMode={homeMode}
+                    signals={homeRecommendationSignals}
                     scope={homeTemplateScopeFilter}
                     direction={homeTemplateDirectionFilter}
                     type={homeTemplateTypeFilter}
                     query={homeTemplateSearchQuery}
                     advancedFiltersOpen={homeTemplateAdvancedFiltersOpen}
                     onHomeModeChange={setHomeMode}
+                    onSignalSelect={handleRecommendationTargetFocus}
                     onScopeChange={handleHomeTemplateScopeFilterChange}
                     onDirectionChange={handleHomeTemplateDirectionFilterChange}
                     onTypeChange={handleHomeTemplateTypeFilterChange}
@@ -990,10 +1170,12 @@ function App() {
 
                   {homeMode === 'recommendations' ? (
                     <RecommendationWorkbench
-                      sections={homeRecommendationSections}
-                      starterGroups={starterRecommendationGroups}
+                      insights={homeRecommendationInsights}
+                      feedCards={homeRecommendationFeedCards}
+                      highlightedTargetId={highlightedRecommendationTargetId}
                       onPromptFill={handleRecommendationPromptFill}
-                      onViewAllTemplates={() => setHomeMode('templates')}
+                      onTargetFocus={handleRecommendationTargetFocus}
+                      onFeedCardSelect={handleRecommendationFeedCardSelect}
                     />
                   ) : (
                     <TemplateSection
@@ -1089,6 +1271,18 @@ function getThreadPath(routeId: string) {
   return `/c/${routeId}`
 }
 
+function getAssetDetailId(pathname: string) {
+  const assetId = assetDetailPathPattern.exec(pathname)?.[1] ?? null
+
+  return assetId ? decodeURIComponent(assetId) : null
+}
+
+function getSkillDetailId(pathname: string) {
+  const skillId = skillDetailPathPattern.exec(pathname)?.[1] ?? null
+
+  return skillId ? decodeURIComponent(skillId) : null
+}
+
 function isProductManagementRoute(pathname: string) {
   return (
     pathname === productManagementPlatformPath ||
@@ -1115,6 +1309,33 @@ function getSelectedThreadEntry(
   }
 
   return undefined
+}
+
+function RecommendationMissingDetailPage({
+  label,
+  onBack,
+}: {
+  label: string
+  onBack: () => void
+}) {
+  return (
+    <main className="recommendation-detail-page recommendation-detail-page--missing">
+      <section className="recommendation-detail-hero">
+        <button
+          type="button"
+          className="recommendation-detail-back"
+          onClick={onBack}
+        >
+          返回
+        </button>
+        <div className="recommendation-detail-hero__copy">
+          <p>{label} 详情</p>
+          <h1>{label}不存在或已被删除</h1>
+          <span>这个 Demo 路由保留了直达入口，当前 mock 数据里没有对应记录。</span>
+        </div>
+      </section>
+    </main>
+  )
 }
 
 export default App

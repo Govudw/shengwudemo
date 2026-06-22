@@ -3,6 +3,7 @@ import type { HomeRecommendationItem } from '../data/homeRecommendations'
 type RecommendationCardProps = {
   item: HomeRecommendationItem
   variant: 'attention' | 'compact' | 'suggestion' | 'starter'
+  highlighted?: boolean
   onPromptFill: (item: HomeRecommendationItem) => void
 }
 
@@ -26,6 +27,7 @@ const priorityLabels: Record<HomeRecommendationItem['recommendationPriority'], s
 function RecommendationCard({
   item,
   variant,
+  highlighted = false,
   onPromptFill,
 }: RecommendationCardProps) {
   function fillPrompt() {
@@ -35,9 +37,12 @@ function RecommendationCard({
   return (
     <button
       type="button"
-      aria-label={item.primaryActionLabel}
-      className={`recommendation-card recommendation-card--${variant} recommendation-card--${item.accent}`}
+      aria-label={`${item.primaryActionLabel}：${item.title}`}
+      className={`recommendation-card recommendation-card--${variant} recommendation-card--${item.accent}${
+        highlighted ? ' recommendation-highlight' : ''
+      }`}
       data-section={item.section}
+      data-recommendation-target={item.id}
       onClick={fillPrompt}
     >
       <span className="recommendation-card__meta">
@@ -47,21 +52,9 @@ function RecommendationCard({
             优先级 {priorityLabels[item.recommendationPriority]}
           </span>
         ) : null}
-        {item.sourceStatus ? (
-          <span className="recommendation-card__status">{item.sourceStatus}</span>
-        ) : null}
       </span>
       <span className="recommendation-card__title">{item.title}</span>
-      {variant === 'starter' ? (
-        <span className="recommendation-card__summary">{item.summary}</span>
-      ) : (
-        <>
-          <span className="recommendation-card__reason">
-            {variant === 'compact' ? item.summary : item.reason}
-          </span>
-          <span className="recommendation-card__source">{item.sourceLabel}</span>
-        </>
-      )}
+      <span className="recommendation-card__summary">{item.summary}</span>
       <span className="recommendation-card__action">
         {item.primaryActionLabel}
       </span>

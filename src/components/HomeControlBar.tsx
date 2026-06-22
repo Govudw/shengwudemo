@@ -4,6 +4,7 @@ import {
   scopeFilterOptions,
   typeFilterOptions,
 } from '../data/homeTemplates'
+import type { HomeSignalItem } from '../data/homeRecommendations'
 import type {
   DirectionFilterValue,
   ScopeFilterValue,
@@ -11,16 +12,19 @@ import type {
   TypeFilterValue,
 } from '../data/homeTemplates'
 import type { HomeMode } from '../store/demoStoreLogic'
+import HomeSignalStrip from './HomeSignalStrip'
 import { ChevronDownIcon, SearchIcon } from './icons'
 
 type HomeControlBarProps = {
   homeMode: HomeMode
+  signals: HomeSignalItem[]
   scope: ScopeFilterValue
   direction: DirectionFilterValue
   type: TypeFilterValue
   query: string
   advancedFiltersOpen: boolean
   onHomeModeChange: (mode: HomeMode) => void
+  onSignalSelect: (targetId: string) => void
   onScopeChange: (scope: ScopeFilterValue) => void
   onDirectionChange: (direction: DirectionFilterValue) => void
   onTypeChange: (type: TypeFilterValue) => void
@@ -31,12 +35,14 @@ type HomeControlBarProps = {
 
 function HomeControlBar({
   homeMode,
+  signals,
   scope,
   direction,
   type,
   query,
   advancedFiltersOpen,
   onHomeModeChange,
+  onSignalSelect,
   onScopeChange,
   onDirectionChange,
   onTypeChange,
@@ -48,7 +54,7 @@ function HomeControlBar({
   const triggerRef = useRef<HTMLButtonElement>(null)
   const advancedFilterCount = type === '全部类型' ? 0 : 1
   const moreFilterLabel =
-    advancedFilterCount > 0 ? `更多筛选 ${advancedFilterCount}` : '更多筛选'
+    advancedFilterCount > 0 ? `更多 ${advancedFilterCount}` : '更多'
 
   useEffect(() => {
     if (!advancedFiltersOpen) {
@@ -120,7 +126,9 @@ function HomeControlBar({
         </div>
       </div>
 
-      {homeMode === 'templates' ? (
+      {homeMode === 'recommendations' ? (
+        <HomeSignalStrip signals={signals} onSignalSelect={onSignalSelect} />
+      ) : (
         <div className="home-template-controls">
           <div className="home-template-controls__filter-strip">
             <FilterGroup
@@ -190,7 +198,7 @@ function HomeControlBar({
             />
           </label>
         </div>
-      ) : null}
+      )}
     </section>
   )
 }

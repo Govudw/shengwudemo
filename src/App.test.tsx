@@ -1012,14 +1012,83 @@ describe('App home templates', () => {
     expect(container.textContent).not.toContain('全部模板')
     expect(container.textContent).not.toContain('工作建议')
     expect(container.textContent).not.toContain('今日工作台')
-    expect(container.textContent).toContain('今日需要关注')
-    expect(container.textContent).toContain('继续推进')
-    expect(container.textContent).toContain('智能建议')
-    expect(container.textContent).toContain('开始新工作')
+    expect(container.textContent).toContain('今日关注')
+    expect(container.textContent).not.toContain('今日需要关注')
+    expect(container.textContent).not.toContain('继续推进')
+    expect(container.textContent).not.toContain('智能建议')
+    expect(container.textContent).not.toContain('开始新工作')
+    expect(container.querySelectorAll('.recommendation-feed-card')).toHaveLength(24)
+    expect(container.textContent).toContain('靶点竞品研究')
+    expect(container.textContent).toContain('模型调优闭环')
     expect(container.querySelector('[aria-label="模板类别"]')).toBeNull()
     expect(container.querySelector('input[aria-label="搜索模板"]')).toBeNull()
     expect(container.querySelector('.template-section')).toBeNull()
-    expect(container.querySelectorAll('.recommendation-card--attention')).toHaveLength(4)
+    expect(container.querySelectorAll('.recommendation-insight-widget')).toHaveLength(4)
+
+    root.unmount()
+  })
+
+  it('shows recommendation signals only in recommendation mode', () => {
+    const { container, root } = renderApp()
+
+    expect(container.querySelector('.home-signal-strip')).not.toBeNull()
+    expect(getButton(container, '风险 3')).toBeTruthy()
+    expect(getButton(container, '待复核 2')).toBeTruthy()
+    expect(getButton(container, '审批 1')).toBeTruthy()
+    expect(getButton(container, '资产 78%')).toBeTruthy()
+
+    act(() => {
+      getButton(container, '模板').click()
+    })
+
+    expect(container.querySelector('.home-signal-strip')).toBeNull()
+    expect(findButton(container, '风险 3')).toBeUndefined()
+    expect(container.querySelector('.home-template-controls')).not.toBeNull()
+
+    root.unmount()
+  })
+
+  it('signal clicks jump-highlight targets without changing the composer draft', () => {
+    const { container, root } = renderApp()
+    const textarea = getTextarea(container, '研发目标或对话内容')
+
+    setTextareaValue(textarea, '保留草稿')
+
+    act(() => {
+      getButton(container, '风险 3').click()
+    })
+
+    expect(textarea.value).toBe('保留草稿')
+    expect(
+      container
+        .querySelector('[data-recommendation-target="home-insight-project-flow"]')
+        ?.classList.contains('recommendation-highlight'),
+    ).toBe(true)
+
+    root.unmount()
+  })
+
+  it('escapes recommendation target selectors before querying the document', async () => {
+    const { container, root } = renderApp()
+    const originalCss = globalThis.CSS
+    const escapeSpy = vi.fn((value: string) => value)
+
+    Object.defineProperty(globalThis, 'CSS', {
+      configurable: true,
+      value: { ...(globalThis.CSS ?? {}), escape: escapeSpy },
+    })
+
+    act(() => {
+      getButton(container, '风险 3').click()
+    })
+    await waitForAnimationFrame()
+
+    expect(escapeSpy).toHaveBeenCalledWith('home-insight-project-flow')
+
+    Object.defineProperty(globalThis, 'CSS', {
+      configurable: true,
+      value: originalCss,
+    })
 
     root.unmount()
   })
@@ -1247,7 +1316,7 @@ describe('App home templates', () => {
     expect(container.querySelector('.home-template-controls__popover')).not.toBeNull()
     expect(getButton(container, '研究设计').getAttribute('aria-pressed')).toBe('true')
     expect(getButton(container, '收起更多筛选').textContent).toContain(
-      '更多筛选 1',
+      '更多 1',
     )
     expect(getTemplateCards(container)).toHaveLength(
       Math.min(30, researchDesignFirstPage.totalItems),
@@ -1262,7 +1331,7 @@ describe('App home templates', () => {
 
     expect(container.querySelector('.home-template-controls__popover')).toBeNull()
     expect(getButton(container, '展开更多筛选').textContent).toContain(
-      '更多筛选 1',
+      '更多 1',
     )
 
     root.unmount()
@@ -1289,7 +1358,7 @@ describe('App home templates', () => {
     })
 
     expect(getButton(container, '收起更多筛选').textContent).toContain(
-      '更多筛选 1',
+      '更多 1',
     )
     expect(getTemplateCards(container)).toHaveLength(0)
 
@@ -1301,7 +1370,8 @@ describe('App home templates', () => {
     expect(getButton(container, '全部类别').getAttribute('aria-pressed')).toBe('true')
     expect(getButton(container, '全部方向').getAttribute('aria-pressed')).toBe('true')
     expect(getButton(container, '全部类型').getAttribute('aria-pressed')).toBe('true')
-    expect(getButton(container, '收起更多筛选').textContent).toContain('更多筛选')
+    expect(getButton(container, '收起更多筛选').textContent).toContain('更多')
+    expect(getButton(container, '收起更多筛选').textContent).not.toContain('筛选')
     expect(getButton(container, '收起更多筛选').textContent).not.toContain('1')
     expect(
       container.querySelector<HTMLInputElement>('input[aria-label="搜索模板"]')?.value,
@@ -1426,11 +1496,11 @@ describe('App home templates', () => {
     textarea.scrollIntoView = scrollIntoView
 
     act(() => {
-      getButton(container, '生成复核摘要').click()
+      getButton(container, '生成今日行动清单').click()
     })
     await waitForAnimationFrame()
 
-    expect(textarea.value).toContain('HER2')
+    expect(textarea.value).toContain('今日推荐事项')
     expect(document.activeElement).toBe(textarea)
     expect(textarea.selectionStart).toBe(textarea.value.length)
     expect(scrollIntoView).toHaveBeenCalled()
@@ -1440,12 +1510,12 @@ describe('App home templates', () => {
     setTextareaValue(textarea, `${firstPrompt}\n\n我已有一段手写输入。`)
 
     act(() => {
-      getButton(container, '整理数据集缺口').click()
+      getButton(container, '开始调研：靶点竞品研究').click()
     })
     await waitForAnimationFrame()
 
-    expect(textarea.value).toContain('我已有一段手写输入。')
-    expect(textarea.value).toContain('\n\n请')
+    expect(textarea.value).not.toContain('我已有一段手写输入。')
+    expect(textarea.value).toContain('EGFR 抗体项目做靶点与竞品调研')
     expect(textarea.value).not.toBe(firstPrompt)
     expect(useDemoStore.getState().notificationClearedById).toEqual({})
     expect(useDemoStore.getState().notificationResolvedById).toEqual({})
@@ -1453,26 +1523,83 @@ describe('App home templates', () => {
     root.unmount()
   })
 
-  it('uses non-navigation action labels and the starter shortcut opens all templates', () => {
+  it('uses new-task recommendation cards as template-like composer starters', async () => {
     const { container, root } = renderApp()
-    const forbiddenActionPattern = /(查看|打开|进入|处理审批|完成任务)/
-    const actionLabels = Array.from(
-      container.querySelectorAll<HTMLElement>('.recommendation-card__action'),
-    ).map((button) => button.textContent?.trim() ?? '')
+    const textarea = getTextarea(container, '研发目标或对话内容')
 
-    expect(actionLabels.length).toBeGreaterThan(0)
-    actionLabels.forEach((label) => {
-      expect(label).not.toMatch(forbiddenActionPattern)
-    })
+    setTextareaValue(textarea, '我已有一段手写输入。')
 
     act(() => {
-      getButton(container, '查看模板').click()
+      getButton(container, '生成方案：抗体研发设计').click()
     })
+    await waitForAnimationFrame()
 
-    expect(getButton(container, '模板').getAttribute('aria-pressed')).toBe('true')
-    expect(getTemplateSection(container)).not.toBeNull()
+    expect(textarea.value).toContain('HER2 抗体优化目标')
+    expect(textarea.value).not.toContain('我已有一段手写输入。')
+    expect(document.activeElement).toBe(textarea)
+    expect(textarea.selectionStart).toBe(textarea.value.length)
 
     root.unmount()
+  })
+
+  it('does not render old recommendation subsections or starter shortcuts', () => {
+    const { container, root } = renderApp()
+
+    expect(container.textContent).not.toContain('继续推进')
+    expect(container.textContent).not.toContain('智能建议')
+    expect(container.textContent).not.toContain('开始新工作')
+    expect(findButton(container, '查看模板')).toBeUndefined()
+    expect(container.querySelectorAll('.recommendation-feed-card')).toHaveLength(24)
+
+    root.unmount()
+  })
+
+  it('opens asset and skill recommendation cards as URL-backed detail routes', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, '打开资产：数据打包').click()
+    })
+
+    expect(window.location.pathname).toBe('/assets/data-egfr-candidates')
+    expect(getButton(container, 'Assets').getAttribute('aria-current')).toBe('page')
+    expect(container.querySelector('.recommendation-detail-page')).not.toBeNull()
+    expect(container.textContent).toContain('EGFR_MOO_candidates_v3')
+
+    act(() => {
+      getButton(container, 'Workspace').click()
+    })
+    act(() => {
+      getButton(container, '查看 Skill：飞书文档写作').click()
+    })
+
+    expect(window.location.pathname).toBe('/capabilities/skill-report')
+    expect(getButton(container, 'Capabilities').getAttribute('aria-current')).toBe(
+      'page',
+    )
+    expect(container.querySelector('.recommendation-detail-page')).not.toBeNull()
+    expect(container.textContent).toContain('研发报告撰写 Skill')
+
+    root.unmount()
+  })
+
+  it('renders recommendation asset and skill detail routes on direct visits', () => {
+    window.history.replaceState(null, '', '/assets/data-egfr-candidates')
+    const assetRender = renderApp()
+
+    expect(useDemoStore.getState().activeTopNav).toBe('Assets')
+    expect(assetRender.container.textContent).toContain('EGFR_MOO_candidates_v3')
+
+    assetRender.root.unmount()
+    document.body.replaceChildren()
+    window.history.replaceState(null, '', '/capabilities/skill-report')
+
+    const skillRender = renderApp()
+
+    expect(useDemoStore.getState().activeTopNav).toBe('Capabilities')
+    expect(skillRender.container.textContent).toContain('研发报告撰写 Skill')
+
+    skillRender.root.unmount()
   })
 
   it('does not render the old home capability buttons or use case cards', () => {

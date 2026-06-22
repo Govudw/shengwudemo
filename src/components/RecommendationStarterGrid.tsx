@@ -6,11 +6,13 @@ import RecommendationCard from './RecommendationCard'
 
 type RecommendationStarterGridProps = {
   groups: StarterRecommendationGroup[]
+  highlightedTargetId?: string | null
   onPromptFill: (item: HomeRecommendationItem) => void
 }
 
 function RecommendationStarterGrid({
   groups,
+  highlightedTargetId = null,
   onPromptFill,
 }: RecommendationStarterGridProps) {
   return (
@@ -27,6 +29,7 @@ function RecommendationStarterGrid({
                 key={item.id}
                 item={item}
                 variant="starter"
+                highlighted={highlightedTargetId === item.id}
                 onPromptFill={onPromptFill}
               />
             ))}
