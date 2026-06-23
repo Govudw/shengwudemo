@@ -4964,6 +4964,13 @@
   box-shadow: 0 1px 2px rgba(16, 35, 63, 0.08);
 }
 
+.home-signal-strip__button--active {
+  color: var(--text);
+  box-shadow:
+    inset 0 0 0 1px rgba(8, 143, 182, 0.18),
+    0 1px 3px rgba(16, 35, 63, 0.1);
+}
+
 .home-signal-strip__button--risk {
   color: #a84e45;
   border-color: rgba(205, 105, 91, 0.24);
@@ -5181,23 +5188,11 @@
   font-weight: 840;
 }
 
-.recommendation-insight-rail {
-  display: flex;
+.recommendation-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-padding-inline: 0;
-  scroll-snap-type: x proximity;
-  scrollbar-width: none;
-}
-
-.recommendation-insight-rail::-webkit-scrollbar {
-  display: none;
-}
-
-.recommendation-insight-rail > * {
-  flex: 0 0 calc((100% - 30px) / 3.5);
-  scroll-snap-align: start;
+  min-width: 0;
 }
 
 .recommendation-insight-widget {
@@ -5404,6 +5399,14 @@
   min-width: 0;
 }
 
+.recommendation-workbench__feed-heading {
+  margin: 0 0 8px;
+  color: #5f7083;
+  font-size: 12.5px;
+  font-weight: 820;
+  line-height: 1.2;
+}
+
 .recommendation-workbench__masonry {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -5568,6 +5571,17 @@
   -webkit-line-clamp: 2;
 }
 
+.recommendation-feed-card__reason {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #7a8897;
+  font-size: 11.5px;
+  font-weight: 680;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .recommendation-feed-card__sections {
   display: grid;
   gap: 5px;
@@ -5608,6 +5622,19 @@
   background: #e8f8fb;
   font-size: 10.5px;
   font-weight: 780;
+}
+
+.recommendation-feed-card__footer {
+  display: grid;
+  padding-top: 1px;
+}
+
+.recommendation-feed-card__cta {
+  justify-self: start;
+  color: var(--accent-strong);
+  font-size: 11.5px;
+  font-weight: 820;
+  line-height: 1.2;
 }
 
 .recommendation-feed-card--continue-task .recommendation-feed-card__poster {
@@ -6028,8 +6055,8 @@
 }
 
 @media (max-width: 1180px) {
-  .recommendation-insight-rail > * {
-    flex-basis: min(320px, calc((100% - 10px) / 2.2));
+  .recommendation-insight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .recommendation-workbench__starter-grid {

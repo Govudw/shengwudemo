@@ -4,7 +4,10 @@ import {
   scopeFilterOptions,
   typeFilterOptions,
 } from '../data/homeTemplates'
-import type { HomeSignalItem } from '../data/homeRecommendations'
+import type {
+  HomeSignalFilterKind,
+  HomeSignalItem,
+} from '../data/homeRecommendations'
 import type {
   DirectionFilterValue,
   ScopeFilterValue,
@@ -18,13 +21,14 @@ import { ChevronDownIcon, SearchIcon } from './icons'
 type HomeControlBarProps = {
   homeMode: HomeMode
   signals: HomeSignalItem[]
+  selectedSignalKind: HomeSignalFilterKind | null
   scope: ScopeFilterValue
   direction: DirectionFilterValue
   type: TypeFilterValue
   query: string
   advancedFiltersOpen: boolean
   onHomeModeChange: (mode: HomeMode) => void
-  onSignalSelect: (targetId: string) => void
+  onSignalSelect: (signal: HomeSignalItem) => void
   onScopeChange: (scope: ScopeFilterValue) => void
   onDirectionChange: (direction: DirectionFilterValue) => void
   onTypeChange: (type: TypeFilterValue) => void
@@ -36,6 +40,7 @@ type HomeControlBarProps = {
 function HomeControlBar({
   homeMode,
   signals,
+  selectedSignalKind,
   scope,
   direction,
   type,
@@ -127,7 +132,11 @@ function HomeControlBar({
       </div>
 
       {homeMode === 'recommendations' ? (
-        <HomeSignalStrip signals={signals} onSignalSelect={onSignalSelect} />
+        <HomeSignalStrip
+          signals={signals}
+          selectedSignalKind={selectedSignalKind}
+          onSignalSelect={onSignalSelect}
+        />
       ) : (
         <div className="home-template-controls">
           <div className="home-template-controls__filter-strip">

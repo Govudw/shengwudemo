@@ -303,14 +303,15 @@ describe('Home template section CSS', () => {
 })
 
 describe('Recommendation workbench CSS', () => {
-  it('presents visual insight widgets as a 3.5-card horizontal rail', () => {
+  it('presents visual insight widgets as a full-width desktop grid', () => {
     const workbenchRule = getRule('.recommendation-workbench')
     const signalStripRule = getRule('.home-signal-strip')
-    const insightRailRule = getRule('.recommendation-insight-rail')
-    const insightWidgetRule = getRule('.recommendation-insight-rail > *')
+    const insightGridRule = getRule('.recommendation-insight-grid')
     const feedRule = getRule('.recommendation-workbench__masonry')
     const feedColumnRule = getRule('.recommendation-workbench__masonry-column')
     const feedCardRule = getRule('.recommendation-feed-card')
+    const feedReasonRule = getRule('.recommendation-feed-card__reason')
+    const feedCtaRule = getRule('.recommendation-feed-card__cta')
     const feedPosterTitleRule = getRule('.recommendation-feed-card__poster-title')
     const feedTagRule = getRule('.recommendation-feed-card__tag')
     const loadMoreRule = getRule('.recommendation-workbench__load-more')
@@ -325,19 +326,17 @@ describe('Recommendation workbench CSS', () => {
     expect(appCss).not.toContain('.recommendation-card__status')
     expect(appCss).not.toContain('.recommendation-card__reason')
     expect(appCss).not.toContain('.recommendation-card__source')
-    expect(insightRailRule).toContain('display: flex;')
-    expect(insightRailRule).toContain('overflow-x: auto;')
-    expect(insightRailRule).toContain('scroll-snap-type: x proximity;')
-    expect(insightWidgetRule).toContain(
-      'flex: 0 0 calc((100% - 30px) / 3.5);',
-    )
-    expect(insightWidgetRule).toContain('scroll-snap-align: start;')
+    expect(insightGridRule).toContain('display: grid;')
+    expect(insightGridRule).toContain('grid-template-columns: repeat(4, minmax(0, 1fr));')
+    expect(insightGridRule).toContain('gap: 10px;')
     expect(feedRule).toContain('display: grid;')
     expect(feedRule).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));')
     expect(feedRule).toContain('gap: 12px;')
     expect(feedColumnRule).toContain('display: grid;')
     expect(feedColumnRule).toContain('gap: 12px;')
     expect(feedCardRule).toContain('margin: 0;')
+    expect(feedReasonRule).toContain('-webkit-line-clamp: 2;')
+    expect(feedCtaRule).toContain('justify-self: start;')
     expect(feedPosterTitleRule).toContain('font-size: clamp(19.2px, 1.76vw, 27.2px);')
     expect(feedTagRule).toContain('position: absolute;')
     expect(feedTagRule).toContain('top: 10px;')

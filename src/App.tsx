@@ -36,6 +36,8 @@ import {
 import type {
   HomeRecommendationFeedCard,
   HomeInsightWidget,
+  HomeSignalFilterKind,
+  HomeSignalItem,
 } from './data/homeRecommendations'
 import {
   applyNotificationOverrides,
@@ -81,6 +83,8 @@ function App() {
   const [homeTemplatePage, setHomeTemplatePage] = useState(1)
   const [highlightedRecommendationTargetId, setHighlightedRecommendationTargetId] =
     useState<string | null>(null)
+  const [selectedRecommendationSignalKind, setSelectedRecommendationSignalKind] =
+    useState<HomeSignalFilterKind | null>(null)
   const composerTextAreaRef = useRef<HTMLTextAreaElement>(null)
   const recommendationHighlightTimeoutRef = useRef<number | null>(null)
   const skipNextRootRouteSyncRef = useRef(false)
@@ -570,6 +574,13 @@ function App() {
     }
 
     fillComposerWithPrompt(card.prompt, '相关对话不存在，已改为新任务草稿')
+  }
+
+  function handleRecommendationSignalSelect(signal: HomeSignalItem) {
+    setSelectedRecommendationSignalKind((currentSignalKind) =>
+      currentSignalKind === signal.filterKind ? null : signal.filterKind,
+    )
+    handleRecommendationTargetFocus(signal.targetId)
   }
 
   function handleRecommendationTargetFocus(targetId: string) {
@@ -1151,13 +1162,14 @@ function App() {
                   <HomeControlBar
                     homeMode={homeMode}
                     signals={homeRecommendationSignals}
+                    selectedSignalKind={selectedRecommendationSignalKind}
                     scope={homeTemplateScopeFilter}
                     direction={homeTemplateDirectionFilter}
                     type={homeTemplateTypeFilter}
                     query={homeTemplateSearchQuery}
                     advancedFiltersOpen={homeTemplateAdvancedFiltersOpen}
                     onHomeModeChange={setHomeMode}
-                    onSignalSelect={handleRecommendationTargetFocus}
+                    onSignalSelect={handleRecommendationSignalSelect}
                     onScopeChange={handleHomeTemplateScopeFilterChange}
                     onDirectionChange={handleHomeTemplateDirectionFilterChange}
                     onTypeChange={handleHomeTemplateTypeFilterChange}
@@ -1170,9 +1182,11 @@ function App() {
 
                   {homeMode === 'recommendations' ? (
                     <RecommendationWorkbench
+                      key={selectedRecommendationSignalKind ?? 'all-recommendations'}
                       insights={homeRecommendationInsights}
                       feedCards={homeRecommendationFeedCards}
                       highlightedTargetId={highlightedRecommendationTargetId}
+                      selectedSignalKind={selectedRecommendationSignalKind}
                       onPromptFill={handleRecommendationPromptFill}
                       onTargetFocus={handleRecommendationTargetFocus}
                       onFeedCardSelect={handleRecommendationFeedCardSelect}

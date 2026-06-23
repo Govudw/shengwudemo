@@ -1554,6 +1554,27 @@ describe('App home templates', () => {
     root.unmount()
   })
 
+  it('filters recommendation cards when selecting a home signal', () => {
+    const { container, root } = renderApp()
+
+    act(() => {
+      getButton(container, '审批 1').click()
+    })
+
+    expect(container.textContent).toContain('审批相关推荐')
+    expect(container.textContent).toContain('EGFR 审批材料包')
+    expect(container.querySelectorAll('.recommendation-feed-card').length).toBeGreaterThan(0)
+    Array.from(container.querySelectorAll<HTMLElement>('.recommendation-feed-card')).forEach(
+      (card) => {
+        expect(card.getAttribute('data-recommendation-filter-kinds')).toContain(
+          'approval',
+        )
+      },
+    )
+
+    root.unmount()
+  })
+
   it('opens asset and skill recommendation cards as URL-backed detail routes', () => {
     const { container, root } = renderApp()
 

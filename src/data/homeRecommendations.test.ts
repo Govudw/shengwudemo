@@ -32,16 +32,18 @@ describe('homeRecommendations', () => {
       new Set(homeRecommendationFeedBaseCards.map((item) => item.kind)),
     ).toEqual(new Set(['continue-task', 'new-task', 'new-asset', 'new-skill']))
     expect(homeRecommendationFeedBaseCards.slice(0, 6).map((item) => item.title)).toEqual([
+      'HER2 BLI 复核',
+      'EGFR 审批材料包',
+      '工业酶 CRO 交接',
       '靶点竞品研究',
       '抗体研发设计',
       '流程编排',
-      '实验执行流程',
-      '数据打包',
-      '模型调优闭环',
     ])
 
     fullBatch.forEach((item) => {
       expect(item.tagLabel).toMatch(/^(继续任务|新任务|新资产|新 Skill)$/)
+      expect(item.reason).toMatch(/^来自/)
+      expect(item.ctaLabel).toMatch(/^(继续 Thread|开始任务|查看资产|查看 Skill)$/)
       expect(item.posterTitle).toBeTruthy()
       expect(item.posterLines.length).toBeGreaterThanOrEqual(2)
       expect(item.bodySections.length).toBeGreaterThanOrEqual(2)
@@ -158,6 +160,7 @@ describe('homeRecommendations', () => {
       expect(signal.id).toBeTruthy()
       expect(signal.targetId).toBeTruthy()
       expect(signal.targetLabel).toBeTruthy()
+      expect(signal.filterKind).toBeTruthy()
       expect(
         homeRecommendationInsights.some((widget) => widget.id === signal.targetId),
       ).toBe(true)
@@ -196,6 +199,7 @@ describe('homeRecommendations', () => {
 
     const visibleRecommendationTargetIds = new Set([
       ...homeRecommendationInsights.map((widget) => widget.id),
+      ...homeRecommendationFeedBaseCards.map((item) => item.id),
       ...homeRecommendationSections.continueWork.map((item) => item.id),
       ...homeRecommendationSections.smartSuggestions.map((item) => item.id),
       ...starterRecommendationGroups.flatMap((group) =>

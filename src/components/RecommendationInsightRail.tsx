@@ -15,7 +15,7 @@ function RecommendationInsightRail({
   onTargetFocus,
 }: RecommendationInsightRailProps) {
   return (
-    <div className="recommendation-insight-rail" aria-label="今日关注小组件">
+    <div className="recommendation-insight-grid" aria-label="今日关注小组件">
       {widgets.map((widget) => (
         <RecommendationInsightWidget
           key={widget.id}

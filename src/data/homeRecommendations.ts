@@ -100,6 +100,7 @@ export type HomeSignalItem = {
   label: string
   value: string
   tone: HomeSignalTone
+  filterKind: HomeSignalFilterKind
   targetId: string
   targetLabel: string
 }
@@ -131,6 +132,8 @@ export type HomeInsightWidget = {
   entries: HomeInsightEntry[]
 }
 
+export type HomeSignalFilterKind = 'risk' | 'review' | 'approval' | 'asset'
+
 export type HomeRecommendationFeedKind =
   | 'continue-task'
   | 'new-task'
@@ -159,9 +162,12 @@ export type HomeRecommendationFeedTarget = {
 export type HomeRecommendationFeedCard = {
   id: string
   kind: HomeRecommendationFeedKind
+  filterKinds: HomeSignalFilterKind[]
   tagLabel: HomeRecommendationFeedTagLabel
   title: string
   subtitle: string
+  reason: string
+  ctaLabel: string
   posterVariant: string
   posterKicker: string
   posterTitle: string
@@ -172,6 +178,12 @@ export type HomeRecommendationFeedCard = {
   prompt: string
   target: HomeRecommendationFeedTarget
 }
+
+type HomeRecommendationFeedCardDraft = Omit<
+  HomeRecommendationFeedCard,
+  'reason' | 'ctaLabel' | 'filterKinds'
+> &
+  Partial<Pick<HomeRecommendationFeedCard, 'reason' | 'ctaLabel' | 'filterKinds'>>
 
 export type HomeRecommendationAssetDetail = {
   id: string
@@ -200,7 +212,9 @@ export const HOME_RECOMMENDATION_FEED_INITIAL_COUNT = 24
 export const HOME_RECOMMENDATION_FEED_BATCH_COUNT = 24
 export const HOME_RECOMMENDATION_FEED_MAX_COUNT = 240
 
-export const homeRecommendationFeedBaseCards: HomeRecommendationFeedCard[] = [
+export const homeRecommendationFeedBaseCards: HomeRecommendationFeedCard[] =
+  prioritizeHomeRecommendationFeed(
+    applyRecommendationFeedDefaults([
   {
     id: 'home-feed-001-target-competitive-research',
     kind: 'new-task',
@@ -440,28 +454,31 @@ export const homeRecommendationFeedBaseCards: HomeRecommendationFeedCard[] = [
     },
   },
   {
-    id: 'home-feed-012-developability-review',
+    id: 'home-feed-012-her2-bli-review',
     kind: 'continue-task',
     tagLabel: '继续任务',
-    title: 'EGFR 成药性审查',
-    subtitle: '把 Top 候选的聚集、疏水 patch、PTM 和表达风险补成决策清单。',
+    filterKinds: ['review', 'asset'],
+    title: 'HER2 BLI 复核',
+    subtitle: '复核 HER2-AB-07 与 HER2-AB-11 的 BLI 曲线质量和排序影响。',
+    reason: '来自 HER2 BLI 复测回传，2 个候选曲线 QC 标记不一致，今天需要复核。',
     posterVariant: 'amber-sheet',
-    posterKicker: 'Developability',
-    posterTitle: 'Top 候选风险扫描',
-    posterLines: ['Aggregation / PTM', 'Expression titer', '可缓解策略'],
+    posterKicker: 'HER2 Review',
+    posterTitle: 'BLI 曲线待复核',
+    posterLines: ['HER2-AB-07 / 11', 'QC 标记不一致', '影响下一轮排序'],
     bodySections: [
-      { label: '当前状态', value: '候选摘要已就绪，风险解释尚未统一口径' },
-      { label: '下一步', value: '给 AF-14 / AF-21 / AF-38 打风险标签' },
+      { label: '当前状态', value: '复测结果已回传，曲线拟合口径待统一' },
+      { label: '下一步', value: '确认异常点处理和候选排序影响' },
     ],
-    chips: ['成药性', '风险审查', 'EGFR'],
-    actionLabel: '继续审查',
+    chips: ['HER2', 'BLI 复核', 'QC 曲线'],
+    actionLabel: '继续复核',
+    ctaLabel: '继续 Thread',
     prompt:
-      '请继续审查 EGFR Top 候选的成药性风险，结合候选摘要和 developability 知识图谱，按聚集、疏水、PTM、表达、稳定性输出风险等级、证据和缓解建议。',
+      '请继续复核 HER2 BLI 返回结果，重点比较 HER2-AB-07 和 HER2-AB-11 的曲线质量、异常点、QC 标记和下一轮候选排序影响。',
     target: {
       projectId: 'antibody-optimization',
-      threadId: 'egfr-affinity',
-      relatedIds: ['kb-antibody-developability-kg', 'file-egfr-candidate-summary'],
-      skillId: 'skill-egfr-review',
+      threadId: 'her2-wetlab-validation',
+      relatedIds: ['data-her2-bli-dataset', 'file-her2-result-package'],
+      skillId: 'skill-experiment-data',
     },
   },
   {
@@ -751,26 +768,30 @@ export const homeRecommendationFeedBaseCards: HomeRecommendationFeedCard[] = [
     },
   },
   {
-    id: 'home-feed-026-delivery-board',
+    id: 'home-feed-026-industrial-enzyme-cro-handoff',
     kind: 'continue-task',
     tagLabel: '继续任务',
-    title: '项目交付看板',
-    subtitle: '把 Thread 里的执行节点、负责人和交付物整理成飞书协作视图。',
+    filterKinds: ['risk'],
+    title: '工业酶 CRO 交接',
+    subtitle: '把工艺约束、样本范围和验收指标补成 CRO 交接材料。',
+    reason: '来自工业酶项目流转阻塞，CRO 下单前仍缺工艺约束、命名和验收指标。',
     posterVariant: 'timeline-teal',
-    posterKicker: '项目管理',
-    posterTitle: '交付节点待对齐',
-    posterLines: ['CRO 下单草稿', 'LIMS 字段映射', '飞书负责人同步'],
+    posterKicker: 'CRO Handoff',
+    posterTitle: '工业酶交接',
+    posterLines: ['工艺约束', '样本边界', '验收指标'],
     bodySections: [
-      { label: '当前状态', value: '流程到交付拆解阶段，缺里程碑和责任人映射' },
-      { label: '推荐动作', value: '先生成项目看板，再同步飞书群确认' },
+      { label: '当前状态', value: '合成流程已成型，外包交接边界未锁定' },
+      { label: '推荐动作', value: '补齐 CRO 任务说明、验收口径和风险责任人' },
     ],
-    chips: ['项目管理', '交付', '飞书协作'],
-    actionLabel: '继续整理',
+    chips: ['CRO 交接', '工业酶', '风险收口'],
+    actionLabel: '继续交接',
+    ctaLabel: '继续 Thread',
     prompt:
-      '请继续推进 LIMS 酶合成项目交付看板，按里程碑、负责人、交付物、风险和飞书同步动作整理下一步计划。',
+      '请继续推进工业酶 CRO 交接材料，基于当前流程和样本范围，整理工艺约束、样本批次命名、验收指标、风险点、责任人和需要发给 CRO 的说明。',
     target: {
       projectId: 'enzyme-synthesis-ops',
       threadId: 'pipeline-build-lims-enzyme-synthesis',
+      skillId: 'skill-cro-handoff',
     },
   },
   {
@@ -896,7 +917,126 @@ export const homeRecommendationFeedBaseCards: HomeRecommendationFeedCard[] = [
       '请帮我梳理当前项目中哪些重复工作适合沉淀成 Skill，并按触发条件、输入、输出和复用价值排序。',
     target: { skillId: 'skill-report' },
   },
-]
+    ]),
+  )
+
+function applyRecommendationFeedDefaults(
+  cards: HomeRecommendationFeedCardDraft[],
+): HomeRecommendationFeedCard[] {
+  return cards.map((card) => ({
+    ...card,
+    filterKinds: card.filterKinds ?? inferRecommendationFilterKinds(card),
+    reason: card.reason ?? getDefaultRecommendationReason(card),
+    ctaLabel: card.ctaLabel ?? getDefaultRecommendationCtaLabel(card.kind),
+  }))
+}
+
+function prioritizeHomeRecommendationFeed(
+  cards: HomeRecommendationFeedCard[],
+): HomeRecommendationFeedCard[] {
+  const priorityIds = [
+    'home-feed-012-her2-bli-review',
+    'home-feed-008-approval-material-pack',
+    'home-feed-026-industrial-enzyme-cro-handoff',
+    'home-feed-001-target-competitive-research',
+    'home-feed-002-antibody-design',
+    'home-feed-003-workflow-orchestration',
+  ]
+  const priorityById = new Map(
+    priorityIds.map((id, index) => [id, index] as const),
+  )
+
+  return [...cards].sort((left, right) => {
+    const leftPriority = priorityById.get(left.id)
+    const rightPriority = priorityById.get(right.id)
+
+    if (leftPriority !== undefined || rightPriority !== undefined) {
+      return (leftPriority ?? Number.MAX_SAFE_INTEGER) -
+        (rightPriority ?? Number.MAX_SAFE_INTEGER)
+    }
+
+    return cards.indexOf(left) - cards.indexOf(right)
+  })
+}
+
+function getDefaultRecommendationReason(card: HomeRecommendationFeedCardDraft) {
+  if (card.kind === 'continue-task') {
+    return `来自最近 Thread 的上下文，${card.title}可以继续收口下一步动作。`
+  }
+
+  if (card.kind === 'new-asset') {
+    return `来自资产工作台的可复用材料，适合查看并沉淀“${card.title}”。`
+  }
+
+  if (card.kind === 'new-skill') {
+    return `来自可复用能力推荐，适合查看“${card.title}”并评估是否接入当前任务。`
+  }
+
+  return `来自当前项目上下文和近期信号，适合启动“${card.title}”。`
+}
+
+function getDefaultRecommendationCtaLabel(kind: HomeRecommendationFeedKind) {
+  if (kind === 'continue-task') {
+    return '继续 Thread'
+  }
+
+  if (kind === 'new-asset') {
+    return '查看资产'
+  }
+
+  if (kind === 'new-skill') {
+    return '查看 Skill'
+  }
+
+  return '开始任务'
+}
+
+function inferRecommendationFilterKinds(
+  card: HomeRecommendationFeedCardDraft,
+): HomeSignalFilterKind[] {
+  const content = [
+    card.title,
+    card.subtitle,
+    card.posterKicker,
+    card.posterTitle,
+    ...card.posterLines,
+    ...card.bodySections.flatMap((section) => [section.label, section.value]),
+    ...card.chips,
+    card.actionLabel,
+    card.prompt,
+  ].join(' ')
+  const filterKinds = new Set<HomeSignalFilterKind>()
+
+  if (/审批|证据包|材料包|Approval/i.test(content)) {
+    filterKinds.add('approval')
+  }
+
+  if (/复核|回传|QC|质量|审查|排序|曲线|继续/.test(content)) {
+    filterKinds.add('review')
+  }
+
+  if (/资产|数据|Dataset|GraphRAG|知识库|模型|AI 就绪|AI-Ready/i.test(content)) {
+    filterKinds.add('asset')
+  }
+
+  if (/风险|CRO|交接|异常|阻塞|订单|下单|流程|缺口|验收|外包/.test(content)) {
+    filterKinds.add('risk')
+  }
+
+  if (filterKinds.size === 0) {
+    if (card.kind === 'new-asset') {
+      filterKinds.add('asset')
+    } else if (card.kind === 'continue-task') {
+      filterKinds.add('review')
+    } else if (card.kind === 'new-skill') {
+      filterKinds.add('risk')
+    } else {
+      filterKinds.add('risk')
+    }
+  }
+
+  return Array.from(filterKinds)
+}
 
 export function getHomeRecommendationFeedCards(
   requestedCount = HOME_RECOMMENDATION_FEED_INITIAL_COUNT,
@@ -1061,6 +1201,7 @@ export const homeRecommendationSignals: HomeSignalItem[] = [
     label: '风险',
     value: '3',
     tone: 'risk',
+    filterKind: 'risk',
     targetId: 'home-insight-project-flow',
     targetLabel: '项目流转风险',
   },
@@ -1069,6 +1210,7 @@ export const homeRecommendationSignals: HomeSignalItem[] = [
     label: '待复核',
     value: '2',
     tone: 'review',
+    filterKind: 'review',
     targetId: 'home-insight-timeline',
     targetLabel: '回传时间线待复核',
   },
@@ -1077,6 +1219,7 @@ export const homeRecommendationSignals: HomeSignalItem[] = [
     label: '审批',
     value: '1',
     tone: 'approval',
+    filterKind: 'approval',
     targetId: 'home-insight-priority',
     targetLabel: '今日优先级审批',
   },
@@ -1085,6 +1228,7 @@ export const homeRecommendationSignals: HomeSignalItem[] = [
     label: '资产',
     value: '78%',
     tone: 'asset',
+    filterKind: 'asset',
     targetId: 'home-insight-asset-health',
     targetLabel: '资产健康度',
   },
@@ -1108,7 +1252,7 @@ export const homeRecommendationInsights: HomeInsightWidget[] = [
         detail: '2 个候选曲线 QC 标记不一致，下一轮排序前需确认。',
         status: '需要今天复核',
         tone: 'review',
-        targetId: 'home-insight-timeline',
+        targetId: 'home-feed-012-her2-bli-review',
       },
       {
         id: 'home-insight-priority-egfr-approval',
@@ -1116,7 +1260,7 @@ export const homeRecommendationInsights: HomeInsightWidget[] = [
         detail: '样本范围和外包检测窗口缺少交付物边界说明。',
         status: '审批材料待补齐',
         tone: 'approval',
-        targetId: 'home-insight-priority',
+        targetId: 'home-feed-008-approval-material-pack',
       },
     ],
   },
@@ -1137,7 +1281,7 @@ export const homeRecommendationInsights: HomeInsightWidget[] = [
         detail: '实验结果已回传，等待复核后进入候选排序。',
         status: '复核中',
         tone: 'review',
-        targetId: 'continue-her2-candidate-design',
+        targetId: 'home-feed-012-her2-bli-review',
       },
       {
         id: 'home-insight-flow-enzyme',
@@ -1145,7 +1289,7 @@ export const homeRecommendationInsights: HomeInsightWidget[] = [
         detail: 'CRO 下单草稿前仍缺工艺约束、命名和验收指标。',
         status: '交接风险',
         tone: 'risk',
-        targetId: 'continue-enzyme-workflow-execution',
+        targetId: 'home-feed-026-industrial-enzyme-cro-handoff',
       },
     ],
   },
@@ -1166,7 +1310,7 @@ export const homeRecommendationInsights: HomeInsightWidget[] = [
         detail: 'HER2 BLI 复测回传，HER2-AB-07 与 HER2-AB-11 待复核。',
         status: '已回传',
         tone: 'review',
-        targetId: 'continue-her2-candidate-design',
+        targetId: 'home-feed-012-her2-bli-review',
       },
       {
         id: 'home-insight-timeline-egfr',
@@ -1174,7 +1318,7 @@ export const homeRecommendationInsights: HomeInsightWidget[] = [
         detail: 'EGFR SEC-HPLC 图谱和候选表已导入，等待批次合并说明。',
         status: '待整理',
         tone: 'asset',
-        targetId: 'continue-egfr-sec-hplc-organization',
+        targetId: 'home-feed-005-data-packaging',
       },
     ],
   },
@@ -1195,7 +1339,7 @@ export const homeRecommendationInsights: HomeInsightWidget[] = [
         detail: '缺少 2 份原始曲线附件和样本批次映射字段。',
         status: '质量缺口',
         tone: 'asset',
-        targetId: 'home-insight-asset-health',
+        targetId: 'home-feed-012-her2-bli-review',
       },
       {
         id: 'home-insight-asset-ai-ready',
@@ -1203,7 +1347,7 @@ export const homeRecommendationInsights: HomeInsightWidget[] = [
         detail: '建议合并曲线、QC 标记和候选元数据形成可复用资产。',
         status: '建议沉淀',
         tone: 'asset',
-        targetId: 'suggest-her2-ai-ready-dataset',
+        targetId: 'home-feed-005-data-packaging',
       },
     ],
   },

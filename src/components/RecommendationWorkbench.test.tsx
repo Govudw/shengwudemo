@@ -8,6 +8,7 @@ import {
   homeRecommendationInsights,
   type HomeInsightWidget,
   type HomeRecommendationFeedCard,
+  type HomeSignalFilterKind,
 } from '../data/homeRecommendations'
 import RecommendationWorkbench from './RecommendationWorkbench'
 
@@ -39,17 +40,17 @@ describe('RecommendationWorkbench', () => {
     expect(container.textContent).not.toContain('智能建议')
     expect(container.textContent).not.toContain('开始新工作')
     expect(
-      container.querySelector('.recommendation-insight-rail'),
+      container.querySelector('.recommendation-insight-grid'),
     ).not.toBeNull()
     expect(container.querySelectorAll('.recommendation-insight-widget')).toHaveLength(4)
     expect(container.querySelectorAll('.recommendation-feed-card')).toHaveLength(24)
-    expect(container.textContent).toContain('靶点竞品研究')
-    expect(container.textContent).toContain('模型调优闭环')
+    expect(container.textContent).toContain('HER2 BLI 复核')
+    expect(container.textContent).toContain('工业酶 CRO 交接')
     const columns = container.querySelectorAll('.recommendation-workbench__masonry-column')
     expect(columns).toHaveLength(3)
-    expect(columns[0].textContent).toContain('靶点竞品研究')
-    expect(columns[1].textContent).toContain('抗体研发设计')
-    expect(columns[2].textContent).toContain('流程编排')
+    expect(columns[0].textContent).toContain('HER2 BLI 复核')
+    expect(columns[1].textContent).toContain('EGFR 审批材料包')
+    expect(columns[2].textContent).toContain('工业酶 CRO 交接')
 
     root.unmount()
   })
@@ -117,12 +118,34 @@ describe('RecommendationWorkbench', () => {
     const firstItem = feedCards[0]
     const card = getCard(container, firstItem.title)
 
+    expect(card.textContent).toContain(firstItem.reason)
+    expect(card.textContent).toContain(firstItem.ctaLabel)
+
     act(() => {
       card.click()
     })
 
     expect(onFeedCardSelect).toHaveBeenCalledWith(firstItem)
     expect(card.getAttribute('aria-label')).toBe(`${firstItem.actionLabel}：${firstItem.title}`)
+
+    root.unmount()
+  })
+
+  it('filters feed cards through the selected home signal', () => {
+    const { container, root } = renderWorkbench({
+      selectedSignalKind: 'approval',
+    })
+    const visibleCards = Array.from(
+      container.querySelectorAll<HTMLElement>('.recommendation-feed-card'),
+    )
+
+    expect(container.textContent).toContain('审批相关推荐')
+    expect(visibleCards.length).toBeGreaterThan(0)
+    visibleCards.forEach((card) => {
+      expect(card.getAttribute('data-recommendation-filter-kinds')).toContain(
+        'approval',
+      )
+    })
 
     root.unmount()
   })
@@ -151,11 +174,13 @@ function renderWorkbench({
   onTargetFocus = vi.fn(),
   onFeedCardSelect = vi.fn(),
   feedCards = getHomeRecommendationFeedCards(24),
+  selectedSignalKind = null,
 }: {
   onPromptFill?: (item: HomeInsightWidget) => void
   onTargetFocus?: (targetId: string) => void
   onFeedCardSelect?: (item: HomeRecommendationFeedCard) => void
   feedCards?: HomeRecommendationFeedCard[]
+  selectedSignalKind?: HomeSignalFilterKind | null
 } = {}) {
   const host = document.createElement('div')
   document.body.append(host)
@@ -166,6 +191,7 @@ function renderWorkbench({
       <RecommendationWorkbench
         insights={homeRecommendationInsights}
         feedCards={feedCards}
+        selectedSignalKind={selectedSignalKind}
         onPromptFill={onPromptFill}
         onTargetFocus={onTargetFocus}
         onFeedCardSelect={onFeedCardSelect}
@@ -189,10 +215,8 @@ function getInsightWidget(container: ParentNode, title: string) {
 }
 
 function getCard(container: ParentNode, title: string) {
-  const card = Array.from(container.querySelectorAll('button')).find((button) =>
-    button.textContent?.includes(title),
-  ) ?? Array.from(
-    container.querySelectorAll<HTMLElement>('.recommendation-card'),
+  const card = Array.from(
+    container.querySelectorAll<HTMLElement>('.recommendation-feed-card'),
   ).find((element) => element.textContent?.includes(title))
 
   if (!card) {

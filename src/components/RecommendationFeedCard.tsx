@@ -13,6 +13,7 @@ function RecommendationFeedCard({ card, onSelect }: RecommendationFeedCardProps)
       aria-label={`${card.actionLabel}：${card.title}`}
       data-recommendation-target={card.id}
       data-recommendation-kind={card.kind}
+      data-recommendation-filter-kinds={card.filterKinds.join(' ')}
       onClick={() => onSelect(card)}
     >
       <span className="recommendation-feed-card__poster" aria-hidden="true">
@@ -30,6 +31,7 @@ function RecommendationFeedCard({ card, onSelect }: RecommendationFeedCardProps)
       <span className="recommendation-feed-card__body">
         <span className="recommendation-feed-card__title">{card.title}</span>
         <span className="recommendation-feed-card__subtitle">{card.subtitle}</span>
+        <span className="recommendation-feed-card__reason">{card.reason}</span>
         <span className="recommendation-feed-card__sections">
           {card.bodySections.map((section) => (
             <span key={`${section.label}-${section.value}`} className="recommendation-feed-card__section">
@@ -42,6 +44,9 @@ function RecommendationFeedCard({ card, onSelect }: RecommendationFeedCardProps)
           {card.chips.slice(0, 4).map((chip) => (
             <span key={chip}>{chip}</span>
           ))}
+        </span>
+        <span className="recommendation-feed-card__footer">
+          <span className="recommendation-feed-card__cta">{card.ctaLabel}</span>
         </span>
       </span>
     </button>
