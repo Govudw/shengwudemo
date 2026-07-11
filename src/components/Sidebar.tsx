@@ -1,14 +1,26 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
-import type { DemoProject, ThreadEntry } from '../store/demoStoreLogic'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type {
+  ComponentType,
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+} from 'react'
+import type {
+  ActiveTopNav,
+  DemoProject,
+  ThreadEntry,
+} from '../store/demoStoreLogic'
 import {
   formatRelativeActivity,
   getPinnedThreadEntries,
   getRecentThreadEntries,
   getSearchView,
 } from '../store/demoStoreLogic'
+import type { AccountMenuItem, TopNavItem } from './TopNav'
 import {
   ArchiveIcon,
+  AssetsIcon,
+  BellIcon,
+  CapabilitiesNavIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   FolderIcon,
@@ -27,12 +39,16 @@ import {
 type SidebarProps = {
   projects: DemoProject[]
   selectedThreadId: string | null
+  activeItem: ActiveTopNav
   searchOpen: boolean
   searchQuery: string
   expandedProjectIds: string[]
   sidebarCollapsed: boolean
+  notificationActionRequiredCount: number
   onSidebarCollapsedChange: (collapsed: boolean) => void
   onNewThread: () => void
+  onCreateProject: () => void
+  onPrimaryNav: (item: TopNavItem) => void
   onSearchOpenChange: (open: boolean) => void
   onSearchQueryChange: (query: string) => void
   onToggleProject: (projectId: string) => void
@@ -41,20 +57,114 @@ type SidebarProps = {
   onRenameThread: (threadId: string, title: string) => void
   onArchiveThread: (threadId: string) => void
   onDeleteThread: (threadId: string) => void
+  onNotificationCenterOpen: () => void
+  onAccountMenuSelect: (item: AccountMenuItem) => void
   onNotify: (message: string) => void
 }
 
 type ThreadRowSource = 'pinned' | 'project'
+type SidebarNavItem = {
+  id: TopNavItem
+  label: string
+  Icon: ComponentType<{ className?: string }>
+}
+
+type ProjectScrollbarMetrics = {
+  isScrollable: boolean
+  thumbHeight: number
+  thumbTop: number
+  valueNow: number
+}
+
+const projectScrollbarMinThumbHeight = 36
+const projectScrollbarTrackInset = 6
+const projectScrollbarKeyboardStep = 40
+
+const initialProjectScrollbarMetrics: ProjectScrollbarMetrics = {
+  isScrollable: false,
+  thumbHeight: 0,
+  thumbTop: 0,
+  valueNow: 0,
+}
+
+const primaryNavItems: SidebarNavItem[] = [
+  { id: 'Projects', label: 'Projects', Icon: FolderIcon },
+  { id: 'Assets', label: 'Assets', Icon: AssetsIcon },
+  { id: 'Capabilities', label: 'Capabilities', Icon: CapabilitiesNavIcon },
+]
+
+const accountMenuOptions: { id: AccountMenuItem; label: string }[] = [
+  { id: 'notification-center', label: '通知中心' },
+  { id: 'approval-center', label: '审批中心' },
+  { id: 'billing-center', label: '费用中心' },
+  { id: 'product-management-platform', label: '管理后台' },
+]
+
+function getProjectScrollbarMetrics(
+  scrollElement: HTMLElement | null,
+): ProjectScrollbarMetrics {
+  if (!scrollElement) {
+    return initialProjectScrollbarMetrics
+  }
+
+  const { clientHeight, scrollHeight, scrollTop } = scrollElement
+  const maxScrollTop = Math.max(scrollHeight - clientHeight, 0)
+  const isScrollable = maxScrollTop > 0
+  const safeClientHeight = Math.max(clientHeight, 1)
+  const safeScrollHeight = Math.max(scrollHeight, safeClientHeight)
+  const trackHeight = Math.max(
+    safeClientHeight - projectScrollbarTrackInset * 2,
+    1,
+  )
+  const thumbHeight = isScrollable
+    ? Math.max(
+        (safeClientHeight / safeScrollHeight) * trackHeight,
+        projectScrollbarMinThumbHeight,
+      )
+    : 0
+  const maxThumbTop = Math.max(trackHeight - thumbHeight, 0)
+  const thumbTop =
+    isScrollable && maxScrollTop > 0
+      ? (scrollTop / maxScrollTop) * maxThumbTop
+      : 0
+  const valueNow =
+    isScrollable && maxScrollTop > 0
+      ? Math.round((scrollTop / maxScrollTop) * 100)
+      : 0
+
+  return {
+    isScrollable,
+    thumbHeight,
+    thumbTop,
+    valueNow,
+  }
+}
+
+function areProjectScrollbarMetricsEqual(
+  currentMetrics: ProjectScrollbarMetrics,
+  nextMetrics: ProjectScrollbarMetrics,
+) {
+  return (
+    currentMetrics.isScrollable === nextMetrics.isScrollable &&
+    currentMetrics.thumbHeight === nextMetrics.thumbHeight &&
+    currentMetrics.thumbTop === nextMetrics.thumbTop &&
+    currentMetrics.valueNow === nextMetrics.valueNow
+  )
+}
 
 function Sidebar({
   projects,
   selectedThreadId,
+  activeItem,
   searchOpen,
   searchQuery,
   expandedProjectIds,
   sidebarCollapsed,
+  notificationActionRequiredCount,
   onSidebarCollapsedChange,
   onNewThread,
+  onCreateProject,
+  onPrimaryNav,
   onSearchOpenChange,
   onSearchQueryChange,
   onToggleProject,
@@ -63,10 +173,13 @@ function Sidebar({
   onRenameThread,
   onArchiveThread,
   onDeleteThread,
+  onNotificationCenterOpen,
+  onAccountMenuSelect,
   onNotify,
 }: SidebarProps) {
   const [openMenuKey, setOpenMenuKey] = useState<string | null>(null)
   const [recentPopoverOpen, setRecentPopoverOpen] = useState(false)
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const [renameEntry, setRenameEntry] = useState<ThreadEntry | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [deleteEntry, setDeleteEntry] = useState<ThreadEntry | null>(null)
@@ -75,7 +188,14 @@ function Sidebar({
   const renameInputRef = useRef<HTMLInputElement>(null)
   const cancelDeleteButtonRef = useRef<HTMLButtonElement>(null)
   const recentPopoverRef = useRef<HTMLDivElement>(null)
+  const accountMenuRef = useRef<HTMLDivElement>(null)
   const recentCloseTimeoutRef = useRef<number | null>(null)
+  const projectScrollViewportRef = useRef<HTMLDivElement>(null)
+  const projectScrollbarMetricsRef = useRef(initialProjectScrollbarMetrics)
+  const [projectScrollbarMetrics, setProjectScrollbarMetrics] = useState(
+    initialProjectScrollbarMetrics,
+  )
+  const [projectScrollbarDragging, setProjectScrollbarDragging] = useState(false)
   const normalizedSearchQuery = searchQuery.trim()
   const searchView = useMemo(
     () => getSearchView(projects, searchQuery),
@@ -99,6 +219,52 @@ function Sidebar({
     () => getRecentThreadEntries(projects),
     [projects],
   )
+
+  const updateProjectScrollbarMetrics = useCallback(() => {
+    const nextMetrics = getProjectScrollbarMetrics(
+      projectScrollViewportRef.current,
+    )
+
+    if (
+      areProjectScrollbarMetricsEqual(
+        projectScrollbarMetricsRef.current,
+        nextMetrics,
+      )
+    ) {
+      return
+    }
+
+    projectScrollbarMetricsRef.current = nextMetrics
+    setProjectScrollbarMetrics(nextMetrics)
+  }, [])
+
+  useEffect(() => {
+    updateProjectScrollbarMetrics()
+  })
+
+  useEffect(() => {
+    const scrollElement = projectScrollViewportRef.current
+
+    if (!scrollElement) {
+      return undefined
+    }
+
+    const resizeObserver =
+      typeof ResizeObserver === 'function'
+        ? new ResizeObserver(updateProjectScrollbarMetrics)
+        : null
+
+    resizeObserver?.observe(scrollElement)
+    if (scrollElement.firstElementChild) {
+      resizeObserver?.observe(scrollElement.firstElementChild)
+    }
+    window.addEventListener('resize', updateProjectScrollbarMetrics)
+
+    return () => {
+      resizeObserver?.disconnect()
+      window.removeEventListener('resize', updateProjectScrollbarMetrics)
+    }
+  }, [updateProjectScrollbarMetrics])
 
   useEffect(() => {
     if (!openMenuKey) {
@@ -168,6 +334,35 @@ function Sidebar({
   }, [recentPopoverOpen])
 
   useEffect(() => {
+    if (!accountMenuOpen) {
+      return undefined
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (
+        event.target instanceof Node &&
+        !accountMenuRef.current?.contains(event.target)
+      ) {
+        setAccountMenuOpen(false)
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setAccountMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [accountMenuOpen])
+
+  useEffect(() => {
     if (!renameEntry) {
       return
     }
@@ -200,6 +395,20 @@ function Sidebar({
   function closeSearch() {
     onSearchQueryChange('')
     onSearchOpenChange(false)
+  }
+
+  function toggleSearch() {
+    if (searchOpen) {
+      closeSearch()
+      return
+    }
+
+    onSearchOpenChange(true)
+  }
+
+  function handleAccountMenuSelect(item: AccountMenuItem) {
+    setAccountMenuOpen(false)
+    onAccountMenuSelect(item)
   }
 
   function closeRecentPopoverAfterFocusLeaves() {
@@ -260,6 +469,109 @@ function Sidebar({
 
     onRenameThread(renameEntry.thread.id, nextTitle)
     setRenameEntry(null)
+  }
+
+  function handleProjectScrollbarPointerDown(
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) {
+    const scrollElement = projectScrollViewportRef.current
+
+    if (!scrollElement || !projectScrollbarMetrics.isScrollable) {
+      return
+    }
+
+    event.preventDefault()
+    setProjectScrollbarDragging(true)
+
+    const scrollbarRect = event.currentTarget.getBoundingClientRect()
+    const maxScrollTop = Math.max(
+      scrollElement.scrollHeight - scrollElement.clientHeight,
+      0,
+    )
+    const trackHeight = Math.max(scrollbarRect.height, 1)
+    const maxThumbTop = Math.max(
+      trackHeight - projectScrollbarMetrics.thumbHeight,
+      0,
+    )
+    const targetThumb =
+      event.target instanceof Element
+        ? event.target.closest('.sidebar__project-scrollbar-thumb')
+        : null
+    const thumbOffset = targetThumb
+      ? event.clientY - targetThumb.getBoundingClientRect().top
+      : projectScrollbarMetrics.thumbHeight / 2
+
+    if (maxScrollTop <= 0 || maxThumbTop <= 0) {
+      setProjectScrollbarDragging(false)
+      return
+    }
+
+    const syncScrollFromPointer = (clientY: number) => {
+      const nextThumbTop = Math.min(
+        Math.max(clientY - scrollbarRect.top - thumbOffset, 0),
+        maxThumbTop,
+      )
+
+      scrollElement.scrollTop = (nextThumbTop / maxThumbTop) * maxScrollTop
+      updateProjectScrollbarMetrics()
+    }
+
+    const handlePointerMove = (pointerEvent: PointerEvent) => {
+      syncScrollFromPointer(pointerEvent.clientY)
+    }
+
+    const handlePointerUp = () => {
+      setProjectScrollbarDragging(false)
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+
+    syncScrollFromPointer(event.clientY)
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+  }
+
+  function handleProjectScrollbarKeyDown(
+    event: ReactKeyboardEvent<HTMLDivElement>,
+  ) {
+    const scrollElement = projectScrollViewportRef.current
+
+    if (!scrollElement || !projectScrollbarMetrics.isScrollable) {
+      return
+    }
+
+    const maxScrollTop = Math.max(
+      scrollElement.scrollHeight - scrollElement.clientHeight,
+      0,
+    )
+    let nextScrollTop = scrollElement.scrollTop
+
+    switch (event.key) {
+      case 'ArrowDown':
+        nextScrollTop += projectScrollbarKeyboardStep
+        break
+      case 'ArrowUp':
+        nextScrollTop -= projectScrollbarKeyboardStep
+        break
+      case 'PageDown':
+        nextScrollTop += scrollElement.clientHeight
+        break
+      case 'PageUp':
+        nextScrollTop -= scrollElement.clientHeight
+        break
+      case 'Home':
+        nextScrollTop = 0
+        break
+      case 'End':
+        nextScrollTop = maxScrollTop
+        break
+      default:
+        return
+    }
+
+    event.preventDefault()
+    scrollElement.scrollTop = Math.min(Math.max(nextScrollTop, 0), maxScrollTop)
+    updateProjectScrollbarMetrics()
   }
 
   function renderThreadRow(entry: ThreadEntry, source: ThreadRowSource) {
@@ -473,6 +785,45 @@ function Sidebar({
               ) : null}
             </div>
           </div>
+
+          <nav className="sidebar__rail-group" aria-label="主导航">
+            {primaryNavItems.map(({ id, label, Icon }) => {
+              const isActive = activeItem === id
+
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={`sidebar__rail-button${
+                    isActive ? ' sidebar__rail-button--active' : ''
+                  }`}
+                  aria-label={label}
+                  aria-current={isActive ? 'page' : undefined}
+                  onClick={() => onPrimaryNav(id)}
+                >
+                  <Icon className="sidebar__rail-icon" />
+                  <span className="sidebar__rail-tooltip">{label}</span>
+                </button>
+              )
+            })}
+          </nav>
+
+          <div className="sidebar__rail-footer">
+            <button
+              type="button"
+              className="sidebar__rail-button sidebar__rail-bell"
+              aria-label="打开通知"
+              onClick={onNotificationCenterOpen}
+            >
+              <BellIcon className="sidebar__rail-icon" />
+              {notificationActionRequiredCount > 0 ? (
+                <span className="sidebar__rail-badge">
+                  {notificationActionRequiredCount}
+                </span>
+              ) : null}
+              <span className="sidebar__rail-tooltip">打开通知</span>
+            </button>
+          </div>
         </div>
       </aside>
     )
@@ -480,129 +831,279 @@ function Sidebar({
 
   return (
     <aside className="sidebar" aria-label="对话侧栏">
+      <div className="sidebar__header">
+        <button
+          type="button"
+          className={`sidebar__brand${
+            activeItem === 'Workspace' ? ' sidebar__brand--active' : ''
+          }`}
+          aria-label="Workspace"
+          aria-current={activeItem === 'Workspace' ? 'page' : undefined}
+          onClick={() => onPrimaryNav('Workspace')}
+        >
+          <span className="sidebar__brand-mark" aria-hidden="true">
+            <span className="sidebar__brand-dot-cloud" />
+          </span>
+          <span className="sidebar__brand-text">BioMap Agent</span>
+          <span className="visually-hidden">Workspace</span>
+        </button>
+
+        <div className="sidebar__header-actions">
+          <button
+            type="button"
+            className={`sidebar__icon-button${
+              searchOpen ? ' sidebar__icon-button--active' : ''
+            }`}
+            aria-label={searchOpen ? '关闭搜索' : '搜索对话'}
+            aria-expanded={searchOpen}
+            onClick={toggleSearch}
+          >
+            <SearchIcon className="sidebar__control-icon" />
+          </button>
+          <button
+            type="button"
+            className="sidebar__icon-button"
+            aria-label="收起侧栏"
+            aria-expanded={true}
+            onClick={() => onSidebarCollapsedChange(true)}
+          >
+            <PanelRightIcon className="sidebar__control-icon" />
+          </button>
+        </div>
+      </div>
+
       <div className="sidebar__top-controls">
         <button type="button" className="sidebar__new-thread" onClick={onNewThread}>
           <PlusIcon className="sidebar__control-icon" />
           <span>新对话</span>
         </button>
-        <button
-          type="button"
-          className="sidebar__collapse-button"
-          aria-label="收起侧栏"
-          aria-expanded={true}
-          onClick={() => onSidebarCollapsedChange(true)}
-        >
-          <PanelRightIcon className="sidebar__control-icon" />
-        </button>
       </div>
 
-      <div className="sidebar__project-section sidebar-scroll">
-        {pinnedThreadEntries.length > 0 ? (
-          <section className="sidebar__pinned-section" aria-label="置顶对话">
-            <div className="sidebar__section-title">置顶</div>
-            <div className="sidebar__thread-list sidebar__thread-list--pinned">
-              {pinnedThreadEntries.map((entry) => renderThreadRow(entry, 'pinned'))}
-            </div>
-          </section>
-        ) : null}
+      <nav className="sidebar__primary-nav" aria-label="主导航">
+        {primaryNavItems.map(({ id, label, Icon }) => {
+          const isActive = activeItem === id
 
-        <div className="sidebar__project-title-row">
-          {searchOpen ? (
-            <label className="sidebar__search-field">
-              <SearchIcon className="sidebar__control-icon" />
-              <input
-                className="sidebar__search-input"
-                type="search"
-                value={searchQuery}
-                autoFocus
-                aria-label="搜索对话"
-                placeholder="搜索对话"
-                onChange={(event) => onSearchQueryChange(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape') {
-                    closeSearch()
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="sidebar__search-clear"
-                aria-label="关闭搜索"
-                onClick={closeSearch}
-              >
-                ×
-              </button>
-            </label>
-          ) : (
-            <>
-              <div className="sidebar__section-title">项目</div>
-              <button
-                type="button"
-                className="sidebar__search-button"
-                aria-label="打开搜索"
-                onClick={() => onSearchOpenChange(true)}
-              >
+          return (
+            <button
+              key={id}
+              type="button"
+              className={`sidebar__primary-nav-item${
+                isActive ? ' sidebar__primary-nav-item--active' : ''
+              }`}
+              aria-current={isActive ? 'page' : undefined}
+              onClick={() => onPrimaryNav(id)}
+            >
+              <Icon className="sidebar__primary-nav-icon" />
+              <span>{label}</span>
+            </button>
+          )
+        })}
+      </nav>
+
+      <div className="sidebar__project-scroll-shell">
+        <div
+          id="sidebar-project-scroll"
+          className="sidebar__project-section sidebar-scroll"
+          aria-label="项目对话列表"
+          onScroll={updateProjectScrollbarMetrics}
+          ref={projectScrollViewportRef}
+        >
+          {pinnedThreadEntries.length > 0 ? (
+            <section className="sidebar__pinned-section" aria-label="置顶对话">
+              <div className="sidebar__section-title">置顶</div>
+              <div className="sidebar__thread-list sidebar__thread-list--pinned">
+                {pinnedThreadEntries.map((entry) =>
+                  renderThreadRow(entry, 'pinned'),
+                )}
+              </div>
+            </section>
+          ) : null}
+
+          <div className="sidebar__project-title-row">
+            {searchOpen ? (
+              <label className="sidebar__search-field">
                 <SearchIcon className="sidebar__control-icon" />
-              </button>
-            </>
-          )}
-        </div>
-
-        {showNoSearchResults ? (
-          <div className="sidebar__empty">未找到相关对话</div>
-        ) : null}
-
-        <div className="sidebar__project-list">
-          {visibleProjects.map((project) => {
-            const isExpanded =
-              searchOpen || expandedProjectIds.includes(project.id)
-
-            return (
-              <section
-                key={project.id}
-                className={`sidebar__project${isExpanded ? ' sidebar__project--expanded' : ''}`}
-              >
-                <button
-                  type="button"
-                  className="sidebar__project-header"
-                  onClick={() => {
-                    if (!searchOpen) {
-                      onToggleProject(project.id)
+                <input
+                  className="sidebar__search-input"
+                  type="search"
+                  value={searchQuery}
+                  autoFocus
+                  aria-label="搜索对话"
+                  placeholder="搜索对话"
+                  onChange={(event) => onSearchQueryChange(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                      closeSearch()
                     }
                   }}
-                  aria-expanded={isExpanded}
+                />
+                <button
+                  type="button"
+                  className="sidebar__search-clear"
+                  aria-label="关闭搜索"
+                  onClick={closeSearch}
                 >
-                  {isExpanded ? (
-                    <ChevronDownIcon className="sidebar__project-arrow" />
-                  ) : (
-                    <ChevronRightIcon className="sidebar__project-arrow" />
-                  )}
-                  <FolderIcon className="sidebar__project-icon" />
-                  <span className="sidebar__project-name">{project.name}</span>
+                  ×
                 </button>
+              </label>
+            ) : (
+              <>
+                <div className="sidebar__section-heading">
+                  <ChevronDownIcon className="sidebar__section-heading-icon" />
+                  <span>项目</span>
+                </div>
+                <button
+                  type="button"
+                  className="sidebar__project-add-button"
+                  aria-label="新建项目"
+                  onClick={onCreateProject}
+                >
+                  <PlusIcon className="sidebar__control-icon" />
+                </button>
+              </>
+            )}
+          </div>
 
-                {isExpanded ? (
-                  <div className="sidebar__thread-list">
-                    {project.threads.length > 0
-                      ? project.threads.map((thread) =>
-                          renderThreadRow(
-                            {
-                              projectId: project.id,
-                              projectName: project.name,
-                              thread,
-                            },
-                            'project',
-                          ),
-                        )
-                      : !searchOpen && (
-                          <div className="sidebar__project-empty">暂无对话</div>
-                        )}
-                  </div>
-                ) : null}
-              </section>
-            )
-          })}
+          {showNoSearchResults ? (
+            <div className="sidebar__empty">未找到相关对话</div>
+          ) : null}
+
+          <div className="sidebar__project-list">
+            {visibleProjects.map((project) => {
+              const isExpanded =
+                searchOpen || expandedProjectIds.includes(project.id)
+
+              return (
+                <section
+                  key={project.id}
+                  className={`sidebar__project${isExpanded ? ' sidebar__project--expanded' : ''}`}
+                >
+                  <button
+                    type="button"
+                    className="sidebar__project-header"
+                    onClick={() => {
+                      if (!searchOpen) {
+                        onToggleProject(project.id)
+                      }
+                    }}
+                    aria-expanded={isExpanded}
+                  >
+                    {isExpanded ? (
+                      <ChevronDownIcon className="sidebar__project-arrow" />
+                    ) : (
+                      <ChevronRightIcon className="sidebar__project-arrow" />
+                    )}
+                    <FolderIcon className="sidebar__project-icon" />
+                    <span className="sidebar__project-name">{project.name}</span>
+                  </button>
+
+                  {isExpanded ? (
+                    <div className="sidebar__thread-list">
+                      {project.threads.length > 0
+                        ? project.threads.map((thread) =>
+                            renderThreadRow(
+                              {
+                                projectId: project.id,
+                                projectName: project.name,
+                                thread,
+                              },
+                              'project',
+                            ),
+                          )
+                        : !searchOpen && (
+                            <div className="sidebar__project-empty">暂无对话</div>
+                          )}
+                    </div>
+                  ) : null}
+                </section>
+              )
+            })}
+          </div>
+
+          <div className="sidebar__conversation-title-row">
+            <div className="sidebar__section-heading">
+              <ChevronDownIcon className="sidebar__section-heading-icon" />
+              <span>对话</span>
+            </div>
+          </div>
         </div>
+
+        <div
+          aria-controls="sidebar-project-scroll"
+          aria-label="项目对话滚动条"
+          aria-orientation="vertical"
+          aria-valuemax={100}
+          aria-valuemin={0}
+          aria-valuenow={projectScrollbarMetrics.valueNow}
+          className={`sidebar__project-scrollbar${
+            projectScrollbarMetrics.isScrollable
+              ? ' sidebar__project-scrollbar--scrollable'
+              : ''
+          }${
+            projectScrollbarDragging
+              ? ' sidebar__project-scrollbar--dragging'
+              : ''
+          }`}
+          onKeyDown={handleProjectScrollbarKeyDown}
+          onPointerDown={handleProjectScrollbarPointerDown}
+          role="scrollbar"
+          tabIndex={projectScrollbarMetrics.isScrollable ? 0 : -1}
+        >
+          <span
+            className="sidebar__project-scrollbar-thumb"
+            style={{
+              height: `${projectScrollbarMetrics.thumbHeight}px`,
+              transform: `translateY(${projectScrollbarMetrics.thumbTop}px)`,
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="sidebar__footer">
+        <div className="sidebar__account" ref={accountMenuRef}>
+          <button
+            type="button"
+            className="sidebar__account-button top-nav__user"
+            aria-haspopup="menu"
+            aria-expanded={accountMenuOpen}
+            onClick={() => setAccountMenuOpen((isOpen) => !isOpen)}
+          >
+            <span className="sidebar__avatar" aria-hidden="true">
+              Z
+            </span>
+            <span className="sidebar__account-copy">
+              <span className="sidebar__username">zhengjun</span>
+              <span className="sidebar__account-subtitle">个人账户</span>
+            </span>
+          </button>
+          {accountMenuOpen ? (
+            <div className="sidebar__account-menu" role="menu">
+              {accountMenuOptions.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="menuitem"
+                  className="sidebar__account-menu-item"
+                  onClick={() => handleAccountMenuSelect(option.id)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <button
+          type="button"
+          className="sidebar__bell"
+          aria-label="打开通知"
+          onClick={onNotificationCenterOpen}
+        >
+          <BellIcon className="sidebar__bell-icon" />
+          {notificationActionRequiredCount > 0 ? (
+            <span className="sidebar__badge">{notificationActionRequiredCount}</span>
+          ) : null}
+        </button>
       </div>
 
       {renameEntry ? (

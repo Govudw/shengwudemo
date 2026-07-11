@@ -75,12 +75,16 @@ function renderSidebar(
   const mergedProps: ComponentProps<typeof Sidebar> = {
     projects,
     selectedThreadId: null,
+    activeItem: 'Workspace',
     searchOpen: false,
     searchQuery: '',
     expandedProjectIds: ['antibody-optimization', 'enzyme-discovery'],
     sidebarCollapsed: false,
+    notificationActionRequiredCount: 3,
     onSidebarCollapsedChange: noop,
     onNewThread: noop,
+    onCreateProject: noop,
+    onPrimaryNav: noop,
     onSearchOpenChange: noop,
     onSearchQueryChange: noop,
     onToggleProject: noop,
@@ -89,6 +93,8 @@ function renderSidebar(
     onRenameThread: noop,
     onArchiveThread: noop,
     onDeleteThread: noop,
+    onNotificationCenterOpen: noop,
+    onAccountMenuSelect: noop,
     onNotify: noop,
     ...props,
   }
@@ -98,6 +104,12 @@ function renderSidebar(
   })
 
   return { container, root }
+}
+
+function unmountRoot(root: ReturnType<typeof createRoot>) {
+  act(() => {
+    root.unmount()
+  })
 }
 
 describe('Sidebar thread menu', () => {
@@ -122,7 +134,7 @@ describe('Sidebar thread menu', () => {
     expect(menuItems.length).toBe(4)
     expect(menuItems.every((item) => item.getAttribute('role') === null)).toBe(true)
 
-    root.unmount()
+    unmountRoot(root)
   })
 })
 
@@ -140,7 +152,7 @@ describe('Sidebar collapse rail', () => {
 
     expect(onSidebarCollapsedChange).toHaveBeenCalledWith(true)
 
-    root.unmount()
+    unmountRoot(root)
   })
 
   it('renders a compact rail in collapsed state without the project tree', () => {
@@ -153,7 +165,7 @@ describe('Sidebar collapse rail', () => {
     expect(getButton(container, '最近对话')).toBeTruthy()
     expect(container.textContent).not.toContain('Antibody Optimization')
 
-    root.unmount()
+    unmountRoot(root)
   })
 
   it('keeps the sidebar collapsed when starting a new conversation from the rail', () => {
@@ -172,7 +184,7 @@ describe('Sidebar collapse rail', () => {
     expect(onNewThread).toHaveBeenCalledTimes(1)
     expect(onSidebarCollapsedChange).not.toHaveBeenCalledWith(false)
 
-    root.unmount()
+    unmountRoot(root)
   })
 
   it('expands the sidebar and opens search when using rail search', () => {
@@ -191,7 +203,7 @@ describe('Sidebar collapse rail', () => {
     expect(onSidebarCollapsedChange).toHaveBeenCalledWith(false)
     expect(onSearchOpenChange).toHaveBeenCalledWith(true)
 
-    root.unmount()
+    unmountRoot(root)
   })
 
   it('shows the recent conversations popover from rail focus and selects a conversation', () => {
@@ -217,7 +229,7 @@ describe('Sidebar collapse rail', () => {
 
     expect(onSelectThread).toHaveBeenCalledWith('enzyme-discovery', 'screening-plan')
 
-    root.unmount()
+    unmountRoot(root)
   })
 
   it('closes the recent conversations popover with Escape and outside click', () => {
@@ -244,7 +256,45 @@ describe('Sidebar collapse rail', () => {
     })
     expect(container.textContent).not.toContain('EGFR 抗体亲和力优化')
 
-    root.unmount()
+    unmountRoot(root)
+  })
+})
+
+describe('Sidebar project scroll area', () => {
+  it('renders a custom scrollbar attached to the project viewport', () => {
+    const { container, root } = renderSidebar()
+
+    const viewport = container.querySelector<HTMLElement>('.sidebar-scroll')
+    const scrollbar = container.querySelector<HTMLElement>(
+      '[role="scrollbar"][aria-label="项目对话滚动条"]',
+    )
+
+    expect(viewport?.id).toBe('sidebar-project-scroll')
+    expect(scrollbar?.getAttribute('aria-controls')).toBe(
+      'sidebar-project-scroll',
+    )
+    expect(
+      scrollbar?.querySelector('.sidebar__project-scrollbar-thumb'),
+    ).not.toBeNull()
+
+    unmountRoot(root)
+  })
+})
+
+describe('Sidebar footer', () => {
+  it('shows account metadata and keeps notification action available', () => {
+    const onNotificationCenterOpen = vi.fn()
+    const { container, root } = renderSidebar({ onNotificationCenterOpen })
+
+    expect(container.textContent).toContain('个人账户')
+
+    act(() => {
+      getButton(container, '打开通知').click()
+    })
+
+    expect(onNotificationCenterOpen).toHaveBeenCalledTimes(1)
+
+    unmountRoot(root)
   })
 })
 

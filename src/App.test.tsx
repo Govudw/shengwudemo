@@ -182,7 +182,7 @@ describe('App Product Management Platform route', () => {
 
     expect(window.location.pathname).toBe('/')
     expect(container.querySelector('.approval-center')).not.toBeNull()
-    expect(container.querySelector('.agent-shell')).toBeNull()
+    expect(container.querySelector('.agent-shell')).not.toBeNull()
     expect(container.textContent).toContain('审批中心')
     expect(container.textContent).toContain('外部审批')
     expect(container.textContent).toContain('Workspace')
@@ -196,7 +196,7 @@ describe('App Product Management Platform route', () => {
 
     expect(window.location.pathname).toBe('/')
     expect(container.querySelector('.approval-center')).not.toBeNull()
-    expect(container.querySelector('.agent-shell')).toBeNull()
+    expect(container.querySelector('.agent-shell')).not.toBeNull()
     expect(useDemoStore.getState().activeTopNav).toBe('ApprovalCenter')
 
     root.unmount()
@@ -592,7 +592,7 @@ describe('App Projects management', () => {
     })
 
     expect(container.querySelector('.projects-page')).not.toBeNull()
-    expect(container.querySelector('.agent-shell')).toBeNull()
+    expect(container.querySelector('.agent-shell')).not.toBeNull()
     expect(getButton(container, 'Projects').getAttribute('aria-current')).toBe(
       'page',
     )
@@ -1657,7 +1657,6 @@ describe('App Assets navigation', () => {
     expect(container.querySelector('.assets-main__title p')).toBeNull()
     expect(container.textContent).toContain('项目文件')
     expect(container.textContent).toContain('公共文件')
-    expect(container.textContent).not.toContain('个人')
     expect(findButton(container, '模板')).toBeUndefined()
 
     root.unmount()

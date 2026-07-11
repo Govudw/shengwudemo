@@ -21,7 +21,6 @@ import RecommendationWorkbench from './components/RecommendationWorkbench'
 import Sidebar from './components/Sidebar'
 import TemplateSection from './components/TemplateSection'
 import ThreadWorkspace from './components/ThreadWorkspace'
-import TopNav from './components/TopNav'
 import type { AccountMenuItem, TopNavItem } from './components/TopNav'
 import { homeTemplates } from './data/homeTemplates'
 import type { HomeTemplate } from './data/homeTemplates'
@@ -459,6 +458,22 @@ function App() {
   function handleNewThread() {
     startNewThread()
     navigateToPath('/')
+  }
+
+  function handleCreateSidebarProject() {
+    const existingNames = new Set(projects.map((project) => project.name))
+    let nextIndex = projects.length + 1
+    let nextName = `New Project ${nextIndex}`
+
+    while (existingNames.has(nextName)) {
+      nextIndex += 1
+      nextName = `New Project ${nextIndex}`
+    }
+
+    createProject(nextName)
+    selectTopNav('Workspace')
+    navigateToPath('/')
+    showStatus('已创建项目')
   }
 
   function handleSelectThread(projectId: string, threadId: string) {
@@ -949,268 +964,268 @@ function App() {
     )
   }
 
+  const mainContent = recommendationAssetDetailId ? (
+    recommendationAssetDetail ? (
+      <RecommendationAssetDetailPage
+        asset={recommendationAssetDetail}
+        onBack={() => {
+          selectTopNav('Assets')
+          navigateToPathWithoutRootSync('/')
+        }}
+      />
+    ) : (
+      <RecommendationMissingDetailPage
+        label="资产"
+        onBack={() => {
+          selectTopNav('Assets')
+          navigateToPathWithoutRootSync('/')
+        }}
+      />
+    )
+  ) : recommendationSkillDetailId ? (
+    recommendationSkillDetail ? (
+      <RecommendationSkillDetailPage
+        skill={recommendationSkillDetail}
+        onBack={() => {
+          selectTopNav('Capabilities')
+          navigateToPathWithoutRootSync('/')
+        }}
+      />
+    ) : (
+      <RecommendationMissingDetailPage
+        label="Skill"
+        onBack={() => {
+          selectTopNav('Capabilities')
+          navigateToPathWithoutRootSync('/')
+        }}
+      />
+    )
+  ) : activeTopNav === 'NotificationCenter' ? (
+    <NotificationCenterPage
+      notifications={notifications}
+      preset={notificationCenterPreset}
+      search={notificationCenterSearchQuery}
+      statusFilter={notificationCenterStatusFilter}
+      readStatusFilter={notificationCenterReadStatusFilter}
+      businessStatusFilter={notificationCenterBusinessStatusFilter}
+      sourceFilter={notificationCenterSourceFilter}
+      typeFilter={notificationCenterTypeFilter}
+      timeFilter={notificationCenterTimeFilter}
+      advancedFiltersOpen={notificationCenterAdvancedFiltersOpen}
+      selectedNotificationId={notificationCenterSelectedId}
+      selectedNotificationIds={notificationCenterSelectedIds}
+      detailOpen={notificationCenterDetailOpen}
+      onPresetChange={setNotificationCenterPreset}
+      onSearchChange={setNotificationCenterSearchQuery}
+      onStatusFilterChange={setNotificationCenterStatusFilter}
+      onReadStatusFilterChange={setNotificationCenterReadStatusFilter}
+      onBusinessStatusFilterChange={setNotificationCenterBusinessStatusFilter}
+      onSourceFilterChange={setNotificationCenterSourceFilter}
+      onTypeFilterChange={setNotificationCenterTypeFilter}
+      onTimeFilterChange={setNotificationCenterTimeFilter}
+      onAdvancedFiltersOpenChange={setNotificationCenterAdvancedFiltersOpen}
+      onSelectNotification={selectNotificationCenterItem}
+      onToggleNotification={(notificationId, selected) =>
+        setNotificationCenterSelectedId(notificationId, selected)
+      }
+      onDetailOpenChange={handleNotificationCenterDetailOpenChange}
+      onMarkAllRead={markAllNotificationsRead}
+      onBatchClearReminders={handleBatchClearNotificationReminders}
+      onMarkRead={markNotificationRead}
+      onClearReminder={handleClearNotificationReminder}
+      onPrimaryAction={handleNotificationCenterPrimaryAction}
+    />
+  ) : activeTopNav === 'ApprovalCenter' ? (
+    <ApprovalCenterPage
+      activeSection={approvalActiveSection}
+      inspectorOpen={approvalInspectorOpen}
+      selectedObjectId={approvalSelectedObjectId}
+      onSectionChange={setApprovalCenterSection}
+      onSelectObject={selectApprovalCenterObject}
+      onNotify={showStatus}
+    />
+  ) : activeTopNav === 'BillingCenter' ? (
+    <BillingCenterPage
+      activeTab={billingCenterActiveTab}
+      role={billingCenterRole}
+      selectedServiceId={billingCenterSelectedServiceId}
+      selectedBillLineId={billingCenterSelectedBillLineId}
+      selectedBudgetId={billingCenterSelectedBudgetId}
+      inspectorOpen={billingCenterInspectorOpen}
+      serviceSearch={billingCenterServiceSearch}
+      billSearch={billingCenterBillSearch}
+      usageSearch={billingCenterUsageSearch}
+      budgetSearch={billingCenterBudgetSearch}
+      onTabChange={setBillingCenterTab}
+      onRoleChange={setBillingCenterRole}
+      onSelectService={handleSelectBillingCenterService}
+      onSelectBillLine={handleSelectBillingCenterBillLine}
+      onSelectBudget={handleSelectBillingCenterBudget}
+      onSearchChange={setBillingCenterSearch}
+      onNotify={showStatus}
+    />
+  ) : activeTopNav === 'Assets' ? (
+    <AssetsPage
+      activeSection={assetsActiveSection}
+      activeItem={assetsActiveItem}
+      fileViewMode={assetsFileViewMode}
+      experimentViewMode={assetsExperimentViewMode}
+      openFolderId={assetsOpenFolderId}
+      xtrimoRecommendationsExpanded={xtrimoRecommendationsExpanded}
+      onSelectionChange={setAssetsSelection}
+      onFileViewModeChange={setAssetsFileViewMode}
+      onExperimentViewModeChange={setAssetsExperimentViewMode}
+      onOpenFolderChange={setAssetsOpenFolder}
+      onXtrimoRecommendationsExpandedChange={setXtrimoRecommendationsExpanded}
+      onNotify={showStatus}
+    />
+  ) : activeTopNav === 'Projects' ? (
+    <ProjectsPage
+      projects={projects}
+      onNotify={showStatus}
+      onStartThread={handleStartProjectThread}
+      onOpenThread={handleOpenProjectThread}
+      onOpenAssets={handleOpenProjectAssets}
+    />
+  ) : activeTopNav === 'Capabilities' ? (
+    <CapabilitiesPage onNotify={showStatus} />
+  ) : (
+    <div
+      className={`workspace-main${
+        showThreadWorkspace ? ' workspace-main--thread' : ''
+      }`}
+      role="main"
+      aria-label={
+        selectedThreadTitle
+          ? `Workspace for ${selectedThreadTitle}`
+          : 'New conversation workspace'
+      }
+      data-drafting-new-thread={isDraftingNewThread}
+    >
+      {selectedThreadEntry && !isDraftingNewThread ? (
+        <ThreadWorkspace
+          thread={selectedThreadEntry.thread}
+          projectName={selectedThreadEntry.project.name}
+          draft={draft}
+          onDraftChange={setDraft}
+          onSubmit={handleSubmit}
+          onRenameThread={renameThread}
+          onArchiveThread={handleArchiveThread}
+          onDeleteThread={handleDeleteThread}
+          onNotify={showStatus}
+          runInspectorOpen={runInspectorOpen}
+          onRunInspectorOpenChange={(open) =>
+            toggleRunInspector(selectedThreadEntry.thread.id, open)
+          }
+          sidebarCollapsed={sidebarCollapsed}
+          onSidebarCollapsedChange={toggleSidebarCollapsed}
+        />
+      ) : (
+        <section className="workspace-inner">
+          <Composer
+            projects={projects}
+            selectedProjectId={selectedProjectId}
+            isDraftingNewThread={isDraftingNewThread}
+            draft={draft}
+            textareaRef={composerTextAreaRef}
+            projectMenuOpen={projectMenuOpen}
+            onDraftChange={setDraft}
+            onProjectMenuOpenChange={setProjectMenuOpen}
+            onProjectChange={setSelectedProject}
+            onCreateProject={createProject}
+            onSubmit={handleSubmit}
+            onNotify={showStatus}
+          />
+          <section className="home-surface" aria-label="首页工作区">
+            <HomeControlBar
+              homeMode={homeMode}
+              signals={homeRecommendationSignals}
+              selectedSignalKind={selectedRecommendationSignalKind}
+              scope={homeTemplateScopeFilter}
+              direction={homeTemplateDirectionFilter}
+              type={homeTemplateTypeFilter}
+              query={homeTemplateSearchQuery}
+              advancedFiltersOpen={homeTemplateAdvancedFiltersOpen}
+              onHomeModeChange={setHomeMode}
+              onSignalSelect={handleRecommendationSignalSelect}
+              onScopeChange={handleHomeTemplateScopeFilterChange}
+              onDirectionChange={handleHomeTemplateDirectionFilterChange}
+              onTypeChange={handleHomeTemplateTypeFilterChange}
+              onQueryChange={handleHomeTemplateSearchQueryChange}
+              onAdvancedFiltersOpenChange={setHomeTemplateAdvancedFiltersOpen}
+              onResetFilters={handleResetHomeTemplateFilters}
+            />
+
+            {homeMode === 'recommendations' ? (
+              <RecommendationWorkbench
+                key={selectedRecommendationSignalKind ?? 'all-recommendations'}
+                insights={homeRecommendationInsights}
+                feedCards={homeRecommendationFeedCards}
+                highlightedTargetId={highlightedRecommendationTargetId}
+                selectedSignalKind={selectedRecommendationSignalKind}
+                onPromptFill={handleRecommendationPromptFill}
+                onTargetFocus={handleRecommendationTargetFocus}
+                onFeedCardSelect={handleRecommendationFeedCardSelect}
+              />
+            ) : (
+              <TemplateSection
+                templates={homeTemplates}
+                filters={{
+                  scope: homeTemplateScopeFilter,
+                  direction: homeTemplateDirectionFilter,
+                  type: homeTemplateTypeFilter,
+                }}
+                query={homeTemplateSearchQuery}
+                page={homeTemplatePage}
+                onPageChange={setHomeTemplatePage}
+                onTemplateSelect={handleTemplateSelect}
+              />
+            )}
+          </section>
+        </section>
+      )}
+    </div>
+  )
+
   return (
     <div className="agent-app">
-      <TopNav
-        activeItem={activeTopNav}
-        onNavigate={handlePrimaryNav}
-        notificationActionRequiredCount={notificationActionRequiredCount}
-        onNotificationCenterOpen={openNotificationDrawer}
-        onAccountMenuSelect={handleAccountMenuSelect}
-      />
       {statusMessage ? (
         <div className="status-toast" role="status" aria-live="polite">
           {statusMessage}
         </div>
       ) : null}
-      {recommendationAssetDetailId ? (
-        recommendationAssetDetail ? (
-          <RecommendationAssetDetailPage
-            asset={recommendationAssetDetail}
-            onBack={() => {
-              selectTopNav('Assets')
-              navigateToPathWithoutRootSync('/')
-            }}
-          />
-        ) : (
-          <RecommendationMissingDetailPage
-            label="资产"
-            onBack={() => {
-              selectTopNav('Assets')
-              navigateToPathWithoutRootSync('/')
-            }}
-          />
-        )
-      ) : recommendationSkillDetailId ? (
-        recommendationSkillDetail ? (
-          <RecommendationSkillDetailPage
-            skill={recommendationSkillDetail}
-            onBack={() => {
-              selectTopNav('Capabilities')
-              navigateToPathWithoutRootSync('/')
-            }}
-          />
-        ) : (
-          <RecommendationMissingDetailPage
-            label="Skill"
-            onBack={() => {
-              selectTopNav('Capabilities')
-              navigateToPathWithoutRootSync('/')
-            }}
-          />
-        )
-      ) : activeTopNav === 'NotificationCenter' ? (
-        <NotificationCenterPage
-          notifications={notifications}
-          preset={notificationCenterPreset}
-          search={notificationCenterSearchQuery}
-          statusFilter={notificationCenterStatusFilter}
-          readStatusFilter={notificationCenterReadStatusFilter}
-          businessStatusFilter={notificationCenterBusinessStatusFilter}
-          sourceFilter={notificationCenterSourceFilter}
-          typeFilter={notificationCenterTypeFilter}
-          timeFilter={notificationCenterTimeFilter}
-          advancedFiltersOpen={notificationCenterAdvancedFiltersOpen}
-          selectedNotificationId={notificationCenterSelectedId}
-          selectedNotificationIds={notificationCenterSelectedIds}
-          detailOpen={notificationCenterDetailOpen}
-          onPresetChange={setNotificationCenterPreset}
-          onSearchChange={setNotificationCenterSearchQuery}
-          onStatusFilterChange={setNotificationCenterStatusFilter}
-          onReadStatusFilterChange={setNotificationCenterReadStatusFilter}
-          onBusinessStatusFilterChange={setNotificationCenterBusinessStatusFilter}
-          onSourceFilterChange={setNotificationCenterSourceFilter}
-          onTypeFilterChange={setNotificationCenterTypeFilter}
-          onTimeFilterChange={setNotificationCenterTimeFilter}
-          onAdvancedFiltersOpenChange={setNotificationCenterAdvancedFiltersOpen}
-          onSelectNotification={selectNotificationCenterItem}
-          onToggleNotification={(notificationId, selected) =>
-            setNotificationCenterSelectedId(notificationId, selected)
-          }
-          onDetailOpenChange={handleNotificationCenterDetailOpenChange}
-          onMarkAllRead={markAllNotificationsRead}
-          onBatchClearReminders={handleBatchClearNotificationReminders}
-          onMarkRead={markNotificationRead}
-          onClearReminder={handleClearNotificationReminder}
-          onPrimaryAction={handleNotificationCenterPrimaryAction}
-        />
-      ) : activeTopNav === 'ApprovalCenter' ? (
-        <ApprovalCenterPage
-          activeSection={approvalActiveSection}
-          inspectorOpen={approvalInspectorOpen}
-          selectedObjectId={approvalSelectedObjectId}
-          onSectionChange={setApprovalCenterSection}
-          onSelectObject={selectApprovalCenterObject}
-          onNotify={showStatus}
-        />
-      ) : activeTopNav === 'BillingCenter' ? (
-        <BillingCenterPage
-          activeTab={billingCenterActiveTab}
-          role={billingCenterRole}
-          selectedServiceId={billingCenterSelectedServiceId}
-          selectedBillLineId={billingCenterSelectedBillLineId}
-          selectedBudgetId={billingCenterSelectedBudgetId}
-          inspectorOpen={billingCenterInspectorOpen}
-          serviceSearch={billingCenterServiceSearch}
-          billSearch={billingCenterBillSearch}
-          usageSearch={billingCenterUsageSearch}
-          budgetSearch={billingCenterBudgetSearch}
-          onTabChange={setBillingCenterTab}
-          onRoleChange={setBillingCenterRole}
-          onSelectService={handleSelectBillingCenterService}
-          onSelectBillLine={handleSelectBillingCenterBillLine}
-          onSelectBudget={handleSelectBillingCenterBudget}
-          onSearchChange={setBillingCenterSearch}
-          onNotify={showStatus}
-        />
-      ) : activeTopNav === 'Assets' ? (
-        <AssetsPage
-          activeSection={assetsActiveSection}
-          activeItem={assetsActiveItem}
-          fileViewMode={assetsFileViewMode}
-          experimentViewMode={assetsExperimentViewMode}
-          openFolderId={assetsOpenFolderId}
-          xtrimoRecommendationsExpanded={xtrimoRecommendationsExpanded}
-          onSelectionChange={setAssetsSelection}
-          onFileViewModeChange={setAssetsFileViewMode}
-          onExperimentViewModeChange={setAssetsExperimentViewMode}
-          onOpenFolderChange={setAssetsOpenFolder}
-          onXtrimoRecommendationsExpandedChange={setXtrimoRecommendationsExpanded}
-          onNotify={showStatus}
-        />
-      ) : activeTopNav === 'Projects' ? (
-        <ProjectsPage
+      <div
+        className={`agent-shell${
+          sidebarCollapsed ? ' agent-shell--sidebar-collapsed' : ''
+        }`}
+      >
+        <Sidebar
           projects={projects}
+          selectedThreadId={selectedThreadId}
+          activeItem={activeTopNav}
+          searchOpen={searchOpen}
+          searchQuery={searchQuery}
+          expandedProjectIds={expandedProjectIds}
+          sidebarCollapsed={sidebarCollapsed}
+          notificationActionRequiredCount={notificationActionRequiredCount}
+          onSidebarCollapsedChange={toggleSidebarCollapsed}
+          onNewThread={handleNewThread}
+          onCreateProject={handleCreateSidebarProject}
+          onPrimaryNav={handlePrimaryNav}
+          onSearchOpenChange={setSearchOpen}
+          onSearchQueryChange={setSearchQuery}
+          onToggleProject={toggleProject}
+          onSelectThread={handleSelectThread}
+          onTogglePinned={togglePinned}
+          onRenameThread={renameThread}
+          onArchiveThread={handleArchiveThread}
+          onDeleteThread={handleDeleteThread}
+          onNotificationCenterOpen={openNotificationDrawer}
+          onAccountMenuSelect={handleAccountMenuSelect}
           onNotify={showStatus}
-          onStartThread={handleStartProjectThread}
-          onOpenThread={handleOpenProjectThread}
-          onOpenAssets={handleOpenProjectAssets}
         />
-      ) : activeTopNav === 'Capabilities' ? (
-        <CapabilitiesPage onNotify={showStatus} />
-      ) : (
-        <div
-          className={`agent-shell${
-            sidebarCollapsed ? ' agent-shell--sidebar-collapsed' : ''
-          }`}
-        >
-          <Sidebar
-            projects={projects}
-            selectedThreadId={selectedThreadId}
-            searchOpen={searchOpen}
-            searchQuery={searchQuery}
-            expandedProjectIds={expandedProjectIds}
-            sidebarCollapsed={sidebarCollapsed}
-            onSidebarCollapsedChange={toggleSidebarCollapsed}
-            onNewThread={handleNewThread}
-            onSearchOpenChange={setSearchOpen}
-            onSearchQueryChange={setSearchQuery}
-            onToggleProject={toggleProject}
-            onSelectThread={handleSelectThread}
-            onTogglePinned={togglePinned}
-            onRenameThread={renameThread}
-            onArchiveThread={handleArchiveThread}
-            onDeleteThread={handleDeleteThread}
-            onNotify={showStatus}
-          />
-          <main
-            className={`workspace-main${
-              showThreadWorkspace ? ' workspace-main--thread' : ''
-            }`}
-            aria-label={
-              selectedThreadTitle
-                ? `Workspace for ${selectedThreadTitle}`
-                : 'New conversation workspace'
-            }
-            data-drafting-new-thread={isDraftingNewThread}
-          >
-            {selectedThreadEntry && !isDraftingNewThread ? (
-              <ThreadWorkspace
-                thread={selectedThreadEntry.thread}
-                projectName={selectedThreadEntry.project.name}
-                draft={draft}
-                onDraftChange={setDraft}
-                onSubmit={handleSubmit}
-                onRenameThread={renameThread}
-                onArchiveThread={handleArchiveThread}
-                onDeleteThread={handleDeleteThread}
-                onNotify={showStatus}
-                runInspectorOpen={runInspectorOpen}
-                onRunInspectorOpenChange={(open) =>
-                  toggleRunInspector(selectedThreadEntry.thread.id, open)
-                }
-                sidebarCollapsed={sidebarCollapsed}
-                onSidebarCollapsedChange={toggleSidebarCollapsed}
-              />
-            ) : (
-              <section className="workspace-inner">
-                <Composer
-                  projects={projects}
-                  selectedProjectId={selectedProjectId}
-                  isDraftingNewThread={isDraftingNewThread}
-                  draft={draft}
-                  textareaRef={composerTextAreaRef}
-                  projectMenuOpen={projectMenuOpen}
-                  onDraftChange={setDraft}
-                  onProjectMenuOpenChange={setProjectMenuOpen}
-                  onProjectChange={setSelectedProject}
-                  onCreateProject={createProject}
-                  onSubmit={handleSubmit}
-                  onNotify={showStatus}
-                />
-                <section className="home-surface" aria-label="首页工作区">
-                  <HomeControlBar
-                    homeMode={homeMode}
-                    signals={homeRecommendationSignals}
-                    selectedSignalKind={selectedRecommendationSignalKind}
-                    scope={homeTemplateScopeFilter}
-                    direction={homeTemplateDirectionFilter}
-                    type={homeTemplateTypeFilter}
-                    query={homeTemplateSearchQuery}
-                    advancedFiltersOpen={homeTemplateAdvancedFiltersOpen}
-                    onHomeModeChange={setHomeMode}
-                    onSignalSelect={handleRecommendationSignalSelect}
-                    onScopeChange={handleHomeTemplateScopeFilterChange}
-                    onDirectionChange={handleHomeTemplateDirectionFilterChange}
-                    onTypeChange={handleHomeTemplateTypeFilterChange}
-                    onQueryChange={handleHomeTemplateSearchQueryChange}
-                    onAdvancedFiltersOpenChange={
-                      setHomeTemplateAdvancedFiltersOpen
-                    }
-                    onResetFilters={handleResetHomeTemplateFilters}
-                  />
-
-                  {homeMode === 'recommendations' ? (
-                    <RecommendationWorkbench
-                      key={selectedRecommendationSignalKind ?? 'all-recommendations'}
-                      insights={homeRecommendationInsights}
-                      feedCards={homeRecommendationFeedCards}
-                      highlightedTargetId={highlightedRecommendationTargetId}
-                      selectedSignalKind={selectedRecommendationSignalKind}
-                      onPromptFill={handleRecommendationPromptFill}
-                      onTargetFocus={handleRecommendationTargetFocus}
-                      onFeedCardSelect={handleRecommendationFeedCardSelect}
-                    />
-                  ) : (
-                    <TemplateSection
-                      templates={homeTemplates}
-                      filters={{
-                        scope: homeTemplateScopeFilter,
-                        direction: homeTemplateDirectionFilter,
-                        type: homeTemplateTypeFilter,
-                      }}
-                      query={homeTemplateSearchQuery}
-                      page={homeTemplatePage}
-                      onPageChange={setHomeTemplatePage}
-                      onTemplateSelect={handleTemplateSelect}
-                    />
-                  )}
-                </section>
-              </section>
-            )}
-          </main>
-        </div>
-      )}
+        <div className="app-main">{mainContent}</div>
+      </div>
       <NotificationCenterDrawer
         open={notificationDrawerOpen}
         notifications={notifications}

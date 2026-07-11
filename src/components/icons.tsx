@@ -80,6 +80,33 @@ function FolderIcon({ className }: IconProps) {
   )
 }
 
+function AssetsIcon({ className }: IconProps) {
+  return (
+    <IconSvg className={className}>
+      <path d="m4 10.5 8-6 8 6" />
+      <path d="M6 9.5v10h12v-10" />
+      <path d="M9 19.5v-5h6v5" />
+      <path d="M9 12h.01" />
+      <path d="M12 12h.01" />
+      <path d="M15 12h.01" />
+    </IconSvg>
+  )
+}
+
+function CapabilitiesNavIcon({ className }: IconProps) {
+  return (
+    <IconSvg className={className}>
+      <path d="m12 3.5 7 4v8l-7 4-7-4v-8l7-4Z" />
+      <path d="m12 11.5 4.5-2.6" />
+      <path d="M12 11.5v5.2" />
+      <path d="m12 11.5-4.5-2.6" />
+      <circle cx="12" cy="3.5" r="1.8" />
+      <circle cx="19" cy="15.5" r="1.8" />
+      <circle cx="5" cy="15.5" r="1.8" />
+    </IconSvg>
+  )
+}
+
 function ChevronDownIcon({ className }: IconProps) {
   return (
     <IconSvg className={className}>
@@ -382,8 +409,10 @@ function CardIcon({ icon, className }: IconProps & { icon: TemplateCardIcon }) {
 
 export {
   ArchiveIcon,
+  AssetsIcon,
   BellIcon,
   BrainIcon,
+  CapabilitiesNavIcon,
   CardIcon,
   CellsIcon,
   ChartIcon,
