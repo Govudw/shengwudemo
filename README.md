@@ -2,7 +2,7 @@
 
 ## Development workflow
 
-Repository integration and remote synchronization must follow the order defined in [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md): update and validate local `main`, push GitHub `main` directly, then create and merge a GitLab merge request from the same commit.
+Repository integration and remote synchronization must follow the order defined in [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md): update and validate local `main`, push GitHub `main` directly, then create and merge a GitLab merge request from the same validated change set.
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

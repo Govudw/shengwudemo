@@ -16,7 +16,7 @@ Every integration and synchronization must follow this sequence:
 5. Push local `main` directly to GitHub with `git push origin main`.
 6. Create a temporary branch from the exact local `main` commit and push that branch to GitLab. Agent-created branches use `codex/sync-main-<YYYYMMDD>-<short-sha>`.
 7. Open a GitLab merge request from the temporary branch into `main`, wait for required checks, and merge it.
-8. Verify local `main`, `origin/main`, and `gitlab/main` resolve to the same commit.
+8. Fetch both remotes and verify `origin/main` and `gitlab/main` have identical code trees with no diff.
 
 GitHub must be updated before the GitLab merge request is created. Do not push directly to GitLab `main`, and do not force-push either remote.
 
@@ -44,11 +44,11 @@ glab mr create \
   --title "Sync GitHub main $(git rev-parse --short HEAD)"
 ```
 
-Merge the GitLab merge request only after its required checks pass. After merging, compare all three commit IDs before declaring synchronization complete.
+Merge the GitLab merge request only after its required checks pass. The GitLab project may create a merge commit, so commit IDs can differ even when synchronization is complete. After merging, fetch both remotes and use `git diff --exit-code origin/main gitlab/main` to verify the code trees are identical.
 
 ## Handling divergence
 
 - If either remote contains commits missing from local `main`, integrate those commits locally first and rerun validation.
 - If GitHub and GitLab have diverged, do not overwrite either side. Reconcile the histories on local `main`, then restart the required order from the GitHub push.
 - Keep unrelated worktree changes out of the integration commit. Stage explicit files and review the staged diff before committing.
-- A synchronization is complete only when the worktree is understood and all three `main` refs point to the same commit.
+- A synchronization is complete only when the worktree is understood and `origin/main` and `gitlab/main` contain identical code. Matching commit IDs are preferred but are not required when GitLab creates a merge commit.
