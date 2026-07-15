@@ -24,6 +24,12 @@ worktrees/
 *.docx
 docs/
 
+# Repository-level entry points and Git policy are shared with both remotes.
+!README.md
+!docs/
+docs/*
+!docs/GIT_WORKFLOW.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

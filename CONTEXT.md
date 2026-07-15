@@ -241,6 +241,41 @@ _Avoid_: Feishu clone, complete collaboration suite, generic rich-text product
 An auxiliary conversation surface attached to the current Thread context. It is separate from the main Thread transcript.
 _Avoid_: New Thread, comment, support chat
 
+**Recommendation Card**:
+A ranked feed item that suggests one immediate user action or navigation target. It can point to a Thread, a new composer prompt, an Asset, or a Skill.
+_Avoid_: Template card, widget, task record
+
+**Recommendation Tag**:
+The visible type label on a Recommendation Card. Valid labels are `继续任务`, `新任务`, `新资产`, and `新 Skill`.
+_Avoid_: Category, filter, status
+
+**New Task Recommendation**:
+A Recommendation Card tagged `新任务` that fills the Workspace composer with a complete prompt. It is a user-facing recommendation type, not an internal Work Order, Run, or Thread.
+_Avoid_: Work Order, Run, Thread
+
+**Template**:
+A reusable task starter made of input expectations, task brief, and a complete prompt. A Template can mention Skills or Pipelines, but it is not itself a Skill.
+_Avoid_: Skill, recommendation card
+
+**Today Focus**:
+The top recommendation summary area labeled `今日关注`. It explains the day's signals and context before the recommendation feed.
+_Avoid_: Today workbench, dashboard
+
+**Recommendation Feed**:
+The three-column waterfall surface under Today Focus. It is a continuous mixed feed of Recommendation Cards, not separate `继续推进` or `智能建议` sections.
+_Avoid_: Template grid, section list
+
+## Flagged Ambiguities
+
+**`新任务` vs operational tasks**:
+`新任务` is retained as a user-facing Recommendation Tag because it is easy to understand in the feed. In implementation and documentation, treat it as a New Task Recommendation, not as a Thread, Work Order, or Run.
+
+**Skill vs Template**:
+A Skill is a Capability that helps the Agent perform a class of work. A Template is a structured starter prompt. Recommendation Cards can point to either, but `新 Skill` must navigate to a Skill detail page rather than fill the composer.
+
+**New Skill Recommendation vs other Capability types**:
+`新 Skill` may only recommend a Capability whose type is Skill. Pipelines, MCP Servers, and Plugins are different Capability types and should not be labeled `新 Skill`.
+
 ## Example Dialogue
 
 Developer: Should the new right-side surface be another Run Inspector view?
@@ -318,3 +353,19 @@ Domain expert: No. It is a Document Outline generated from H1-H6 headings. It is
 Developer: Does Feishu-like editing mean rebuilding the full Feishu document product?
 
 Domain expert: No. It means the ELN Editing Experience should borrow inline document cues for `.bmeln` editing, such as document-like inline editing, insertion controls, block affordances, and heading navigation. Collaboration, comments, sharing, permissioning, and full document platform features are out of scope.
+
+Developer: If a Recommendation Card says `继续任务`, should it fill the composer?
+
+Domain expert: No. It opens the related Thread. Only a `新任务` Recommendation Card fills the composer.
+
+Developer: Is a `新任务` Recommendation Card the same as an internal Agent task?
+
+Domain expert: No. It is a New Task Recommendation in the feed. Internal operational work should still use terms such as Work Order, Run, or Agent execution step.
+
+Developer: Is `新 Skill` just a Template with another name?
+
+Domain expert: No. It opens a Skill detail page under Capabilities. A Template is only a structured starter prompt.
+
+Developer: Can a `新 Skill` card point to an MCP Server or Plugin if it is useful?
+
+Domain expert: No. `新 Skill` is only for Skill capabilities. Use a different recommendation type if Pipelines, MCP Servers, or Plugins need to be recommended later.

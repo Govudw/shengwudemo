@@ -388,6 +388,30 @@ describe('App Product Management Platform route', () => {
 })
 
 describe('App Thread URL route', () => {
+  it.each(['Projects', 'Assets'] as const)(
+    'switches from %s to the Workspace new conversation from the sidebar',
+    (topNav) => {
+      const { container, root } = renderApp()
+
+      act(() => {
+        getButton(container, topNav).click()
+      })
+
+      expect(useDemoStore.getState().activeTopNav).toBe(topNav)
+
+      act(() => {
+        getButton(container, '新对话').click()
+      })
+
+      expect(useDemoStore.getState().activeTopNav).toBe('Workspace')
+      expect(container.querySelector('.workspace-main')).not.toBeNull()
+      expect(container.querySelector('.projects-page')).toBeNull()
+      expect(container.querySelector('.assets-workbench')).toBeNull()
+
+      root.unmount()
+    },
+  )
+
   it('keeps Thread routes under the configured GitHub Pages base path', () => {
     const routeId = '00pi1l7n010b2jvo'
 

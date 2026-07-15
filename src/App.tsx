@@ -457,6 +457,7 @@ function App() {
 
   function handleNewThread() {
     startNewThread()
+    selectTopNav('Workspace')
     navigateToPath('/')
   }
 
